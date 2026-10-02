@@ -26,7 +26,8 @@
         fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_period,wave_direction,sea_level_height_msl&timezone=${encodeURIComponent(TZ)}&forecast_days=3`).then(r => r.json()),
         fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&current=temperature_2m,wind_speed_10m,wind_direction_10m&timezone=${encodeURIComponent(TZ)}&forecast_days=1`).then(r => r.json()),
       ]);
-      const now = new Date().toLocaleString('sv-SE', { timeZone: TZ }).slice(0, 13).replace(' ', 'T') + ':00';
+      const nowFull = new Date().toLocaleString('sv-SE', { timeZone: TZ });
+      const now = nowFull.slice(0, 13).replace(' ', 'T') + ':00';
       const t = m.hourly.time;
       let i = t.indexOf(now); if (i < 0) i = 0;
       const lvl = m.hourly.sea_level_height_msl;
@@ -34,11 +35,19 @@
       const lo = Math.min(...win), hi = Math.max(...win);
       tideLevel.set((lvl[i] - lo) / (hi - lo || 1));
 
-      // find the next two tide turning points
+      // every high and low tide today (minutes refined between hourly points)
+      const today = now.slice(0, 10);
+      const nowMins = +nowFull.slice(11, 13) * 60 + +nowFull.slice(14, 16);
+      const d0 = Math.max(t.findIndex((x) => x.startsWith(today)), 0);
       const turns = [];
-      for (let k = i + 1; k < lvl.length - 1 && turns.length < 3; k++) {
-        if (lvl[k] > lvl[k-1] && lvl[k] >= lvl[k+1]) turns.push({ type: 'High', time: hhmm(t[k]), h: lvl[k] });
-        if (lvl[k] < lvl[k-1] && lvl[k] <= lvl[k+1]) turns.push({ type: 'Low', time: hhmm(t[k]), h: lvl[k] });
+      for (let k = Math.max(d0, 1); k < lvl.length - 1 && t[k].startsWith(today); k++) {
+        const high = lvl[k] > lvl[k - 1] && lvl[k] >= lvl[k + 1];
+        const low = lvl[k] < lvl[k - 1] && lvl[k] <= lvl[k + 1];
+        if (!high && !low) continue;
+        const off = (0.5 * (lvl[k - 1] - lvl[k + 1])) / (lvl[k - 1] - 2 * lvl[k] + lvl[k + 1]);
+        const mins = Math.round((k - d0 + (isFinite(off) ? off : 0)) * 60);
+        const time = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+        turns.push({ type: high ? 'High' : 'Low', time, past: mins < nowMins });
       }
       d = {
         wave: m.hourly.wave_height[i],
@@ -81,11 +90,11 @@
         <span class="meta">{(d.wave * 3.281).toFixed(0)} ft · {d.period.toFixed(0)}s period · from the {compass(d.dir)}</span>
         <p class="vibe">{vibe(d.wave)}</p>
       </div>
-      <div class="tile">
-        <span class="label">Tide</span>
+      <div class="tile wide">
+        <span class="label">Tide today</span>
         <span class="num sm">{d.rising ? 'Rising' : 'Falling'}</span>
         <ul class="turns">
-          {#each d.turns.slice(0, 2) as t}<li><b>{t.type}</b> {to12(t.time)}</li>{/each}
+          {#each d.turns as t}<li class:past={t.past}><b>{t.type}</b> {to12(t.time)}</li>{/each}
         </ul>
       </div>
       <div class="tile">
@@ -104,7 +113,7 @@
 </section>
 
 <style>
-  .surf { background: var(--deep); color: var(--sand); padding: 4rem 1.25rem 3rem; }
+  .surf { background: var(--deep); color: var(--sand); padding: 1.5rem 1.25rem 3rem; }
   .head, .grid, .credit, .err { max-width: 68rem; margin-inline: auto; }
   .sub { margin-top: .6rem; opacity: .8; }
   .grid { display: grid; gap: .9rem; margin-top: 2rem; grid-template-columns: 1fr 1fr; }
@@ -122,7 +131,9 @@
   .num small { font-size: .35em; font-weight: 500; margin-left: .15em; }
   .meta { opacity: .85; font-size: .95rem; }
   .vibe { font-weight: 500; margin-top: .4rem; }
-  .turns { list-style: none; margin: 0; padding: 0; font-size: .95rem; }
+  .turns { list-style: none; margin: .2rem 0 0; padding: 0; font-size: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem .9rem; }
+  .turns li.past { opacity: .45; }
+  .wide { grid-column: 1 / -1; }
   .skeleton { min-height: 7rem; animation: pulse 1.4s ease-in-out infinite; }
   .skeleton:first-child { grid-column: 1 / -1; min-height: 11rem; }
   @keyframes pulse { 50% { opacity: .45; } }
@@ -133,9 +144,9 @@
   }
   .err button:active { transform: scale(.95); }
   @media (min-width: 760px) {
-    .surf { padding: 6rem 2rem 4rem; }
-    .grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
-    .big { grid-column: auto; }
+    .surf { padding: 2rem 2rem 4rem; }
+    .grid { grid-template-columns: 1.2fr 1.6fr 1fr 1fr; }
+    .big, .wide { grid-column: auto; }
     .skeleton:first-child { grid-column: auto; }
   }
 </style>

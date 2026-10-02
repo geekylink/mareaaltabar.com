@@ -5,8 +5,8 @@
 
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' })).getDay();
   const tonight = EVENTS.find((e) => e.day === today);
-  // Hero water sits between 38% and 70% of hero height, following the real tide.
-  $: waterTop = 70 - $tideLevel * 32;
+  // Hero water sits between 50% and 78% of hero height, following the real tide.
+  $: waterTop = 78 - $tideLevel * 28;
 </script>
 
 <header class="hero">
@@ -75,7 +75,7 @@
 
 <style>
   .hero {
-    position: relative; overflow: hidden; min-height: 100svh; color: #fff;
+    position: relative; overflow: hidden; min-height: min(62svh, 34rem); color: #fff;
     padding: env(safe-area-inset-top) 1.25rem 0;
     background: linear-gradient(180deg, var(--marigold) 0%, var(--papaya) 38%, var(--hibiscus) 75%);
     display: flex; flex-direction: column;
@@ -86,7 +86,7 @@
   .links a { text-decoration: none; font-weight: 700; position: relative; padding-block: .25rem; }
   .links a::after { content: ''; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
   .links a:hover::after { transform: scaleX(1); }
-  .copy { position: relative; z-index: 3; max-width: 68rem; width: 100%; margin: 12vh auto 0; }
+  .copy { position: relative; z-index: 3; max-width: 68rem; width: 100%; margin: 4vh auto 3.5rem; }
   h1 { font-size: clamp(3rem, 14vw, 7.5rem); font-weight: 800; text-wrap: balance; }
   .copy p { margin-top: 1.25rem; font-size: 1.15rem; font-weight: 500; }
   .cta { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.75rem; }
