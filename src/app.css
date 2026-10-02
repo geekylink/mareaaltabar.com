@@ -1,0 +1,26 @@
+:root {
+  --papaya: #ff6b2c;
+  --hibiscus: #e8336d;
+  --marigold: #ffb627;
+  --sand: #fff3e0;
+  --deep: #0b3c49;
+  --ink: #1d1a17;
+  --font-display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+  --font-body: 'Figtree', system-ui, sans-serif;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--sand); color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.05; margin: 0; letter-spacing: -.02em; }
+h2 { font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 800; }
+p { margin: 0; max-width: 62ch; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--marigold); outline-offset: 3px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
