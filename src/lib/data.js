@@ -16,11 +16,11 @@ export const SOCIALS = [
 
 // day: 0 = Sunday … 6 = Saturday. PLACEHOLDER schedule: replace with the real one.
 export const EVENTS = [
-  { day: 0, title: 'Latin night', time: '8 PM - 2 AM', note: 'Salsa, bachata and reggaetón all night.' },
-  { day: 1, title: 'Singles night', time: '8 PM - 4 AM', note: 'Mingle with the singles.' },
+  { day: 0, title: 'Latin Night', time: '8 PM - 2 AM', note: 'Salsa, bachata and reggaetón all night.' },
+  { day: 1, title: 'Singles Night', time: '8 PM - 4 AM', note: 'Mingle with the singles.' },
   { day: 2, title: 'Closed'},
   { day: 3, title: 'Closed' },
-  { day: 4, title: 'Open Mic night', time: '8 PM - 2 AM', note: 'Come play music with us, bring an instrument or sing or play one of ours.' },
+  { day: 4, title: 'Open Mic Night', time: '8 PM - 2 AM', note: 'Come play music with us, bring an instrument or sing or play one of ours.' },
   { day: 5, title: 'Live Music', time: '8 PM - 4 AM', note: 'Live music all night.' },
   { day: 6, title: 'Live Music', time: '8 PM - 4 AM', note: 'The big one. Arrive early for a spot.' },
 ];
