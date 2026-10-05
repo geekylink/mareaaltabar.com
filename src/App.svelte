@@ -1,30 +1,43 @@
 <script>
   import Surf from './lib/Surf.svelte';
   import { tideLevel } from './lib/tide.js';
-  import { BAR, SOCIALS, EVENTS, DAYS } from './lib/data.js';
+  import { t, locale, fmt, LANGS } from './lib/i18n.js';
+  import { BAR, SOCIALS, EVENTS } from './lib/data.js';
 
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' })).getDay();
   const tonight = EVENTS.find((e) => e.day === today);
   // Hero water sits between 50% and 78% of hero height, following the real tide.
   $: waterTop = 78 - $tideLevel * 28;
+  $: vars = { full: BAR.full, name: BAR.name, town: BAR.town, year: new Date().getFullYear(), hours: $t.visit.hours };
+
+  $: if (typeof document !== 'undefined') {
+    document.documentElement.lang = $locale;
+    document.title = $t.meta.title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', $t.meta.description);
+  }
 </script>
 
 <header class="hero">
-  <nav aria-label="Main">
+  <nav aria-label={$t.ui.mainNav}>
     <span class="logo">{BAR.name}</span>
-    <div class="links">
-      <a href="#surf">Surf</a>
-      <a href="#party">Party</a>
-      <a href="#visit">Visit</a>
+    <div class="right">
+      <div class="links">
+        <a href="#surf">{$t.nav.surf}</a>
+        <a href="#party">{$t.nav.party}</a>
+        <a href="#visit">{$t.nav.visit}</a>
+      </div>
+      <select class="lang" bind:value={$locale} aria-label={$t.ui.language}>
+        {#each LANGS as l}<option value={l.code}>{l.label}</option>{/each}
+      </select>
     </div>
   </nav>
 
   <div class="copy">
-    <h1>Surf by day.<br />Dance by night.</h1>
-    <p>{BAR.full} in {BAR.town}. Check the swell, then find us.</p>
+    <h1>{$t.hero.line1}<br />{$t.hero.line2}</h1>
+    <p>{fmt($t.hero.tagline, vars)}</p>
     <div class="cta">
-      <a class="btn primary" href="#surf">Today's surf</a>
-      <a class="btn ghost" href="#party">Party schedule</a>
+      <a class="btn primary" href="#surf">{$t.hero.ctaSurf}</a>
+      <a class="btn ghost" href="#party">{$t.hero.ctaParty}</a>
     </div>
   </div>
 
@@ -41,19 +54,19 @@
 <Surf />
 
 <section class="party" id="party" aria-labelledby="party-h">
-  <h2 id="party-h">Party schedule</h2>
+  <h2 id="party-h">{$t.party.title}</h2>
   {#if tonight}
     <div class="tonight">
-      <span class="tag">Tonight</span>
-      <h3>{tonight.title}</h3>
-      <p>{tonight.time}. {tonight.note}</p>
+      <span class="tag">{$t.party.tonight}</span>
+      <h3>{$t.events[tonight.day].title}</h3>
+      <p>{tonight.time}. {$t.events[tonight.day].note}</p>
     </div>
   {/if}
   <ul class="week">
     {#each EVENTS as e}
       <li class:now={e.day === today}>
-        <span class="day">{DAYS[e.day]}</span>
-        <span class="what"><b>{e.title}</b><br />{e.note}</span>
+        <span class="day">{$t.days[e.day]}</span>
+        <span class="what"><b>{$t.events[e.day].title}</b><br />{$t.events[e.day].note}</span>
         <span class="time">{e.time}</span>
       </li>
     {/each}
@@ -61,9 +74,9 @@
 </section>
 
 <section class="visit" id="visit" aria-labelledby="visit-h">
-  <h2 id="visit-h">Find us</h2>
-  <p>{BAR.full}, {BAR.town}. {BAR.hours}.</p>
-  <a class="btn primary" href={BAR.mapsUrl} target="_blank" rel="noopener">Open map</a>
+  <h2 id="visit-h">{$t.visit.title}</h2>
+  <p>{fmt($t.visit.text, vars)}</p>
+  <a class="btn primary" href={BAR.mapsUrl} target="_blank" rel="noopener">{$t.visit.openMap}</a>
   <div class="socials">
     {#each SOCIALS as s}
       <a href={s.url} target="_blank" rel="noopener"><b>{s.name}</b><span>{s.handle}</span></a>
@@ -71,7 +84,7 @@
   </div>
 </section>
 
-<footer>© {new Date().getFullYear()} {BAR.full}. Montañita, Ecuador.</footer>
+<footer>{fmt($t.footer, vars)}</footer>
 
 <style>
   .hero {
@@ -81,8 +94,20 @@
     display: flex; flex-direction: column;
   }
   nav { position: relative; z-index: 3; display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 0; max-width: 68rem; width: 100%; margin-inline: auto; }
-  .logo { font: 800 1.35rem var(--font-display); }
-  .links { display: flex; gap: 1.25rem; }
+  .logo { font: 800 clamp(1.1rem, 4.5vw, 1.35rem) var(--font-display); }
+  .right { display: flex; align-items: center; gap: .8rem; }
+  .links { display: flex; gap: .9rem; font-size: .95rem; }
+  .lang {
+    appearance: none; -webkit-appearance: none; cursor: pointer; color: #fff;
+    font: 700 .9rem var(--font-body); padding: .3rem 1.6rem .3rem .75rem; border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, .75); background-color: rgba(255, 255, 255, .15);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right .6rem center;
+    transition: background-color .25s var(--ease), transform .2s var(--ease);
+  }
+  .lang:hover { background-color: rgba(255, 255, 255, .32); }
+  .lang:active { transform: scale(.95); }
+  .lang option { color: var(--ink); }
   .links a { text-decoration: none; font-weight: 700; position: relative; padding-block: .25rem; }
   .links a::after { content: ''; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .3s var(--ease); }
   .links a:hover::after { transform: scaleX(1); }
@@ -128,6 +153,8 @@
   footer { background: var(--deep); color: var(--sand); text-align: center; padding: 1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom)); font-size: .9rem; }
 
   @media (min-width: 760px) {
+    .links { gap: 1.25rem; font-size: 1.05rem; }
+    .right { gap: 1.25rem; }
     .hero { padding-inline: 2rem; }
     .party, .visit { padding-inline: 2rem; }
     .week li { grid-template-columns: 9rem 1fr auto; }

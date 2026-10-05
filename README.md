@@ -1,15 +1,19 @@
 # Marea Alta Surf Bar
 
-Svelte 5 + Vite, mobile first. No API keys needed.
+Svelte 5 + Vite, mobile first, English/Spanish. No API keys needed.
 
     npm install
     npm run dev       # http://localhost:5173
-    npm run build     # outputs dist/ — upload to Netlify, Vercel, Cloudflare Pages or any static host
+    npm run build     # outputs dist/ — upload to any static host
 
-## Edit content
-Everything the bar changes weekly (events, hours, socials) is in `src/lib/data.js`.
+## Editing the site
+- **All wording:** `src/content/en.js` (English) and `src/content/es.js` (Spanish). Same structure in both.
+  Missing Spanish keys fall back to English. `{full}`, `{town}`, `{year}` are filled in automatically.
+- **Weekly party schedule:** titles and descriptions per weekday in the content files; times in `src/lib/data.js`.
+- **Names, map link, social links:** `src/lib/data.js`.
+- **Add a language:** copy `en.js` to `src/content/xx.js`, translate it, add it to `LANGS` in `src/lib/i18n.js`.
+- The visitor's language choice is remembered; first visit follows the browser language.
 
 ## Surf widget
-`src/lib/Surf.svelte` calls the free Open-Meteo marine + forecast APIs from the visitor's browser
-(waves, tide, sunset, wind). Coordinates for Montañita are set at the top of the file.
-The hero's water level moves with the real tide.
+`src/lib/Surf.svelte` calls the free Open-Meteo marine + forecast APIs from the visitor's browser.
+Coordinates for Montañita are at the top of the file.

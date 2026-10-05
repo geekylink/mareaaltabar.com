@@ -1,0 +1,60 @@
+// ✏️ ENGLISH TEXT. Every word shown on the site lives here (and in es.js).
+// Placeholders like {full}, {town}, {year} are filled in automatically.
+export default {
+  meta: {
+    title: 'Marea Alta Surf Bar · Montañita',
+    description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
+  },
+  ui: { language: 'Language', mainNav: 'Main' },
+  nav: { surf: 'Surf', party: 'Party', visit: 'Visit' },
+  hero: {
+    line1: 'Surf by day.',
+    line2: 'Dance by night.',
+    tagline: '{full} in {town}. Check the swell, then find us.',
+    ctaSurf: "Today's surf",
+    ctaParty: 'Party schedule',
+  },
+  surf: {
+    title: 'Surf report',
+    subtitle: 'Montañita, live. Check it, then come have a drink.',
+    waves: 'Waves',
+    waveMeta: '{ft} ft · {period}s period · from the {dir}',
+    vibes: [
+      'Small and gentle. Longboard or learn day.',
+      'Fun size. Good for most levels.',
+      'Solid. Experienced surfers will be happy.',
+      'Big. Know your limits.',
+    ],
+    tideToday: 'Tide today',
+    rising: 'Rising',
+    falling: 'Falling',
+    high: 'High',
+    low: 'Low',
+    sunset: 'Sunset',
+    sunrise: 'Sunrise',
+    windAir: 'Wind & air',
+    compass: ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'],
+    error: "Couldn't load the surf data. Check your connection and try again.",
+    retry: 'Reload report',
+    credit: 'Data: Open-Meteo marine model. Tide times are approximate. Always check the water yourself.',
+  },
+  party: { title: 'Party schedule', tonight: 'Tonight' },
+  days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  // One entry per weekday, in the same order as "days" (Sunday first). Times are in data.js.
+  events: [
+    { title: 'Latin Night', note: 'Salsa, bachata and reggaetón all night.' },
+    { title: 'Singles Night',  note: 'Mingle with the singles.' },
+    { title: 'Closed'},
+    { title: 'Closed' },
+    { title: 'Open Mic Night', note: 'Come play music with us, bring an instrument or sing or play one of ours.' },
+    { title: 'Live Music', note: 'Live music all night.' },
+    { title: 'Live Music', note: 'The big one. Arrive early for a spot.' },
+  ],
+  visit: {
+    title: 'Find us',
+    text: '{full}, {town}. {hours}',
+    hours: 'Open daily, afternoon until late.',
+    openMap: 'Open map',
+  },
+  footer: '© {year} {full}. {town}.',
+};

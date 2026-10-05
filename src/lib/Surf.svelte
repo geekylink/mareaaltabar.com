@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { tideLevel } from './tide.js';
+  import { t as tx, fmt } from './i18n.js';
 
   const LAT = -1.8268, LON = -80.7517, TZ = 'America/Guayaquil';
   let state = 'loading'; // loading | ready | error
@@ -12,12 +13,8 @@
     const ap = h >= 12 ? 'PM' : 'AM';
     return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ap}`;
   };
-  const compass = (deg) => ['N','NE','E','SE','S','SW','W','NW'][Math.round(deg / 45) % 8];
-  const vibe = (m) =>
-    m < 0.6 ? 'Small and gentle. Longboard or learn day.'
-    : m < 1.2 ? 'Fun size. Good for most levels.'
-    : m < 2 ? 'Solid. Experienced surfers will be happy.'
-    : 'Big. Know your limits.';
+  const compass = (deg, c) => c.surf.compass[Math.round(deg / 45) % 8];
+  const vibe = (m, c) => c.surf.vibes[m < 0.6 ? 0 : m < 1.2 ? 1 : m < 2 ? 2 : 3];
 
   async function load() {
     state = 'loading';
@@ -69,8 +66,8 @@
 
 <section class="surf" id="surf" aria-labelledby="surf-h">
   <div class="head">
-    <h2 id="surf-h">Surf report</h2>
-    <p class="sub">Montañita, live. Check it, then come have a drink.</p>
+    <h2 id="surf-h">{$tx.surf.title}</h2>
+    <p class="sub">{$tx.surf.subtitle}</p>
   </div>
 
   {#if state === 'loading'}
@@ -79,36 +76,36 @@
     </div>
   {:else if state === 'error'}
     <div class="err">
-      <p>Couldn't load the surf data. Check your connection and try again.</p>
-      <button on:click={load}>Reload report</button>
+      <p>{$tx.surf.error}</p>
+      <button on:click={load}>{$tx.surf.retry}</button>
     </div>
   {:else}
     <div class="grid">
       <div class="tile big">
-        <span class="label">Waves</span>
+        <span class="label">{$tx.surf.waves}</span>
         <span class="num">{d.wave.toFixed(1)}<small>m</small></span>
-        <span class="meta">{(d.wave * 3.281).toFixed(0)} ft · {d.period.toFixed(0)}s period · from the {compass(d.dir)}</span>
-        <p class="vibe">{vibe(d.wave)}</p>
+        <span class="meta">{fmt($tx.surf.waveMeta, { ft: (d.wave * 3.281).toFixed(0), period: d.period.toFixed(0), dir: compass(d.dir, $tx) })}</span>
+        <p class="vibe">{vibe(d.wave, $tx)}</p>
       </div>
       <div class="tile wide">
-        <span class="label">Tide today</span>
-        <span class="num sm">{d.rising ? 'Rising' : 'Falling'}</span>
+        <span class="label">{$tx.surf.tideToday}</span>
+        <span class="num sm">{d.rising ? $tx.surf.rising : $tx.surf.falling}</span>
         <ul class="turns">
-          {#each d.turns as t}<li class:past={t.past}><b>{t.type}</b> {to12(t.time)}</li>{/each}
+          {#each d.turns as tp}<li class:past={tp.past}><b>{tp.type === 'High' ? $tx.surf.high : $tx.surf.low}</b> {to12(tp.time)}</li>{/each}
         </ul>
       </div>
       <div class="tile">
-        <span class="label">Sunset</span>
+        <span class="label">{$tx.surf.sunset}</span>
         <span class="num sm">{to12(d.sunset)}</span>
-        <span class="meta">Sunrise {to12(d.sunrise)}</span>
+        <span class="meta">{$tx.surf.sunrise} {to12(d.sunrise)}</span>
       </div>
       <div class="tile">
-        <span class="label">Wind &amp; air</span>
-        <span class="num sm">{Math.round(d.wind)}<small> km/h {compass(d.windDir)}</small></span>
+        <span class="label">{$tx.surf.windAir}</span>
+        <span class="num sm">{Math.round(d.wind)}<small> km/h {compass(d.windDir, $tx)}</small></span>
         <span class="meta">{Math.round(d.temp)}°C</span>
       </div>
     </div>
-    <p class="credit">Data: Open-Meteo marine model. Always check the water yourself.</p>
+    <p class="credit">{$tx.surf.credit}</p>
   {/if}
 </section>
 
