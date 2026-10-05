@@ -3,7 +3,7 @@ export const BAR = {
   name: 'Marea Alta',
   full: 'Marea Alta Surf Bar',
   town: 'Montañita, Ecuador',
-  mapsUrl: 'https://www.openstreetmap.org/search?query=Monta%C3%B1ita%20Ecuador',
+  mapsUrl: 'https://maps.app.goo.gl/gNra2E6JXjwXuAMD9?g_st=aw',
 };
 
 export const SOCIALS = [
