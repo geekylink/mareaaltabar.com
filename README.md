@@ -14,37 +14,49 @@ mareaaltabar.com/
 
 ## Quick Start
 
-### Frontend (Development)
+Two terminals. The backend owns the schedule data; the frontend displays it.
 
 ```bash
+# Terminal 1 — backend on :8000
+cd backend
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage_admin.py create admin yourpassword   # create the first admin
+uvicorn app.main:app --reload --port 8000
+```
+
+```bash
+# Terminal 2 — frontend on :5173 (proxies /api and /admin to :8000)
 cd frontend
 npm install
 npm run dev
 ```
 
-The site will be available at `http://localhost:5173`.
+- Site: <http://localhost:5173>
+- Admin panel: <http://localhost:8000/admin> (not linked from the site)
 
-### Backend (Development)
+### Production
+
+```bash
+cd frontend && npm run build     # emits frontend/dist
+cd ../backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The backend serves `frontend/dist` from the same origin, so everything lives on
+one domain and the site reads `/api/*` without CORS.
+
+### Tests
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# Create an admin user
-python manage_admin.py create admin yourpassword
-
-# Start the server
-uvicorn app.main:app --reload --port 8000
+python -m pytest tests/ -v
 ```
-
-The admin panel will be available at `http://localhost:8000/admin`.
 
 ## Documentation
 
-- [Frontend README](frontend/README.md) — Svelte site structure, content editing, deployment
-- [Backend README](backend/README.md) — API docs, admin panel, security, database schema
+- [Frontend README](frontend/README.md) — content editing, schedule data flow, deployment
+- [Backend README](backend/README.md) — API reference, admin panel, security, database schema
 
 ## Tech Stack
 

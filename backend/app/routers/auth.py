@@ -13,23 +13,27 @@ from app.database import get_db
 
 router = APIRouter()
 
-# In-memory rate limiting storage: IP -> list of timestamps
-_login_attempts: dict[str, list[float]] = defaultdict(list)
+# In-memory rate limiting: IP -> timestamps of recent FAILED login attempts.
+# Only failures count, so legitimate admins are never locked out by normal use.
+_failed_attempts: dict[str, list[float]] = defaultdict(list)
 
 
-def _check_rate_limit(ip: str) -> bool:
-    """Return True if the IP is allowed to attempt login, False if rate limited."""
-    now = time.monotonic()
-    window_seconds = settings.RATE_LIMIT_WINDOW_MINUTES * 60
+def reset_rate_limit() -> None:
+    """Clear all recorded failed attempts. Used by the test suite."""
+    _failed_attempts.clear()
 
-    attempts = _login_attempts[ip]
-    cutoff = now - window_seconds
+
+def _is_rate_limited(ip: str) -> bool:
+    """True if this IP has too many recent failed attempts."""
+    cutoff = time.monotonic() - settings.RATE_LIMIT_WINDOW_MINUTES * 60
+    attempts = _failed_attempts[ip]
     attempts[:] = [t for t in attempts if t > cutoff]
+    return len(attempts) >= settings.RATE_LIMIT_ATTEMPTS
 
-    if len(attempts) >= settings.RATE_LIMIT_ATTEMPTS:
-        return False
-    attempts.append(now)
-    return True
+
+def _record_failure(ip: str) -> None:
+    """Record one failed login attempt."""
+    _failed_attempts[ip].append(time.monotonic())
 
 
 @router.post("/admin/login")
@@ -41,45 +45,40 @@ async def login(
 ):
     ip = request.client.host if request.client else "unknown"
 
-    if not _check_rate_limit(ip):
-        return RedirectResponse(
-            url="/admin/login?error=rate_limited",
-            status_code=303,
-        )
+    if _is_rate_limited(ip):
+        return RedirectResponse(url="/admin/login?error=rate_limited", status_code=303)
 
     admin = auth.authenticate_admin(db, username, password)
     if admin is None:
-        return RedirectResponse(
-            url="/admin/login?error=1",
-            status_code=303,
-        )
+        _record_failure(ip)
+        return RedirectResponse(url="/admin/login?error=1", status_code=303)
+
+    # Success clears any prior failures for this IP
+    _failed_attempts.pop(ip, None)
 
     session = auth.create_session(db, admin.id)
 
-    # Build redirect response
     response = RedirectResponse(url="/admin", status_code=303)
+    max_age = settings.SESSION_TTL_HOURS * 3600
 
-    # Set session cookie (HttpOnly)
     response.set_cookie(
         key="session_token",
         value=session.token,
-        max_age=settings.SESSION_TTL_HOURS * 3600,
+        max_age=max_age,
         httponly=True,
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         path="/",
     )
-    # Set CSRF cookie (NOT HttpOnly — JS must read it)
     response.set_cookie(
         key="csrf_token",
         value=session.csrf_token,
-        max_age=settings.SESSION_TTL_HOURS * 3600,
+        max_age=max_age,
         httponly=False,
         secure=settings.COOKIE_SECURE,
         samesite="lax",
         path="/",
     )
-
     return response
 
 

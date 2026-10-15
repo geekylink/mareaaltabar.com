@@ -1,29 +1,30 @@
-// ✏️ TEXTO EN ESPAÑOL. Misma estructura que en.js.
-// Si falta una clave aquí, el sitio usa automáticamente el texto en inglés.
+// SPANISH TEXT. Every word shown on the site lives here (and in en.js).
+// Missing keys fall back to English.
+// Party schedule data (events, hours, closed days) is fetched from the backend API.
 export default {
   meta: {
     title: 'Marea Alta Surf Bar · Montañita',
-    description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y mareas en vivo, y la agenda semanal de fiestas.',
+    description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
-  ui: { language: 'Idioma', mainNav: 'Principal' },
-  nav: { surf: 'Surf', party: 'Fiesta', visit: 'Visítanos' },
+  ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error' },
+  nav: { surf: 'Surf', party: 'Fiestas', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',
     line2: 'Baile de noche.',
-    tagline: '{full} en {town}. Revisa el oleaje y luego ven a vernos.',
+    tagline: '{full} en {town}. Revisa las olas, luego ven a tomar algo.',
     ctaSurf: 'Surf de hoy',
-    ctaParty: 'Agenda de fiestas',
+    ctaParty: 'Programación de fiestas',
   },
   surf: {
     title: 'Reporte de surf',
-    subtitle: 'Montañita en vivo. Míralo y luego ven por un trago.',
+    subtitle: 'Montañita, en vivo. Revisa y ven a tomar algo.',
     waves: 'Olas',
-    waveMeta: '{ft} ft · período {period}s · del {dir}',
+    waveMeta: '{ft} ft · {period}s período · desde el {dir}',
     vibes: [
-      'Pequeñas y suaves. Día de longboard o para aprender.',
-      'Tamaño divertido. Bueno para casi todos los niveles.',
-      'Sólidas. Los surfistas con experiencia lo van a disfrutar.',
-      'Grandes. Conoce tus límites.',
+      'Pequeño y suave. Tabla larga o día de aprendizaje.',
+      'Tamaño divertido. Bueno para la mayoría de niveles.',
+      'Sólido. Los surfistas experimentados estarán felices.',
+      'Grande. Conoce tus límites.',
     ],
     tideToday: 'Marea de hoy',
     rising: 'Subiendo',
@@ -34,25 +35,16 @@ export default {
     sunrise: 'Amanecer',
     windAir: 'Viento y aire',
     compass: ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'],
-    error: 'No se pudo cargar el reporte de surf. Revisa tu conexión e inténtalo de nuevo.',
+    error: 'No se pudieron cargar los datos de surf. Revisa tu conexión e intenta de nuevo.',
     retry: 'Recargar reporte',
-    credit: 'Datos: modelo marino Open-Meteo. Las horas de marea son aproximadas. Revisa siempre el mar tú mismo.',
+    credit: 'Datos: Open-Meteo modelo marino. Los tiempos de marea son aproximados. Siempre verifica el agua tú mismo.',
   },
-  party: { title: 'Agenda de fiestas', tonight: 'Esta noche' },
+  party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
   days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-  events: [
-    { title: 'Noche Latina', note: 'Salsa, bachata y reggaetón toda la noche.' },
-    { title: 'Noche de Solteros', note: 'Socializa con otros solteros.' },
-    { title: 'Cerrado' },
-    { title: 'Cerrado' },
-    { title: 'Noche de Micrófono Abierto', note: 'Ven a tocar música con nosotros, trae un instrumento o canta o toca uno de los nuestros.' },
-    { title: 'Música en Vivo', note: 'Música en vivo toda la noche.' },
-    { title: 'Música en Vivo', note: 'El evento principal. Llega temprano para alcanzar lugar.' },
-  ],
   visit: {
     title: 'Encuéntranos',
     text: '{full}, {town}. {hours}',
-    hours: 'Abierto todos los días, desde la tarde hasta tarde en la noche.',
+    hours: 'Abierto todos los días, de tarde hasta tarde.',
     openMap: 'Abrir mapa',
   },
   footer: '© {year} {full}. {town}.',

@@ -1,14 +1,70 @@
 <script>
+  import { onDestroy } from 'svelte';
   import Surf from './lib/Surf.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
-  import { BAR, SOCIALS, EVENTS } from './lib/data.js';
+  import { BAR, SOCIALS } from './lib/data.js';
+  import { fetchAll } from './lib/api.js';
+
+  // Events and hours are fetched from the backend API
+  let eventsData = [];
+  let hoursData = [];
+  let closedDaysData = [];
+  let loading = true;
+  let loadError = null;
 
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' })).getDay();
-  const tonight = EVENTS.find((e) => e.day === today);
+
+  // Reactive: recomputed whenever API data arrives, not just at startup.
+  $: tonight = eventsData.find((e) => e.day === today);
+  $: tonightHours = hoursData.find((h) => h.day === today);
+  $: tonightClosed = tonightHours?.is_closed || tonight?.title === 'Closed';
+  $: tonightLabel = tonightClosed
+    ? $t.party.closedToday
+    : [tonight?.time, tonight?.note].filter(Boolean).join('. ');
+
   // Hero water sits between 50% and 78% of hero height, following the real tide.
   $: waterTop = 78 - $tideLevel * 28;
-  $: vars = { full: BAR.full, name: BAR.name, town: BAR.town, year: new Date().getFullYear(), hours: $t.visit.hours };
+
+  $: todayHours = hoursData.find((h) => h.day === today);
+  $: hoursText = !todayHours
+    ? $t.visit.hours
+    : todayHours.is_closed
+      ? $t.party.closedToday
+      : todayHours.open_time && todayHours.close_time
+        ? `${todayHours.open_time} - ${todayHours.close_time}`
+        : $t.visit.hours;
+  $: vars = { full: BAR.full, name: BAR.name, town: BAR.town, year: new Date().getFullYear(), hours: hoursText };
+
+  function formatDayTime(event, hours) {
+    if (hours?.is_closed) return $t.party.closedToday;
+    if (event.time) return event.time;
+    if (hours?.open_time && hours?.close_time) return `${hours.open_time} - ${hours.close_time}`;
+    return '';
+  }
+
+  async function loadData() {
+    loading = true;
+    loadError = null;
+    try {
+      const result = await fetchAll();
+      eventsData = result.events.data;
+      hoursData = result.hours.data;
+      closedDaysData = result.closedDays.data;
+      // Only surface a notice if we have data to show alongside it.
+      const fallback = result.events.error || result.hours.error || result.closedDays.error;
+      loadError = fallback && eventsData.length > 0 ? fallback : null;
+    } catch (err) {
+      loadError = err.message;
+    } finally {
+      loading = false;
+    }
+  }
+
+  // Fetch on page load, then hourly so long-lived tabs stay current.
+  loadData();
+  const refreshTimer = setInterval(loadData, 60 * 60 * 1000);
+  onDestroy(() => clearInterval(refreshTimer));
 
   $: if (typeof document !== 'undefined') {
     document.documentElement.lang = $locale;
@@ -16,6 +72,8 @@
     document.querySelector('meta[name="description"]')?.setAttribute('content', $t.meta.description);
   }
 </script>
+
+<svelte:window on:unmount={() => clearInterval(refreshInterval)} />
 
 <header class="hero">
   <nav aria-label={$t.ui.mainNav}>
@@ -53,25 +111,57 @@
 
 <Surf />
 
-<section class="party" id="party" aria-labelledby="party-h">
-  <h2 id="party-h">{$t.party.title}</h2>
-  {#if tonight}
-    <div class="tonight">
-      <span class="tag">{$t.party.tonight}</span>
-      <h3>{$t.events[tonight.day].title}</h3>
-      <p>{tonight.time}. {$t.events[tonight.day].note}</p>
+{#if loading && eventsData.length === 0}
+  <div class="loading-state">
+    <p>{$t.ui.loading}</p>
+  </div>
+{:else if eventsData.length === 0}
+  <div class="error-state">
+    <p>{loadError || $t.ui.error}</p>
+    <button class="btn primary" on:click={loadData}>{$t.ui.retry}</button>
+  </div>
+{:else}
+  <section class="party" id="party" aria-labelledby="party-h">
+    <div class="section-header">
+      <h2 id="party-h">{$t.party.title}</h2>
+      <button class="btn-refresh" on:click={loadData}>{$t.ui.refresh}</button>
     </div>
-  {/if}
-  <ul class="week">
-    {#each EVENTS as e}
-      <li class:now={e.day === today}>
-        <span class="day">{$t.days[e.day]}</span>
-        <span class="what"><b>{$t.events[e.day].title}</b><br />{$t.events[e.day].note}</span>
-        <span class="time">{e.time}</span>
-      </li>
-    {/each}
-  </ul>
-</section>
+    {#if loadError}
+      <p class="cache-notice">{$t.party.cacheNotice}</p>
+    {/if}
+    {#if tonight && !tonightClosed}
+      <div class="tonight">
+        <span class="tag">{$t.party.tonight}</span>
+        <h3>{tonight.title}</h3>
+        {#if tonightLabel}<p>{tonightLabel}</p>{/if}
+      </div>
+    {/if}
+    <ul class="week">
+      {#each eventsData as e (e.day)}
+        {@const dayHours = hoursData.find((h) => h.day === e.day)}
+        {@const isClosed = dayHours?.is_closed || e.title === 'Closed'}
+        <li class:now={e.day === today} class:closed={isClosed}>
+          <span class="day">{$t.days[e.day]}</span>
+          <span class="what">
+            <b>{e.title || $t.party.noEvent}</b>
+            {#if e.note && !isClosed}<br />{e.note}{/if}
+          </span>
+          <span class="time">{formatDayTime(e, dayHours)}</span>
+        </li>
+      {/each}
+    </ul>
+    {#if closedDaysData.length > 0}
+      <div class="closed-days">
+        <h3>{$t.party.closedToday}</h3>
+        <ul>
+          {#each closedDaysData as d (d.id)}
+            <li>{d.date}{d.reason ? ' — ' + d.reason : ''}</li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+  </section>
+{/if}
 
 <section class="visit" id="visit" aria-labelledby="visit-h">
   <h2 id="visit-h">{$t.visit.title}</h2>
@@ -133,7 +223,34 @@
   @keyframes drift { to { transform: translateX(-50%); } }
   .w1, .w2 { transform-box: fill-box; }
 
+  .loading-state, .error-state {
+    padding: 4rem 1.25rem;
+    text-align: center;
+    max-width: 68rem;
+    margin-inline: auto;
+  }
+  .error-state .btn { margin-top: 1rem; }
+
   .party { padding: 4rem 1.25rem; max-width: 68rem; margin-inline: auto; }
+  .section-header { display: flex; justify-content: space-between; align-items: center; }
+  .btn-refresh {
+    background: none;
+    border: 2px solid var(--deep);
+    color: var(--deep);
+    padding: .4rem .9rem;
+    border-radius: 999px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .btn-refresh:hover { background: var(--deep); color: #fff; }
+  .cache-notice {
+    font-size: .85rem;
+    color: #888;
+    margin-top: .5rem;
+    font-style: italic;
+  }
   .tonight { margin-top: 1.75rem; padding: 1.5rem; border-radius: 1.5rem; color: #fff; background: linear-gradient(135deg, var(--hibiscus), var(--papaya)); }
   .tag { display: inline-block; background: #fff; color: var(--hibiscus); font-weight: 700; font-size: .9rem; padding: .15rem .7rem; border-radius: 999px; margin-bottom: .6rem; }
   .tonight h3 { font-size: clamp(2rem, 9vw, 3.2rem); }
@@ -142,9 +259,15 @@
   .week li { display: grid; grid-template-columns: 6.5rem 1fr auto; gap: .75rem; align-items: baseline; padding: 1rem .75rem; border-bottom: 2px solid rgba(29, 26, 23, .12); border-radius: .75rem; transition: background .25s, padding-left .25s var(--ease); }
   .week li:hover { background: rgba(255, 182, 39, .3); padding-left: 1.25rem; }
   .week li.now { background: rgba(255, 107, 44, .15); }
+  .week li.closed { opacity: .6; }
   .day { font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; }
   .what { font-size: .98rem; }
   .time { font-weight: 700; white-space: nowrap; }
+
+  .closed-days { margin-top: 1.5rem; padding: 1.25rem; border-radius: 1rem; background: rgba(255, 107, 44, .08); }
+  .closed-days h3 { font-size: 1rem; color: var(--deep); margin-bottom: .5rem; }
+  .closed-days ul { list-style: none; }
+  .closed-days li { padding: .3rem 0; font-size: .9rem; color: #555; }
 
   .visit { padding: 3rem 1.25rem 4rem; max-width: 68rem; margin-inline: auto; display: flex; flex-direction: column; gap: 1.25rem; align-items: flex-start; }
   .socials { display: grid; gap: .75rem; width: 100%; margin-top: .75rem; }

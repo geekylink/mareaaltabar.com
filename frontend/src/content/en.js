@@ -1,11 +1,12 @@
-// ✏️ ENGLISH TEXT. Every word shown on the site lives here (and in es.js).
+// ENGLISH TEXT. Every word shown on the site lives here (and in es.js).
 // Placeholders like {full}, {town}, {year} are filled in automatically.
+// Party schedule data (events, hours, closed days) is fetched from the backend API.
 export default {
   meta: {
     title: 'Marea Alta Surf Bar · Montañita',
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
   },
-  ui: { language: 'Language', mainNav: 'Main' },
+  ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error' },
   nav: { surf: 'Surf', party: 'Party', visit: 'Visit' },
   hero: {
     line1: 'Surf by day.',
@@ -38,18 +39,8 @@ export default {
     retry: 'Reload report',
     credit: 'Data: Open-Meteo marine model. Tide times are approximate. Always check the water yourself.',
   },
-  party: { title: 'Party schedule', tonight: 'Tonight' },
+  party: { title: 'Party schedule', tonight: 'Tonight', closedToday: 'Closed today', noEvent: 'No event scheduled', cacheNotice: 'Showing cached data (offline)' },
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-  // One entry per weekday, in the same order as "days" (Sunday first). Times are in data.js.
-  events: [
-    { title: 'Latin Night', note: 'Salsa, bachata and reggaetón all night.' },
-    { title: 'Singles Night',  note: 'Mingle with the singles.' },
-    { title: 'Closed'},
-    { title: 'Closed' },
-    { title: 'Open Mic Night', note: 'Come play music with us, bring an instrument or sing or play one of ours.' },
-    { title: 'Live Music', note: 'Live music all night.' },
-    { title: 'Live Music', note: 'The big one. Arrive early for a spot.' },
-  ],
   visit: {
     title: 'Find us',
     text: '{full}, {town}. {hours}',

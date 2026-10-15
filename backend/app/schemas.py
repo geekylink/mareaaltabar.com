@@ -1,6 +1,8 @@
 """Pydantic request/response models."""
 
-from pydantic import BaseModel, Field
+from datetime import date
+
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Auth ---
@@ -43,8 +45,16 @@ class HoursResponse(BaseModel):
 # --- Closed Days ---
 
 class ClosedDayCreate(BaseModel):
-    date: str = Field(min_length=10, max_length=10)  # YYYY-MM-DD
+    date: date
     reason: str = Field(default="", max_length=255)
+
+    @field_validator("date")
+    @classmethod
+    def _reject_past(cls, v: date) -> date:
+        """Closed days must be today or later; past entries are a data-entry mistake."""
+        if v < date.today():
+            raise ValueError("date cannot be in the past")
+        return v
 
 
 class ClosedDayResponse(BaseModel):

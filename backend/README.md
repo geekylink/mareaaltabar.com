@@ -31,9 +31,24 @@ Copy `.env` and adjust values as needed:
 # Development (auto-reload)
 uvicorn app.main:app --reload --port 8000
 
-# Production
+# Production: build the frontend first, then the backend serves it
+cd ../frontend && npm run build && cd ../backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
+
+When `frontend/dist` exists, the backend serves the site from the same origin at
+`/`, so the site and the API that feeds it share a domain (no CORS needed).
+
+## Testing
+
+```bash
+pip install pytest httpx
+python -m pytest tests/ -v
+```
+
+The suite runs against an in-memory database and covers login/session handling,
+CSRF enforcement, the admin CRUD API, and end-to-end propagation of admin edits
+to the public read endpoints. Tests never touch `data/marea_alta.db`.
 
 ## Admin Management
 
@@ -63,17 +78,26 @@ The admin panel is not linked from the public website. It is only accessible by 
 
 ## API Endpoints
 
-All API endpoints require authentication (session cookie) and CSRF token.
+**Read endpoints are public** — the website fetches them with no login. They are
+the single source of truth for the party schedule.
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/events` | Public | List all 7 day events |
+| `GET` | `/api/hours` | Public | List all 7 day hours |
+| `GET` | `/api/closed-days` | Public | List all closed days |
+
+**Write endpoints require an admin session and a CSRF token.**
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/events` | List all 7 day events |
 | `PUT` | `/api/events/{day}` | Update event for a weekday (0=Sun, 6=Sat) |
-| `GET` | `/api/hours` | List all 7 day hours |
 | `PUT` | `/api/hours/{day}` | Update hours for a weekday |
-| `GET` | `/api/closed-days` | List all closed days |
-| `POST` | `/api/closed-days` | Add a closed day |
+| `POST` | `/api/closed-days` | Add a closed day (today or later) |
 | `DELETE` | `/api/closed-days/{id}` | Remove a closed day |
+
+Reads send `Cache-Control: no-cache` so admin edits appear without visitors
+having to hard-refresh.
 
 ## Security
 
@@ -81,7 +105,8 @@ All API endpoints require authentication (session cookie) and CSRF token.
 - **Sessions**: Server-side in SQLite, cryptographically random tokens, 8-hour expiry
 - **Cookies**: HttpOnly, SameSite=Lax, Secure in production
 - **CSRF protection**: Double-submit cookie pattern on all state-changing requests
-- **Rate limiting**: 5 login attempts per 10 minutes per IP
+- **Rate limiting**: 5 *failed* login attempts per 10 minutes per IP (successes don't count, so regular use never locks anyone out)
+- **Authorization**: Read endpoints are public; all writes and the entire admin panel require a session
 - **Security headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **SQL injection**: SQLAlchemy 2.0 parameterized queries
 - **XSS**: Jinja2 auto-escaping, no inline scripts
