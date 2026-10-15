@@ -39,7 +39,6 @@ Project manager note:
   - [39. Uptime monitoring & health endpoint](#39-uptime-monitoring--health-endpoint)
   - [45. Security headers: HSTS & CSP](#45-security-headers-hsts--csp)
 - [Tier 1 — Get Found](#tier-1--get-found)
-  - [46. Server-render the schedule and hours for crawlers](#46-server-render-the-schedule-and-hours-for-crawlers)
   - [5. Add structured data (Schema.org LocalBusiness)](#5-add-structured-data-schemaorg-localbusiness)
   - [6. Display phone number and address prominently](#6-display-phone-number-and-address-prominently)
   - [2. Add WhatsApp floating button](#2-add-whatsapp-floating-button)
@@ -107,6 +106,8 @@ Project manager note:
 **Impact:** 🔴 · **Effort:** 🟡 · **Category:** DevOps
 
 Provision a VPS, install Python 3.12, and run the backend as a managed service. `backend/app/main.py` already mounts `frontend/dist` as a static mount registered *last*, so FastAPI can serve the whole site from one origin with no CORS — that design is the reason this ticket is straightforward. Add a systemd unit (survives reboot, restarts on crash, `--reload` off in production), and an nginx reverse proxy in front of it for TLS, static caching, and gzip. Terminate TLS with Let's Encrypt and redirect HTTP to HTTPS — ticket #45 and the `Secure` cookie flag both depend on it. Set `ENVIRONMENT=production` so `/docs` is disabled and cookies require HTTPS. Document the deploy in `backend/README.md`.
+
+**Since #46:** nginx must proxy `/` to uvicorn rather than serving `dist/index.html` itself — serving the file directly bypasses the server-rendered schedule and puts the hours back out of reach of crawlers. `/assets/` can still be served from disk with a long cache lifetime.
 
 **Files:** new `deploy/marea-alta.service`, new `deploy/nginx.conf`, `backend/README.md` (deploy section), `backend/.env`
 
@@ -177,16 +178,7 @@ Monitoring a two-tier app by pinging the homepage will miss most failures — th
 
 ## Tier 1 — Get Found
 
-*Discovery work. Unchanged in intent from the original Sprint 0, with one addition that everything else now depends on: the schedule is fetched client-side, so Google cannot read it.*
-
-### 46. Server-render the schedule and hours for crawlers
-**Impact:** 🔴 · **Effort:** 🟡 · **Category:** SEO
-
-A direct and self-inflicted regression from adding the backend. `App.svelte` fetches `/api/schedule` on mount, so the hours, the party titles, and the closure notices are absent from the HTML Google receives. For a local bar, that data *is* the search result — "Marea Alta happy hour", "bars open late Montañita" — and right now none of it is indexable. This also blocks #5, because `openingHours` cannot be hardcoded when the hours are live data. Fix by rendering the schedule into the HTML at the server: the cheapest route is to build the frontend with a prerender step that calls the API at build time, but a cleaner one is a small server-rendered page nginx or FastAPI serves for crawlers. Whichever is chosen, the payload must include the *current* hours and tonight's title in plain HTML.
-
-**Files:** `frontend/vite.config.js` (prerender step), or new server-rendered route in `backend/app/main.py`, `frontend/src/App.svelte`
-
----
+*Discovery work. Unchanged in intent from the original Sprint 0, with one addition that everything else now depends on: the schedule is fetched client-side, so Google cannot read it.* — **that gap is closed; #46 has shipped.** The rest of the tier builds on top of it.
 
 ### 5. Add structured data (Schema.org LocalBusiness)
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** SEO
@@ -314,7 +306,7 @@ The bar runs promos on different days and the site does not mention them. Now th
 ### 18. Add drink pricing and descriptions
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** Content
 
-Deliberately kept as a separate ticket from #1 because it is content work, not engineering, and can be done by anyone with access to the admin panel. Add price and a description to every menu item, with proper detail for signature cocktails — ingredients, flavour profile, the story behind it. Positioning Marea Alta as a cocktail destination rather than a beach bar is the entire point, and a menu of bare names and numbers does not do it. `docs/bar_menu.md` has prices but no descriptions, so both are still outstanding.
+Deliberately kept as a separate ticket from menu because it is content work, not engineering, and can be done by anyone with access to the admin panel. Add price and a description to every menu item, with proper detail for signature cocktails — ingredients, flavour profile, the story behind it. Positioning Marea Alta as a cocktail destination rather than a beach bar is the entire point, and a menu of bare names and numbers does not do it. `docs/bar_menu.md` has prices but no descriptions, so both are still outstanding.
 
 **Files:** `backend/app/templates/admin/menu.html` (fields from #1), data in the `menu_items` table
 
@@ -645,7 +637,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
 | | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
 | | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
-| | 46 | Server-render schedule & hours for crawlers | 🔴 | 🟡 | SEO |
+| ✅ | 46 | Server-render schedule & hours for crawlers | 🔴 | 🟡 | SEO |
 | | 5 | Add structured data (Schema.org) | 🟠 | 🟢 | SEO |
 | | 6 | Display phone number and address | 🔴 | 🟢 | UX |
 | | 2 | Add WhatsApp floating button | 🔴 | 🟢 | Growth |
@@ -709,8 +701,8 @@ Tickets 36, 39, 35.
 *Goal: Every change is tested and deployed automatically, and a failure pages someone. Fixes the broken CI in #36 and closes the gap #35 leaves.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
-Tickets 46, 5, 6, 2, 47, 3, 4, 48, 9.
-*Goal: Make the bar discoverable. #46 comes first because the schedule and hours are the content people search for, and they are currently invisible to crawlers; #5 and #6 depend on it.*
+Tickets ~~46~~, 5, 6, 2, 47, 3, 4, 48, 9.
+*Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #5 and #6 build on it.*
 
 **Sprint 3 — "Sell the drinks" (2 weeks)**
 Tickets 1, 17, 16, 49, 7, 18, 11, 30, 10.
@@ -734,6 +726,9 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
 
+## Server-rendered schedule (#46)
+**Shipped** — The homepage is rendered by FastAPI rather than served off disk. `app/ssr.py` reads `frontend/dist/index.html` and injects the current week — tonight's party, every day's title, description and opening hours, and any closure notices — as plain HTML inside `#app`, so a crawler receives it without executing anything. The same payload is handed to the SPA as `window.__MAREA_ALTA_DATA__`, so the first paint needs no request and the visitor never sees a loading state; the app replaces the block on mount. Rendering happens at request time rather than at build time, because the hours are editable from the admin panel and a build-time render would publish stale ones. `?lang=es` renders the Spanish block, `Cache-Control: no-cache` keeps it current, and the JSON API and the HTML are served from one set of loaders so they cannot disagree.
+
 ## The bilingual schedule system
 **Shipped** — Weekly party schedule, opening hours and one-off closed days are managed in the SQLite database and edited from a bilingual admin panel at `/admin`. Public read endpoints (`GET /api/schedule`, `GET /api/closed-days`) return every string in both languages, so the frontend switches language without a second request. `pick()` falls back to English when a translation is blank. Non-destructive migrations in `app/migrate.py` upgrade legacy single-language content and normalise legacy `4:00 PM` times to `HH:MM`.
 
@@ -741,7 +736,7 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 **Shipped** — bcrypt password hashing, server-side sessions in SQLite with random 64-char tokens and 8-hour expiry, HttpOnly + SameSite=Lax cookies (Secure in production), double-submit CSRF protection on all writes, login rate limiting, and a bilingual admin panel that is not linked from the public site.
 
 ## Automated testing foundations
-**Shipped** — ~920 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule and closed-days CRUD, migrations, and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time formatting, and a regression guard proving the schedule re-renders on language switch without a remount. Expanded further by ticket #35.
+**Shipped** — ~1,100 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule and closed-days CRUD, migrations, the server-rendered homepage (including HTML escaping and admin-edit propagation), and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time formatting, the server-rendered payload handover, a regression guard proving the app replaces the server-rendered block rather than stacking on it, and a guard keeping the server-rendered labels identical to the site's own wording. Expanded further by ticket #35.
 
 ## Production build pipeline
-**Shipped** — Vite builds the frontend to `frontend/dist`, and the FastAPI app serves that directory from the same origin so the site and the API share a domain with no CORS and working cookies. The static mount is registered last so it only handles requests the API and admin routes did not claim. Deployment itself is ticket #41.
+**Shipped** — Vite builds the frontend to `frontend/dist`, and the FastAPI app serves that directory from the same origin so the site and the API share a domain with no CORS and working cookies. `/` is rendered rather than served (see #46 above); the static mount is registered last so it only handles requests the API, admin and index routes did not claim. Deployment itself is ticket #41.

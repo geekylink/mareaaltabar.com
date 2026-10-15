@@ -1,0 +1,27 @@
+{#- Styles for the server-rendered schedule block, injected into <head>.
+
+    The SPA's CSS is built from Svelte's scoped component styles, so none of it
+    applies to server-rendered markup. These rules exist for the window between
+    the HTML arriving and main.js replacing the block, plus for visitors with
+    JavaScript disabled — who get this and no further. -#}
+<style>
+  #marea-schedule { padding: 3rem 1.25rem; max-width: 68rem; margin-inline: auto; }
+  #marea-schedule h2 { font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 1.5rem; }
+  #marea-schedule .ms-eyebrow { font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #0b3c49; margin: 2.25rem 0 .5rem; }
+  #marea-schedule .ms-tonight { padding: 1.25rem 1.5rem; border-radius: 1.5rem; color: #fff; background: linear-gradient(135deg, #e8336d, #ff6b2c); }
+  #marea-schedule .ms-tonight h3 { font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; font-size: clamp(1.6rem, 6vw, 2.4rem); font-weight: 800; margin: 0 0 .5rem; }
+  #marea-schedule .ms-tonight p { margin: 0; }
+  #marea-schedule .ms-week { list-style: none; padding: 0; margin: 0; }
+  #marea-schedule .ms-week li { display: grid; grid-template-columns: 6.5rem 1fr auto; gap: .75rem; align-items: baseline; padding: 1rem .75rem; border-bottom: 2px solid rgba(29, 26, 23, .12); }
+  #marea-schedule .ms-week li.is-today { background: rgba(255, 107, 44, .15); border-radius: .75rem; }
+  #marea-schedule .ms-week li.is-closed { opacity: .6; }
+  #marea-schedule .ms-day { font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; font-weight: 800; }
+  #marea-schedule .ms-hours { font-weight: 700; white-space: nowrap; }
+  #marea-schedule .ms-closed-days { margin-top: 2.5rem; padding: 1.25rem; border-radius: 1rem; background: rgba(255, 107, 44, .08); }
+  #marea-schedule .ms-closed-days ul { list-style: none; padding: 0; margin: 0; }
+  #marea-schedule .ms-closed-days li { padding: .3rem 0; }
+  @media (min-width: 760px) {
+    #marea-schedule { padding-inline: 2rem; }
+    #marea-schedule .ms-week li { grid-template-columns: 9rem 1fr auto; }
+  }
+</style>

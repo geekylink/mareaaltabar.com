@@ -47,8 +47,9 @@ python -m pytest tests/ -v
 ```
 
 The suite runs against an in-memory database and covers login/session handling,
-CSRF enforcement, the admin CRUD API, and end-to-end propagation of admin edits
-to the public read endpoints. Tests never touch `data/marea_alta.db`.
+CSRF enforcement, the admin CRUD API, the server-rendered homepage, and
+end-to-end propagation of admin edits to the public read endpoints *and* to the
+rendered HTML. Tests never touch `data/marea_alta.db`.
 
 ## Admin Management
 
@@ -90,6 +91,7 @@ back to English when a translation is blank.
 |---|---|---|---|
 | `GET` | `/api/schedule` | Public | The whole week: titles, descriptions and hours per day |
 | `GET` | `/api/closed-days` | Public | One-off date closures, both languages |
+| `GET` | `/` | Public | The site, with the schedule rendered into the HTML |
 
 **Write endpoints require an admin session and a CSRF token.**
 
@@ -105,6 +107,46 @@ having to hard-refresh.
 
 Times are stored 24-hour (`HH:MM`) so the admin panel's `<input type="time">`
 can populate them; the frontend formats them per locale.
+
+## Server-Rendered Homepage
+
+`/` and `/index.html` are **rendered**, not served off disk. `app/ssr.py` reads
+`frontend/dist/index.html` and injects:
+
+- the week's hours and party titles as plain HTML inside `<div id="app">`, so a
+  crawler sees them without running any JavaScript, and
+- the same payload as `window.__MAREA_ALTA_DATA__`, which the SPA uses for its
+  first paint instead of fetching.
+
+The rendered block is replaced when the app mounts, so visitors see exactly what
+they saw before; nothing is hydrated. `frontend/src/main.js` clears the mount
+point first, since Svelte's `mount()` appends rather than replaces.
+
+Why at request time and not at build time: the hours are editable from the admin
+panel, so a build-time render would put last week's opening hours into the HTML
+and nothing would notice until the next deploy.
+
+| Route | Behaviour |
+|---|---|
+| `GET /` | English (the default), or `?lang=es` for Spanish, which also sets `<html lang>` |
+| `GET /index.html` | The same, so an old inbound link does not fall through to the raw shell |
+
+Anything else — hashed assets, the favicon — is still served by the static mount.
+`Cache-Control: no-cache`, for the same reason the JSON reads use it. If
+rendering fails for any reason the un-injected shell is served and the error is
+logged, rather than the homepage going down.
+
+`app/ssr.py` and `app/routers/api.py` share one set of loaders (`load_schedule`,
+`load_closed_days`, `day_payload`), so the JSON and the HTML cannot describe
+different weeks. `app/public_i18n.py` holds the handful of labels the rendered
+block needs; the rest of the site's wording lives in `frontend/src/content/*.js`,
+and a test in the frontend suite fails if the shared strings drift apart.
+
+**nginx must proxy `/` here.** Serving `dist/index.html` straight off disk skips
+the rendering and puts the schedule back out of reach of crawlers.
+
+This is also where ticket #5's `openingHoursSpecification` and ticket #16's
+multi-page routes belong.
 
 ## Bilingual Admin Panel
 
@@ -125,6 +167,14 @@ The bilingual upgrade is non-destructive: existing single-language content
 becomes English, Spanish is seeded with the same text so nothing renders blank
 before a human translates it, and legacy `4:00 PM` times are normalised to
 `16:00` so the time inputs populate correctly.
+
+**Known gap:** the closed-days migration copies `reason` into `reason_en` /
+`reason_es` but leaves the old column in place, and it was declared `NOT NULL`
+without a default. On any database created before that migration, adding a
+closed day fails with `NOT NULL constraint failed: closed_days.reason`. A fresh
+database is unaffected. SQLite cannot drop a column before 3.35, so the fix is
+either a table rebuild in `migrate.py` or a nullable redefinition — it is not
+covered by the migration tests, which build their schema from the models.
 
 ## Security
 

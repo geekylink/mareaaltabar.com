@@ -46,6 +46,11 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 The backend serves `frontend/dist` from the same origin, so everything lives on
 one domain and the site reads `/api/*` without CORS.
 
+`/` is **rendered**, not served straight off disk: the weekly schedule, opening
+hours and closure notices are injected into the HTML so search engines can read
+them without running JavaScript. Proxy `/` to the backend rather than serving
+`dist/index.html` directly from nginx, or that rendering is skipped.
+
 ### Tests
 
 ```bash

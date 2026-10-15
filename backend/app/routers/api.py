@@ -22,6 +22,7 @@ from app.schemas import (
     DayScheduleResponse,
     DayScheduleUpdate,
 )
+from app.ssr import day_payload, load_closed_days, load_schedule
 
 router = APIRouter()
 
@@ -31,32 +32,13 @@ write_guard = [Depends(get_current_admin), Depends(csrf_protect)]
 READ_CACHE_CONTROL = {"Cache-Control": "no-cache"}
 
 
-def _day_payload(event: Event, hours: Hours | None) -> dict:
-    h = hours
-    return {
-        "day": event.day,
-        "title_en": event.title_en,
-        "title_es": event.title_es,
-        "note_en": event.note_en,
-        "note_es": event.note_es,
-        "open_time": h.open_time if h else "",
-        "close_time": h.close_time if h else "",
-        "is_closed": bool(h.is_closed) if h else False,
-    }
-
-
 # --- Weekly schedule ---
 
 @router.get("/api/schedule", response_model=list[DayScheduleResponse])
 async def get_schedule(response: Response, db: DBSession = Depends(get_db)):
     """Public: the full week, both languages, ready for the visitor's locale."""
     response.headers.update(READ_CACHE_CONTROL)
-
-    events = db.execute(select(Event).order_by(Event.day)).scalars().all()
-    hours_by_day = {
-        h.day: h for h in db.execute(select(Hours)).scalars().all()
-    }
-    return [_day_payload(e, hours_by_day.get(e.day)) for e in events]
+    return load_schedule(db)
 
 
 @router.put("/api/schedule/{day}", response_model=DayScheduleResponse, dependencies=write_guard)
@@ -86,7 +68,7 @@ async def update_day(day: int, data: DayScheduleUpdate, db: DBSession = Depends(
     db.commit()
     db.refresh(event)
     db.refresh(hours)
-    return _day_payload(event, hours)
+    return day_payload(event, hours)
 
 
 # --- Closed days (bilingual reason) ---
@@ -95,11 +77,7 @@ async def update_day(day: int, data: DayScheduleUpdate, db: DBSession = Depends(
 async def list_closed_days(response: Response, db: DBSession = Depends(get_db)):
     """Public: one-off date closures (holidays, private events)."""
     response.headers.update(READ_CACHE_CONTROL)
-    days = db.execute(select(ClosedDay).order_by(ClosedDay.date)).scalars().all()
-    return [
-        ClosedDayResponse(id=d.id, date=d.date, reason_en=d.reason_en, reason_es=d.reason_es)
-        for d in days
-    ]
+    return load_closed_days(db)
 
 
 @router.post(

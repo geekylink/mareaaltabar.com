@@ -2,8 +2,22 @@
 //
 // The API returns both languages for every string. The caller picks the field
 // matching the visitor's language, so switching language needs no extra request.
+//
+// The first load uses the payload the backend embedded in the HTML (it renders
+// the same schedule server-side, for crawlers — see backend/app/ssr.py). That
+// saves a round trip and the loading state on first paint. Anything after that
+// — the hourly refresh, the Refresh button — goes to the API, so the schedule
+// stays live and an admin edit still shows up without a reload.
 
 const CACHE_KEY = 'marea_alta_schedule_cache';
+
+function seededData() {
+  try {
+    return typeof window !== 'undefined' ? window.__MAREA_ALTA_DATA__ : null;
+  } catch {
+    return null;
+  }
+}
 
 function getCache() {
   try {
@@ -28,7 +42,17 @@ async function fetchJSON(path) {
   return res.json();
 }
 
+let seeded = false;
+
 async function load() {
+  // Server-rendered payload, used once. `seeded` keeps the hourly refresh from
+  // replaying it after the first hour.
+  const seed = seededData();
+  if (seed && !seeded && Array.isArray(seed.schedule) && seed.schedule.length > 0) {
+    seeded = true;
+    setCache(seed);
+    return { schedule: seed.schedule, closedDays: seed.closedDays || [], error: null };
+  }
   try {
     const [schedule, closedDays] = await Promise.all([
       fetchJSON('/api/schedule'),

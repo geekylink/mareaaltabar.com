@@ -1,0 +1,48 @@
+{#- Server-rendered schedule, injected into <div id="app"> for crawlers and for
+    visitors without JavaScript. Replaced by the SPA on mount, so it only needs
+    to be correct and readable — not interactive.
+
+    Context: ssr.build_payload(). Everything is auto-escaped, which is what
+    keeps an admin-entered title from becoming markup.
+
+    Styling lives in schedule_style.html; this block is removed before the SPA
+    mounts, so its styles go with it. -#}
+<div id="marea-schedule">
+  <h2>{{ labels.schedule_heading }}</h2>
+
+  {% if tonight and not tonight.closed %}
+  <div class="ms-tonight">
+    <h3>{{ tonight.title }}</h3>
+    {% if tonight.hours %}<p>{{ tonight.hours }}</p>{% endif %}
+    {% if tonight.note %}<p>{{ tonight.note }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  <h3 class="ms-eyebrow">{{ labels.opening_hours }}</h3>
+  <ul class="ms-week">
+    {% for day in days %}
+    {% set classes = (('is-today ' if day.is_today else '') ~ ('is-closed' if day.closed else '')).strip() %}
+    <li{% if classes %} class="{{ classes }}"{% endif %}>
+      <span class="ms-day">{{ day.day_name }}</span>
+      <span>
+        <b>{{ labels.closed_today if day.closed else (day.title or labels.no_event) }}</b>
+        {% if day.note and not day.closed %}<br />{{ day.note }}{% endif %}
+      </span>
+      <span class="ms-hours">{{ day.hours }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+
+  {% if closed_days %}
+  <div class="ms-closed-days">
+    <h3 class="ms-eyebrow">{{ labels.closed_days }}</h3>
+    <ul>
+      {% for closed in closed_days %}
+      <li>
+        <time datetime="{{ closed.date }}">{{ closed.date }}</time>{% if closed.reason %} — {{ closed.reason }}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
