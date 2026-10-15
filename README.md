@@ -49,8 +49,13 @@ one domain and the site reads `/api/*` without CORS.
 ### Tests
 
 ```bash
+# Backend: auth, CRUD, migrations, admin-edit propagation
 cd backend
 python -m pytest tests/ -v
+
+# Frontend: language switching, fallback and time formatting
+cd ../frontend
+npm test
 ```
 
 ## Documentation

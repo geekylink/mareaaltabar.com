@@ -5,11 +5,27 @@ Svelte 5 + Vite static site for Marea Alta Surf Bar. Mobile-first, English/Spani
 ## Commands
 
 ```bash
-npm install       # Install dependencies
+npm install
 npm run dev       # Start dev server at http://localhost:5173
 npm run build     # Build for production → outputs dist/
 npm run preview   # Preview the production build locally
+npm test          # Run the test suite once
+npm run test:watch
 ```
+
+## Tests
+
+Vitest with jsdom. Two files:
+
+- `src/lib/api.test.js` — the language-fallback and time-formatting helpers.
+- `src/App.test.js` — renders the real component with a mocked `fetch` and
+  asserts the schedule switches language **without a remount**.
+
+That second file is a deliberate regression guard. The week list once called
+`pick()` through local wrapper functions, which hid `lang` from Svelte's
+compiler dependency graph, so switching language left English on screen until a
+page refresh. Keep `lang` passed as a literal argument in template expressions
+— do not reintroduce the wrappers.
 
 ## Editing the Site
 

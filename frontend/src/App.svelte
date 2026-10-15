@@ -35,14 +35,6 @@
     hours: todayHours || $t.visit.hours,
   };
 
-  function dayTitle(day) {
-    return pick(day, lang, 'title') || $t.party.noEvent;
-  }
-
-  function dayNote(day) {
-    return day.is_closed ? '' : pick(day, lang, 'note');
-  }
-
   async function loadData() {
     loading = true;
     loadError = null;
@@ -136,12 +128,17 @@
     {/if}
     <ul class="week">
       {#each schedule as day (day.day)}
-        {@const closed = day.is_closed || /^(closed|cerrado)$/i.test(dayTitle(day))}
+        <!-- `lang` is referenced inline so Svelte records it as a dependency.
+             Wrapping pick() in a local function hides the dependency and the
+             list stops updating when the visitor switches language. -->
+        {@const title = pick(day, lang, 'title')}
+        {@const note = day.is_closed ? '' : pick(day, lang, 'note')}
+        {@const closed = day.is_closed || /^(closed|cerrado)$/i.test(title)}
         <li class:now={day.day === today} class:closed>
           <span class="day">{$t.days[day.day]}</span>
           <span class="what">
-            <b>{closed ? $t.party.closedToday : dayTitle(day)}</b>
-            {#if dayNote(day)}<br />{dayNote(day)}{/if}
+            <b>{closed ? $t.party.closedToday : title || $t.party.noEvent}</b>
+            {#if note}<br />{note}{/if}
           </span>
           <span class="time">{closed ? $t.party.closedToday : formatHours(day, lang, $t.party.closedToday)}</span>
         </li>
