@@ -1,19 +1,56 @@
 # Marea Alta Surf Bar
 
-Svelte 5 + Vite, mobile first, English/Spanish. No API keys needed.
+The official website for Marea Alta Surf Bar in Montañita, Ecuador. Features live surf and tide conditions, plus the weekly party schedule.
 
-    npm install
-    npm run dev       # http://localhost:5173
-    npm run build     # outputs dist/ — upload to any static host
+## Project Structure
 
-## Editing the site
-- **All wording:** `src/content/en.js` (English) and `src/content/es.js` (Spanish). Same structure in both.
-  Missing Spanish keys fall back to English. `{full}`, `{town}`, `{year}` are filled in automatically.
-- **Weekly party schedule:** titles and descriptions per weekday in the content files; times in `src/lib/data.js`.
-- **Names, map link, social links:** `src/lib/data.js`.
-- **Add a language:** copy `en.js` to `src/content/xx.js`, translate it, add it to `LANGS` in `src/lib/i18n.js`.
-- The visitor's language choice is remembered; first visit follows the browser language.
+```
+mareaaltabar.com/
+├── frontend/          # Svelte 5 + Vite static site
+├── backend/           # FastAPI + SQLite admin server
+├── docs/              # Project documentation
+└── README.md          # This file
+```
 
-## Surf widget
-`src/lib/Surf.svelte` calls the free Open-Meteo marine + forecast APIs from the visitor's browser.
-Coordinates for Montañita are at the top of the file.
+## Quick Start
+
+### Frontend (Development)
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The site will be available at `http://localhost:5173`.
+
+### Backend (Development)
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Create an admin user
+python manage_admin.py create admin yourpassword
+
+# Start the server
+uvicorn app.main:app --reload --port 8000
+```
+
+The admin panel will be available at `http://localhost:8000/admin`.
+
+## Documentation
+
+- [Frontend README](frontend/README.md) — Svelte site structure, content editing, deployment
+- [Backend README](backend/README.md) — API docs, admin panel, security, database schema
+
+## Tech Stack
+
+| Layer     | Technology                                      |
+|-----------|-------------------------------------------------|
+| Frontend  | Svelte 5, Vite, vanilla CSS                     |
+| Backend   | FastAPI, SQLAlchemy 2.0, SQLite, Pydantic       |
+| Auth      | bcrypt password hashing, server-side sessions   |
+| Deployment| Static host (frontend) + VPS/Cloud (backend)    |

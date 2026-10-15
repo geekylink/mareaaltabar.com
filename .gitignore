@@ -1,4 +1,41 @@
+# Editor
 *.swp
-/dist
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Frontend
 node_modules/
+dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Backend
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+venv/
+.venv/
+env/
+backend/.env
+backend/data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Build / Output
 repomix-output.xml
+*.log
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

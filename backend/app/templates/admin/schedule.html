@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Schedule - Marea Alta</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+        }
+        header {
+            background: #0B3C49;
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main {
+            max-width: 60rem;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .section {
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .section h2 {
+            font-size: 1.25rem;
+            color: #0B3C49;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #eee;
+        }
+        .day-row {
+            display: grid;
+            grid-template-columns: 7rem 1fr 1fr 1fr;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .day-row:last-child { border-bottom: none; }
+        .day-label {
+            font-weight: 700;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        .day-row input[type="text"] {
+            padding: 0.5rem 0.65rem;
+            border: 1.5px solid #ddd;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            width: 100%;
+        }
+        .day-row input[type="text"]:focus {
+            outline: none;
+            border-color: #0B3C49;
+        }
+        .day-row input[type="time"] {
+            padding: 0.4rem 0.5rem;
+            border: 1.5px solid #ddd;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+        }
+        .closed-check {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.875rem;
+            color: #555;
+        }
+        .btn-save {
+            background: #0B3C49;
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-save:hover { background: #0E4E5E; }
+        .btn-save:disabled { background: #999; cursor: not-allowed; }
+        .save-row {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .save-status {
+            font-size: 0.875rem;
+            color: #2E7D32;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .save-status.visible { opacity: 1; }
+        .closed-days-list {
+            list-style: none;
+        }
+        .closed-days-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.65rem 0.75rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .closed-days-list li:last-child { border-bottom: none; }
+        .closed-day-info {
+            font-size: 0.9rem;
+        }
+        .closed-day-info .reason {
+            color: #888;
+            font-size: 0.8rem;
+        }
+        .btn-remove {
+            background: #FEE2E2;
+            color: #991B1B;
+            border: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 0.35rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .btn-remove:hover { background: #FECACA; }
+        .add-closed-day {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            align-items: center;
+        }
+        .add-closed-day input[type="date"],
+        .add-closed-day input[type="text"] {
+            padding: 0.5rem 0.65rem;
+            border: 1.5px solid #ddd;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+        }
+        .btn-add {
+            background: #0B3C49;
+            color: #fff;
+            border: none;
+            padding: 0.55rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add:hover { background: #0E4E5E; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #0B3C49;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Marea Alta Admin</h1>
+        <div class="user-info">
+            <span>Welcome, {{ admin.username }}</span>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout">Log out</button>
+            </form>
+        </div>
+    </header>
+    <main>
+        <a href="/admin" class="back-link">&larr; Back to Dashboard</a>
+
+        <!-- Events Section -->
+        <div class="section">
+            <h2>Weekly Party Schedule</h2>
+            <div id="events-container">
+                <p>Loading...</p>
+            </div>
+            <div class="save-row">
+                <button class="btn-save" id="save-events" disabled>Save Schedule</button>
+                <span class="save-status" id="events-status"></span>
+            </div>
+        </div>
+
+        <!-- Hours Section -->
+        <div class="section">
+            <h2>Operating Hours</h2>
+            <div id="hours-container">
+                <p>Loading...</p>
+            </div>
+            <div class="save-row">
+                <button class="btn-save" id="save-hours" disabled>Save Hours</button>
+                <span class="save-status" id="hours-status"></span>
+            </div>
+        </div>
+
+        <!-- Closed Days Section -->
+        <div class="section">
+            <h2>Closed Days</h2>
+            <ul class="closed-days-list" id="closed-days-list">
+                <li><p>Loading...</p></li>
+            </ul>
+            <div class="add-closed-day">
+                <input type="date" id="new-closed-date">
+                <input type="text" id="new-closed-reason" placeholder="Reason (optional)" style="flex:1;">
+                <button class="btn-add" id="add-closed-day">Add Closed Day</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        function getCsrfToken() {
+            const match = document.cookie.match(/csrf_token=([^;]+)/);
+            return match ? match[1] : '';
+        }
+
+        async function apiFetch(url, options = {}) {
+            const res = await fetch(url, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': getCsrfToken(),
+                    ...options.headers,
+                },
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(err.detail || 'Request failed');
+            }
+            return res.json();
+        }
+
+        // --- Events ---
+        let eventsData = [];
+
+        async function loadEvents() {
+            const container = document.getElementById('events-container');
+            try {
+                eventsData = await apiFetch('/api/events');
+                container.innerHTML = eventsData.map(e => `
+                    <div class="day-row">
+                        <span class="day-label">${DAY_NAMES[e.day]}</span>
+                        <input type="text" data-day="${e.day}" data-field="title" value="${escapeHtml(e.title)}" placeholder="Event title">
+                        <input type="text" data-day="${e.day}" data-field="time" value="${escapeHtml(e.time)}" placeholder="e.g. 8 PM - 2 AM">
+                        <input type="text" data-day="${e.day}" data-field="note" value="${escapeHtml(e.note)}" placeholder="Description">
+                    </div>
+                `).join('');
+                document.getElementById('save-events').disabled = false;
+            } catch (err) {
+                container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function saveEvents() {
+            const btn = document.getElementById('save-events');
+            const status = document.getElementById('events-status');
+            btn.disabled = true;
+            try {
+                const inputs = document.querySelectorAll('#events-container input');
+                const updates = {};
+                inputs.forEach(input => {
+                    const day = parseInt(input.dataset.day);
+                    const field = input.dataset.field;
+                    if (!updates[day]) updates[day] = {};
+                    updates[day][field] = input.value;
+                });
+
+                for (const [day, data] of Object.entries(updates)) {
+                    await apiFetch(`/api/events/${day}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data),
+                    });
+                }
+                status.textContent = 'Saved!';
+                status.classList.add('visible');
+                setTimeout(() => status.classList.remove('visible'), 3000);
+            } catch (err) {
+                status.textContent = `Error: ${err.message}`;
+                status.style.color = '#991B1B';
+                status.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // --- Hours ---
+        let hoursData = [];
+
+        async function loadHours() {
+            const container = document.getElementById('hours-container');
+            try {
+                hoursData = await apiFetch('/api/hours');
+                container.innerHTML = hoursData.map(h => `
+                    <div class="day-row">
+                        <span class="day-label">${DAY_NAMES[h.day]}</span>
+                        <input type="time" data-day="${h.day}" data-field="open_time" value="${h.open_time}">
+                        <input type="time" data-day="${h.day}" data-field="close_time" value="${h.close_time}">
+                        <label class="closed-check">
+                            <input type="checkbox" data-day="${h.day}" data-field="is_closed" ${h.is_closed ? 'checked' : ''}>
+                            Closed
+                        </label>
+                    </div>
+                `).join('');
+                document.getElementById('save-hours').disabled = false;
+            } catch (err) {
+                container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function saveHours() {
+            const btn = document.getElementById('save-hours');
+            const status = document.getElementById('hours-status');
+            btn.disabled = true;
+            try {
+                const inputs = document.querySelectorAll('#hours-container input');
+                const updates = {};
+                inputs.forEach(input => {
+                    const day = parseInt(input.dataset.day);
+                    const field = input.dataset.field;
+                    if (!updates[day]) updates[day] = {};
+                    if (input.type === 'checkbox') {
+                        updates[day][field] = input.checked;
+                    } else {
+                        updates[day][field] = input.value;
+                    }
+                });
+
+                for (const [day, data] of Object.entries(updates)) {
+                    await apiFetch(`/api/hours/${day}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data),
+                    });
+                }
+                status.textContent = 'Saved!';
+                status.style.color = '#2E7D32';
+                status.classList.add('visible');
+                setTimeout(() => status.classList.remove('visible'), 3000);
+            } catch (err) {
+                status.textContent = `Error: ${err.message}`;
+                status.style.color = '#991B1B';
+                status.classList.add('visible');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // --- Closed Days ---
+        let closedDaysData = [];
+
+        async function loadClosedDays() {
+            const list = document.getElementById('closed-days-list');
+            try {
+                closedDaysData = await apiFetch('/api/closed-days');
+                if (closedDaysData.length === 0) {
+                    list.innerHTML = '<li><p style="color:#888;">No closed days configured.</p></li>';
+                    return;
+                }
+                list.innerHTML = closedDaysData.map(d => `
+                    <li>
+                        <span class="closed-day-info">
+                            <strong>${d.date}</strong>
+                            ${d.reason ? `<span class="reason"> - ${escapeHtml(d.reason)}</span>` : ''}
+                        </span>
+                        <button class="btn-remove" data-id="${d.id}">Remove</button>
+                    </li>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<li><p style="color:red;">Error: ${err.message}</p></li>`;
+            }
+        }
+
+        async function addClosedDay() {
+            const dateInput = document.getElementById('new-closed-date');
+            const reasonInput = document.getElementById('new-closed-reason');
+            if (!dateInput.value) return;
+
+            try {
+                await apiFetch('/api/closed-days', {
+                    method: 'POST',
+                    body: JSON.stringify({ date: dateInput.value, reason: reasonInput.value }),
+                });
+                dateInput.value = '';
+                reasonInput.value = '';
+                await loadClosedDays();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function removeClosedDay(id) {
+            try {
+                await apiFetch(`/api/closed-days/${id}`, { method: 'DELETE' });
+                await loadClosedDays();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // --- Utilities ---
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        // --- Init ---
+        document.getElementById('save-events').addEventListener('click', saveEvents);
+        document.getElementById('save-hours').addEventListener('click', saveHours);
+        document.getElementById('add-closed-day').addEventListener('click', addClosedDay);
+        document.getElementById('closed-days-list').addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-remove')) {
+                removeClosedDay(e.target.dataset.id);
+            }
+        });
+
+        loadEvents();
+        loadHours();
+        loadClosedDays();
+    </script>
+</body>
+</html>
