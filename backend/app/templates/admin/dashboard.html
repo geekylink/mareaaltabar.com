@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Marea Alta</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -18,6 +20,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         header h1 { font-size: 1.25rem; font-weight: 700; }
         .user-info {
@@ -25,6 +29,7 @@
             align-items: center;
             gap: 1rem;
             font-size: 0.875rem;
+            flex-wrap: wrap;
         }
         .btn-logout {
             background: rgba(255,255,255,0.15);
@@ -34,10 +39,27 @@
             border-radius: 0.4rem;
             font-size: 0.875rem;
             cursor: pointer;
-            text-decoration: none;
             transition: background 0.2s;
         }
         .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        .lang-switch {
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(255,255,255,0.12);
+            padding: 0.25rem;
+            border-radius: 999px;
+        }
+        .lang-switch button {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: #fff; color: #0B3C49; }
         main {
             max-width: 60rem;
             margin: 2rem auto;
@@ -70,44 +92,58 @@
             transform: translateY(-2px);
             border-color: #0B3C49;
         }
-        .card h3 {
-            font-size: 1.1rem;
-            color: #0B3C49;
-            margin-bottom: 0.5rem;
-        }
-        .card p {
-            font-size: 0.875rem;
-            color: #666;
-            line-height: 1.5;
-        }
-        .card .icon {
-            font-size: 2rem;
-            margin-bottom: 0.75rem;
-        }
+        .card h3 { font-size: 1.1rem; color: #0B3C49; margin-bottom: 0.5rem; }
+        .card p { font-size: 0.875rem; color: #666; line-height: 1.5; }
+        .card .icon { font-size: 2rem; margin-bottom: 0.75rem; }
     </style>
 </head>
 <body>
     <header>
-        <h1>Marea Alta Admin</h1>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
         <div class="user-info">
-            <span>Welcome, {{ admin.username }}</span>
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
             <form method="POST" action="/admin/logout" style="display:inline;">
-                <button type="submit" class="btn-logout">Log out</button>
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
             </form>
         </div>
     </header>
+
     <main>
         <div class="welcome">
-            <h2>Dashboard</h2>
-            <p>Select a section below to manage your bar's information.</p>
+            <h2 data-i18n="dashboard_title">Dashboard</h2>
+            <p data-i18n="dashboard_intro">Choose a section to manage.</p>
         </div>
         <div class="cards">
             <a href="/admin/schedule" class="card">
                 <div class="icon">📅</div>
-                <h3>Party Schedule</h3>
-                <p>Edit the weekly party schedule, operating hours, and closed days.</p>
+                <h3 data-i18n="card_schedule_title">Party Schedule</h3>
+                <p data-i18n="card_schedule_body">Edit the weekly party schedule, hours and closed days.</p>
             </a>
         </div>
     </main>
+
+    <script>
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+    </script>
 </body>
 </html>

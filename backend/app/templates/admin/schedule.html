@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Schedule - Marea Alta</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
             background: #f5f5f5;
+            color: #1D1A17;
         }
         header {
             background: #0B3C49;
@@ -18,14 +21,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         header h1 { font-size: 1.25rem; font-weight: 700; }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            font-size: 0.875rem;
-        }
+        .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; flex-wrap: wrap; }
         .btn-logout {
             background: rgba(255,255,255,0.15);
             color: #fff;
@@ -34,415 +34,476 @@
             border-radius: 0.4rem;
             font-size: 0.875rem;
             cursor: pointer;
-            transition: background 0.2s;
         }
         .btn-logout:hover { background: rgba(255,255,255,0.25); }
-        main {
-            max-width: 60rem;
-            margin: 2rem auto;
-            padding: 0 1rem;
+        .lang-switch {
+            display: flex; gap: 0.25rem; background: rgba(255,255,255,0.12);
+            padding: 0.25rem; border-radius: 999px;
         }
-        .section {
-            background: #fff;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+        .lang-switch button {
+            background: none; border: none; color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer;
         }
-        .section h2 {
-            font-size: 1.25rem;
-            color: #0B3C49;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #eee;
-        }
-        .day-row {
-            display: grid;
-            grid-template-columns: 7rem 1fr 1fr 1fr;
-            gap: 0.75rem;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .day-row:last-child { border-bottom: none; }
-        .day-label {
-            font-weight: 700;
-            color: #333;
-            font-size: 0.9rem;
-        }
-        .day-row input[type="text"] {
-            padding: 0.5rem 0.65rem;
-            border: 1.5px solid #ddd;
-            border-radius: 0.4rem;
-            font-size: 0.875rem;
-            width: 100%;
-        }
-        .day-row input[type="text"]:focus {
-            outline: none;
-            border-color: #0B3C49;
-        }
-        .day-row input[type="time"] {
-            padding: 0.4rem 0.5rem;
-            border: 1.5px solid #ddd;
-            border-radius: 0.4rem;
-            font-size: 0.875rem;
-        }
-        .closed-check {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.875rem;
-            color: #555;
-        }
-        .btn-save {
-            background: #0B3C49;
-            color: #fff;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .btn-save:hover { background: #0E4E5E; }
-        .btn-save:disabled { background: #999; cursor: not-allowed; }
-        .save-row {
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .save-status {
-            font-size: 0.875rem;
-            color: #2E7D32;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .save-status.visible { opacity: 1; }
-        .closed-days-list {
-            list-style: none;
-        }
-        .closed-days-list li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.65rem 0.75rem;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .closed-days-list li:last-child { border-bottom: none; }
-        .closed-day-info {
-            font-size: 0.9rem;
-        }
-        .closed-day-info .reason {
-            color: #888;
-            font-size: 0.8rem;
-        }
-        .btn-remove {
-            background: #FEE2E2;
-            color: #991B1B;
-            border: none;
-            padding: 0.35rem 0.75rem;
-            border-radius: 0.35rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-        .btn-remove:hover { background: #FECACA; }
-        .add-closed-day {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1rem;
-            align-items: center;
-        }
-        .add-closed-day input[type="date"],
-        .add-closed-day input[type="text"] {
-            padding: 0.5rem 0.65rem;
-            border: 1.5px solid #ddd;
-            border-radius: 0.4rem;
-            font-size: 0.875rem;
-        }
-        .btn-add {
-            background: #0B3C49;
-            color: #fff;
-            border: none;
-            padding: 0.55rem 1rem;
-            border-radius: 0.4rem;
-            font-size: 0.875rem;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .btn-add:hover { background: #0E4E5E; }
+        .lang-switch button[aria-pressed="true"] { background: #fff; color: #0B3C49; }
+
+        main { max-width: 68rem; margin: 2rem auto; padding: 0 1rem 4rem; }
         .back-link {
-            display: inline-block;
-            margin-bottom: 1rem;
-            color: #0B3C49;
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 600;
+            display: inline-block; margin-bottom: 1rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
         }
         .back-link:hover { text-decoration: underline; }
+
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .btn-primary {
+            background: #0B3C49; color: #fff; border: none;
+            padding: 0.75rem 1.4rem; border-radius: 0.5rem;
+            font-size: 0.95rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-primary:hover { background: #0E4E5E; }
+        .btn-primary:disabled { background: #9aa5a8; cursor: not-allowed; }
+        .status { font-size: 0.875rem; color: #2E7D32; opacity: 0; transition: opacity 0.3s; }
+        .status.visible { opacity: 1; }
+        .status.error { color: #991B1B; }
+
+        /* One card per weekday: description + hours together. */
+        .day-card {
+            background: #fff; border-radius: 0.85rem; padding: 1.25rem;
+            margin-bottom: 1rem; border: 2px solid transparent;
+        }
+        .day-card.is-closed { background: #FAFAFA; }
+        .day-head {
+            display: flex; align-items: center; gap: 0.75rem;
+            flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .day-head h2 { font-size: 1.15rem; font-weight: 700; color: #0B3C49; margin-right: auto; }
+
+        .hours-row {
+            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            padding: 0.75rem 0; border-top: 1px solid #eee; margin-top: 1rem;
+        }
+        .hours-row label { font-size: 0.8rem; color: #555; font-weight: 600; }
+        .hours-row input[type="time"] {
+            padding: 0.45rem 0.5rem; border: 1.5px solid #ddd;
+            border-radius: 0.4rem; font-size: 0.9rem;
+        }
+        .closed-toggle {
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.85rem; color: #333; font-weight: 600;
+            margin-left: auto;
+        }
+
+        .fields { display: grid; gap: 0.75rem; }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .field label {
+            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
+        }
+        .field input, .field textarea {
+            width: 100%; padding: 0.55rem 0.7rem;
+            border: 1.5px solid #ddd; border-radius: 0.4rem;
+            font-size: 0.9rem; font-family: inherit;
+        }
+        .field textarea { resize: vertical; min-height: 3.2rem; }
+        .field input:focus, .field textarea:focus {
+            outline: none; border-color: #0B3C49;
+        }
+        .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
+        .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
+
+        .btn-day {
+            background: #fff; color: #0B3C49; border: 2px solid #0B3C49;
+            padding: 0.45rem 1rem; border-radius: 0.4rem;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-day:hover { background: #0B3C49; color: #fff; }
+        .btn-day:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .section { background: #fff; border-radius: 0.85rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+        .section h2 { font-size: 1.15rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+
+        .closed-list { list-style: none; }
+        .closed-item {
+            display: grid; grid-template-columns: 9rem 1fr 1fr auto;
+            gap: 0.6rem; align-items: center;
+            padding: 0.7rem 0; border-bottom: 1px solid #f0f0f0;
+        }
+        .closed-item:last-of-type { border-bottom: none; }
+        .closed-item input[type="date"] {
+            padding: 0.5rem; border: 1.5px solid #ddd; border-radius: 0.4rem; font-size: 0.875rem;
+        }
+        .closed-item input[type="text"] {
+            padding: 0.5rem 0.6rem; border: 1.5px solid #ddd; border-radius: 0.4rem; font-size: 0.875rem;
+        }
+        .closed-item input.filled-es { border-left: 3px solid #FF6B2C; }
+        .closed-item input.filled-en { border-left: 3px solid #0B3C49; }
+        .btn-remove {
+            background: #FEE2E2; color: #991B1B; border: none;
+            padding: 0.4rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+        }
+        .btn-remove:hover { background: #FECACA; }
+        .add-closed {
+            display: grid; grid-template-columns: 9rem 1fr 1fr auto;
+            gap: 0.6rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;
+        }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+
+        .loading { padding: 3rem 0; text-align: center; color: #666; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+
+        @media (max-width: 720px) {
+            .field-pair { grid-template-columns: 1fr; }
+            .closed-item, .add-closed { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <h1>Marea Alta Admin</h1>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
         <div class="user-info">
-            <span>Welcome, {{ admin.username }}</span>
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
             <form method="POST" action="/admin/logout" style="display:inline;">
-                <button type="submit" class="btn-logout">Log out</button>
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
             </form>
         </div>
     </header>
+
     <main>
-        <a href="/admin" class="back-link">&larr; Back to Dashboard</a>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <!-- Events Section -->
-        <div class="section">
-            <h2>Weekly Party Schedule</h2>
-            <div id="events-container">
-                <p>Loading...</p>
-            </div>
-            <div class="save-row">
-                <button class="btn-save" id="save-events" disabled>Save Schedule</button>
-                <span class="save-status" id="events-status"></span>
+        <div id="alert-slot"></div>
+
+        <div class="toolbar">
+            <h2 style="font-size:1.35rem;color:#0B3C49;" data-i18n="schedule_heading">Weekly schedule</h2>
+            <div style="display:flex;align-items:center;gap:1rem;">
+                <span class="status" id="global-status"></span>
+                <button class="btn-primary" id="save-all" data-i18n="save_all">Save all days</button>
             </div>
         </div>
+        <p style="font-size:.875rem;color:#666;margin-bottom:1.25rem;line-height:1.5;" data-i18n="schedule_intro">
+            Fill in both languages. Leave a translation blank to fall back to English on the site.
+        </p>
 
-        <!-- Hours Section -->
-        <div class="section">
-            <h2>Operating Hours</h2>
-            <div id="hours-container">
-                <p>Loading...</p>
-            </div>
-            <div class="save-row">
-                <button class="btn-save" id="save-hours" disabled>Save Hours</button>
-                <span class="save-status" id="hours-status"></span>
-            </div>
-        </div>
+        <div id="days"><div class="loading" data-i18n="loading">Loading...</div></div>
 
-        <!-- Closed Days Section -->
         <div class="section">
-            <h2>Closed Days</h2>
-            <ul class="closed-days-list" id="closed-days-list">
-                <li><p>Loading...</p></li>
-            </ul>
-            <div class="add-closed-day">
-                <input type="date" id="new-closed-date">
-                <input type="text" id="new-closed-reason" placeholder="Reason (optional)" style="flex:1;">
-                <button class="btn-add" id="add-closed-day">Add Closed Day</button>
+            <h2 data-i18n="closed_days_heading">Closed days</h2>
+            <p class="intro" data-i18n="closed_days_intro">Dates the bar is closed for a one-off.</p>
+            <ul class="closed-list" id="closed-list"></ul>
+            <div class="add-closed">
+                <input type="date" id="new-date">
+                <input type="text" id="new-reason-en" data-i18n="closed_reason_en" placeholder="Reason (English)">
+                <input type="text" id="new-reason-es" data-i18n="closed_reason_es" placeholder="Reason (Spanish)">
+                <button class="btn-primary" id="add-closed" data-i18n="add_closed">Add closed day</button>
             </div>
         </div>
     </main>
 
     <script>
-        const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+    (function () {
+        'use strict';
 
-        function getCsrfToken() {
-            const match = document.cookie.match(/csrf_token=([^;]+)/);
-            return match ? match[1] : '';
+        // Day names per language; index matches the backend's day (0 = Sunday).
+        var DAY_NAMES = {
+            en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            es: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+        };
+        var LANGS = ['en', 'es'];
+        var schedule = [];
+        var closedDays = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
         }
 
-        async function apiFetch(url, options = {}) {
-            const res = await fetch(url, {
-                ...options,
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': getCsrfToken(),
-                    ...options.headers,
+                    'X-CSRF-Token': csrf()
                 },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({ detail: res.statusText }));
-                throw new Error(err.detail || 'Request failed');
-            }
-            return res.json();
         }
 
-        // --- Events ---
-        let eventsData = [];
-
-        async function loadEvents() {
-            const container = document.getElementById('events-container');
-            try {
-                eventsData = await apiFetch('/api/events');
-                container.innerHTML = eventsData.map(e => `
-                    <div class="day-row">
-                        <span class="day-label">${DAY_NAMES[e.day]}</span>
-                        <input type="text" data-day="${e.day}" data-field="title" value="${escapeHtml(e.title)}" placeholder="Event title">
-                        <input type="text" data-day="${e.day}" data-field="time" value="${escapeHtml(e.time)}" placeholder="e.g. 8 PM - 2 AM">
-                        <input type="text" data-day="${e.day}" data-field="note" value="${escapeHtml(e.note)}" placeholder="Description">
-                    </div>
-                `).join('');
-                document.getElementById('save-events').disabled = false;
-            } catch (err) {
-                container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-            }
-        }
-
-        async function saveEvents() {
-            const btn = document.getElementById('save-events');
-            const status = document.getElementById('events-status');
-            btn.disabled = true;
-            try {
-                const inputs = document.querySelectorAll('#events-container input');
-                const updates = {};
-                inputs.forEach(input => {
-                    const day = parseInt(input.dataset.day);
-                    const field = input.dataset.field;
-                    if (!updates[day]) updates[day] = {};
-                    updates[day][field] = input.value;
-                });
-
-                for (const [day, data] of Object.entries(updates)) {
-                    await apiFetch(`/api/events/${day}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(data),
-                    });
-                }
-                status.textContent = 'Saved!';
-                status.classList.add('visible');
-                setTimeout(() => status.classList.remove('visible'), 3000);
-            } catch (err) {
-                status.textContent = `Error: ${err.message}`;
-                status.style.color = '#991B1B';
-                status.classList.add('visible');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // --- Hours ---
-        let hoursData = [];
-
-        async function loadHours() {
-            const container = document.getElementById('hours-container');
-            try {
-                hoursData = await apiFetch('/api/hours');
-                container.innerHTML = hoursData.map(h => `
-                    <div class="day-row">
-                        <span class="day-label">${DAY_NAMES[h.day]}</span>
-                        <input type="time" data-day="${h.day}" data-field="open_time" value="${h.open_time}">
-                        <input type="time" data-day="${h.day}" data-field="close_time" value="${h.close_time}">
-                        <label class="closed-check">
-                            <input type="checkbox" data-day="${h.day}" data-field="is_closed" ${h.is_closed ? 'checked' : ''}>
-                            Closed
-                        </label>
-                    </div>
-                `).join('');
-                document.getElementById('save-hours').disabled = false;
-            } catch (err) {
-                container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-            }
-        }
-
-        async function saveHours() {
-            const btn = document.getElementById('save-hours');
-            const status = document.getElementById('hours-status');
-            btn.disabled = true;
-            try {
-                const inputs = document.querySelectorAll('#hours-container input');
-                const updates = {};
-                inputs.forEach(input => {
-                    const day = parseInt(input.dataset.day);
-                    const field = input.dataset.field;
-                    if (!updates[day]) updates[day] = {};
-                    if (input.type === 'checkbox') {
-                        updates[day][field] = input.checked;
-                    } else {
-                        updates[day][field] = input.value;
-                    }
-                });
-
-                for (const [day, data] of Object.entries(updates)) {
-                    await apiFetch(`/api/hours/${day}`, {
-                        method: 'PUT',
-                        body: JSON.stringify(data),
-                    });
-                }
-                status.textContent = 'Saved!';
-                status.style.color = '#2E7D32';
-                status.classList.add('visible');
-                setTimeout(() => status.classList.remove('visible'), 3000);
-            } catch (err) {
-                status.textContent = `Error: ${err.message}`;
-                status.style.color = '#991B1B';
-                status.classList.add('visible');
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        // --- Closed Days ---
-        let closedDaysData = [];
-
-        async function loadClosedDays() {
-            const list = document.getElementById('closed-days-list');
-            try {
-                closedDaysData = await apiFetch('/api/closed-days');
-                if (closedDaysData.length === 0) {
-                    list.innerHTML = '<li><p style="color:#888;">No closed days configured.</p></li>';
-                    return;
-                }
-                list.innerHTML = closedDaysData.map(d => `
-                    <li>
-                        <span class="closed-day-info">
-                            <strong>${d.date}</strong>
-                            ${d.reason ? `<span class="reason"> - ${escapeHtml(d.reason)}</span>` : ''}
-                        </span>
-                        <button class="btn-remove" data-id="${d.id}">Remove</button>
-                    </li>
-                `).join('');
-            } catch (err) {
-                list.innerHTML = `<li><p style="color:red;">Error: ${err.message}</p></li>`;
-            }
-        }
-
-        async function addClosedDay() {
-            const dateInput = document.getElementById('new-closed-date');
-            const reasonInput = document.getElementById('new-closed-reason');
-            if (!dateInput.value) return;
-
-            try {
-                await apiFetch('/api/closed-days', {
-                    method: 'POST',
-                    body: JSON.stringify({ date: dateInput.value, reason: reasonInput.value }),
-                });
-                dateInput.value = '';
-                reasonInput.value = '';
-                await loadClosedDays();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-
-        async function removeClosedDay(id) {
-            try {
-                await apiFetch(`/api/closed-days/${id}`, { method: 'DELETE' });
-                await loadClosedDays();
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-
-        // --- Utilities ---
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str || '';
+        function esc(value) {
+            var div = document.createElement('div');
+            div.textContent = value == null ? '' : value;
             return div.innerHTML;
         }
 
-        // --- Init ---
-        document.getElementById('save-events').addEventListener('click', saveEvents);
-        document.getElementById('save-hours').addEventListener('click', saveHours);
-        document.getElementById('add-closed-day').addEventListener('click', addClosedDay);
-        document.getElementById('closed-days-list').addEventListener('click', (e) => {
-            if (e.target.classList.contains('btn-remove')) {
-                removeClosedDay(e.target.dataset.id);
+        function setStatus(el, message, isError) {
+            el.textContent = message;
+            el.classList.toggle('error', !!isError);
+            el.classList.add('visible');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(function () { el.classList.remove('visible'); }, 3000);
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        // Marks which language a field is filled in, so gaps are obvious at a glance.
+        function markFilled(input, lang) {
+            input.classList.toggle('filled-' + lang, !!input.value.trim());
+        }
+
+        function renderDays() {
+            var container = document.getElementById('days');
+            var names = DAY_NAMES[AdminI18n.lang] || DAY_NAMES.en;
+
+            container.innerHTML = schedule.map(function (day) {
+                var closed = day.is_closed;
+                return '' +
+                '<section class="day-card' + (closed ? ' is-closed' : '') + '" data-day="' + day.day + '">' +
+                    '<div class="day-head">' +
+                        '<h2>' + esc(names[day.day]) + '</h2>' +
+                        '<button class="btn-day" data-action="save-day">' + esc(AdminI18n.t('save_day')) + '</button>' +
+                    '</div>' +
+                    '<div class="fields">' +
+                        '<div class="field-pair">' +
+                            '<div class="field">' +
+                                '<label>EN</label>' +
+                                '<input type="text" data-field="title_en" value="' + esc(day.title_en) + '">' +
+                            '</div>' +
+                            '<div class="field">' +
+                                '<label>ES</label>' +
+                                '<input type="text" data-field="title_es" value="' + esc(day.title_es) + '">' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="field-pair">' +
+                            '<div class="field">' +
+                                '<label>EN</label>' +
+                                '<textarea rows="2" data-field="note_en">' + esc(day.note_en) + '</textarea>' +
+                            '</div>' +
+                            '<div class="field">' +
+                                '<label>ES</label>' +
+                                '<textarea rows="2" data-field="note_es">' + esc(day.note_es) + '</textarea>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="hours-row">' +
+                        '<label>' + esc(AdminI18n.t('col_open')) + '</label>' +
+                        '<input type="time" data-field="open_time" value="' + esc(day.open_time) + '"' + (closed ? ' disabled' : '') + '>' +
+                        '<label>' + esc(AdminI18n.t('col_close')) + '</label>' +
+                        '<input type="time" data-field="close_time" value="' + esc(day.close_time) + '"' + (closed ? ' disabled' : '') + '>' +
+                        '<label class="closed-toggle">' +
+                            '<input type="checkbox" data-field="is_closed"' + (closed ? ' checked' : '') + '>' +
+                            esc(AdminI18n.t('col_closed')) +
+                        '</label>' +
+                    '</div>' +
+                '</section>';
+            }).join('');
+
+            container.querySelectorAll('.day-card').forEach(function (card) {
+                card.querySelectorAll('[data-field]').forEach(function (input) {
+                    var field = input.dataset.field;
+                    if (field === 'title_en' || field === 'note_en') markFilled(input, 'en');
+                    if (field === 'title_es' || field === 'note_es') markFilled(input, 'es');
+
+                    if (field === 'is_closed') {
+                        input.addEventListener('change', function () {
+                            card.classList.toggle('is-closed', input.checked);
+                            card.querySelectorAll('input[type="time"]').forEach(function (t) {
+                                t.disabled = input.checked;
+                            });
+                        });
+                    } else {
+                        input.addEventListener('input', function () {
+                            if (field.endsWith('_en')) markFilled(input, 'en');
+                            if (field.endsWith('_es')) markFilled(input, 'es');
+                        });
+                    }
+                });
+                card.querySelector('[data-action="save-day"]').addEventListener('click', function () {
+                    saveDay(parseInt(card.dataset.day, 10), card);
+                });
+            });
+        }
+
+        function collect(card) {
+            var payload = { is_closed: false };
+            card.querySelectorAll('[data-field]').forEach(function (input) {
+                var field = input.dataset.field;
+                payload[field] = input.type === 'checkbox' ? input.checked : input.value;
+            });
+            return payload;
+        }
+
+        function saveDay(day, card) {
+            var btn = card.querySelector('[data-action="save-day"]');
+            var status = document.getElementById('global-status');
+            btn.disabled = true;
+            return api('/api/schedule/' + day, { method: 'PUT', body: collect(card) })
+                .then(function (saved) {
+                    var index = schedule.findIndex(function (d) { return d.day === day; });
+                    if (index !== -1) schedule[index] = saved;
+                    setStatus(status, AdminI18n.t('saved'), false);
+                })
+                .catch(function (err) {
+                    setStatus(status, err.message, true);
+                })
+                .finally(function () { btn.disabled = false; });
+        }
+
+        function saveAll() {
+            var btn = document.getElementById('save-all');
+            var status = document.getElementById('global-status');
+            btn.disabled = true;
+            setStatus(status, AdminI18n.t('saving'), false);
+
+            var cards = Array.prototype.slice.call(document.querySelectorAll('.day-card'));
+            cards.reduce(function (chain, card) {
+                return chain.then(function () {
+                    return saveDay(parseInt(card.dataset.day, 10), card);
+                });
+            }, Promise.resolve())
+            .then(function () { setStatus(status, AdminI18n.t('saved'), false); })
+            .catch(function (err) { setStatus(status, err.message, true); })
+            .finally(function () { btn.disabled = false; });
+        }
+
+        function renderClosedDays() {
+            var list = document.getElementById('closed-list');
+            if (!closedDays.length) {
+                list.innerHTML = '<li class="empty-note" data-i18n="no_closed_days">No closed days yet.</li>';
+                AdminI18n.apply(list);
+                return;
             }
+            list.innerHTML = closedDays.map(function (d) {
+                return '' +
+                '<li class="closed-item" data-id="' + d.id + '">' +
+                    '<input type="text" value="' + esc(d.date) + '" readonly>' +
+                    '<input type="text" data-reason="reason_en" value="' + esc(d.reason_en) + '" placeholder="EN">' +
+                    '<input type="text" data-reason="reason_es" value="' + esc(d.reason_es) + '" placeholder="ES">' +
+                    '<button class="btn-remove" data-action="remove">' + esc(AdminI18n.t('remove')) + '</button>' +
+                '</li>';
+            }).join('');
+
+            list.querySelectorAll('.closed-item').forEach(function (item) {
+                item.querySelectorAll('[data-reason]').forEach(function (input) {
+                    var lang = input.dataset.reason === 'reason_en' ? 'en' : 'es';
+                    markFilled(input, lang);
+                    input.addEventListener('input', function () { markFilled(input, lang); });
+                });
+                item.querySelector('[data-action="remove"]').addEventListener('click', function () {
+                    var id = item.dataset.id;
+                    api('/api/closed-days/' + id, { method: 'DELETE' })
+                        .then(function () {
+                            closedDays = closedDays.filter(function (d) { return String(d.id) !== String(id); });
+                            renderClosedDays();
+                        })
+                        .catch(function (err) { showAlert(err.message); });
+                });
+            });
+        }
+
+        function persistClosedReasons(item) {
+            var id = item.dataset.id;
+            var payload = { reason_en: '', reason_es: '' };
+            item.querySelectorAll('[data-reason]').forEach(function (input) {
+                payload[input.dataset.reason] = input.value;
+            });
+            return api('/api/closed-days/' + id, { method: 'PATCH', body: payload })
+                .then(function (saved) {
+                    var index = closedDays.findIndex(function (d) { return String(d.id) === String(id); });
+                    if (index !== -1) closedDays[index] = saved;
+                    return saved;
+                });
+        }
+
+        function addClosedDay() {
+            var dateInput = document.getElementById('new-date');
+            if (!dateInput.value) return;
+            api('/api/closed-days', {
+                method: 'POST',
+                body: {
+                    date: dateInput.value,
+                    reason_en: document.getElementById('new-reason-en').value,
+                    reason_es: document.getElementById('new-reason-es').value
+                }
+            })
+            .then(function (created) {
+                closedDays.push(created);
+                dateInput.value = '';
+                document.getElementById('new-reason-en').value = '';
+                document.getElementById('new-reason-es').value = '';
+                renderClosedDays();
+            })
+            .catch(function (err) { showAlert(err.message); });
+        }
+
+        function load() {
+            Promise.all([api('/api/schedule'), api('/api/closed-days')])
+                .then(function (results) {
+                    schedule = results[0];
+                    closedDays = results[1];
+                    renderDays();
+                    renderClosedDays();
+                })
+                .catch(function (err) { showAlert(err.message); });
+        }
+
+        document.getElementById('save-all').addEventListener('click', saveAll);
+        document.getElementById('add-closed').addEventListener('click', addClosedDay);
+
+        // Blur on a closed-day row saves that row's reasons.
+        document.getElementById('closed-list').addEventListener('focusout', function (e) {
+            var item = e.target.closest ? e.target.closest('.closed-item') : null;
+            if (item) persistClosedReasons(item).catch(function (err) { showAlert(err.message); });
         });
 
-        loadEvents();
-        loadHours();
-        loadClosedDays();
+        // Re-render on language change so day names and buttons follow the UI language.
+        document.addEventListener('admin:langchange', function () {
+            renderDays();
+            renderClosedDays();
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+
+        load();
+    })();
     </script>
 </body>
 </html>

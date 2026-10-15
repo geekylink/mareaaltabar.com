@@ -23,13 +23,23 @@ npm run preview   # Preview the production build locally
 
 ## Schedule Data Flow
 
-`src/lib/api.js` fetches `/api/events`, `/api/hours`, and `/api/closed-days`:
+`src/lib/api.js` fetches `/api/schedule` and `/api/closed-days`.
+
+The API returns **both languages** for every string, so:
+
+- `pick(day, lang, 'title')` returns the visitor's language, falling back to
+  English when that translation is blank. A partially-translated schedule still
+  renders.
+- Switching language re-renders from the already-fetched payload — no extra
+  request.
+- `formatHours()` renders 24-hour `HH:MM` values as 12-hour times per locale.
+
+Resilience and freshness:
 
 - On success the response is cached in `localStorage`.
 - If the backend is unreachable, the cached copy is used and the visitor sees a
   "showing cached data" notice instead of an empty schedule.
-- The schedule is fetched on page load, then refreshed hourly, plus a manual
-  **Refresh** button.
+- Fetched on page load, then hourly, plus a manual **Refresh** button.
 
 In development, `vite.config.js` proxies `/api` and `/admin` to
 `http://localhost:8000`, so run the backend alongside this dev server.

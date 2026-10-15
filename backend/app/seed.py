@@ -1,6 +1,8 @@
 """Default schedule data used to seed a fresh database.
 
 Shared by the app (on startup) and the test suite so both see the same rows.
+Times are stored 24-hour so the admin panel's ``<input type="time">`` can read
+them; the frontend formats them for display.
 """
 
 from sqlalchemy import select
@@ -9,13 +11,55 @@ from sqlalchemy.orm import Session as DBSession
 from app.models import Event, Hours
 
 DEFAULT_EVENTS = [
-    {"day": 0, "time": "8 PM - 2 AM", "title": "Latin Night", "note": "Salsa, bachata and reggaeton all night."},
-    {"day": 1, "time": "8 PM - 4 AM", "title": "Singles Night", "note": "Mingle with the singles."},
-    {"day": 2, "time": "", "title": "Closed", "note": ""},
-    {"day": 3, "time": "", "title": "Closed", "note": ""},
-    {"day": 4, "time": "8 PM - 4 AM", "title": "Open Mic Night", "note": "Come play music with us, bring an instrument or sing or play one of ours."},
-    {"day": 5, "time": "8 PM - 4 AM", "title": "Live Music", "note": "Live music all night."},
-    {"day": 6, "time": "8 PM - 4 AM", "title": "Live Music", "note": "The big one. Arrive early for a spot."},
+    {
+        "day": 0,
+        "title_en": "Latin Night",
+        "title_es": "Noche Latina",
+        "note_en": "Salsa, bachata and reggaeton all night.",
+        "note_es": "Salsa, bachata y reggaeton toda la noche.",
+    },
+    {
+        "day": 1,
+        "title_en": "Singles Night",
+        "title_es": "Noche de Solteros",
+        "note_en": "Mingle with the singles.",
+        "note_es": "Conoce a solteros y solteras.",
+    },
+    {
+        "day": 2,
+        "title_en": "Closed",
+        "title_es": "Cerrado",
+        "note_en": "",
+        "note_es": "",
+    },
+    {
+        "day": 3,
+        "title_en": "Closed",
+        "title_es": "Cerrado",
+        "note_en": "",
+        "note_es": "",
+    },
+    {
+        "day": 4,
+        "title_en": "Open Mic Night",
+        "title_es": "Noche de Mic Abierto",
+        "note_en": "Come play music with us, bring an instrument or sing or play one of ours.",
+        "note_es": "Viene a tocar música con nosotros, trae tu instrumento o canta o toca uno de los nuestros.",
+    },
+    {
+        "day": 5,
+        "title_en": "Live Music",
+        "title_es": "Música en Vivo",
+        "note_en": "Live music all night.",
+        "note_es": "Música en vivo toda la noche.",
+    },
+    {
+        "day": 6,
+        "title_en": "Live Music",
+        "title_es": "Música en Vivo",
+        "note_en": "The big one. Arrive early for a spot.",
+        "note_es": "El gran día. Llega temprano para conseguir lugar.",
+    },
 ]
 
 DEFAULT_HOURS = [

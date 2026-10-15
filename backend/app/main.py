@@ -8,12 +8,16 @@ from fastapi.staticfiles import StaticFiles
 from app import auth
 from app.config import BACKEND_DIR, settings
 from app.database import SessionLocal, engine
+from app.migrate import run_migrations
 from app.models import Base
 from app.routers import admin, api, auth as auth_router
 from app.seed import seed_schedule
 
 # Create tables on startup
 Base.metadata.create_all(bind=engine)
+
+# Bring an existing database up to the current schema before touching data
+run_migrations(engine)
 
 # Seed the default weekly schedule if the database is empty
 _db = SessionLocal()

@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Marea Alta</title>
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -27,7 +29,7 @@
             font-size: 1.5rem;
             font-weight: 700;
             color: #0B3C49;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
         .login-card .subtitle {
             color: #666;
@@ -75,26 +77,78 @@
             transition: background 0.2s;
         }
         .btn-login:hover { background: #0E4E5E; }
+        .lang-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(255,255,255,0.12);
+            padding: 0.25rem;
+            border-radius: 999px;
+        }
+        .lang-switch button {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] {
+            background: #fff;
+            color: #0B3C49;
+        }
     </style>
 </head>
 <body>
+    <div class="lang-switch" role="group">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="es" aria-pressed="false">ES</button>
+    </div>
+
     <div class="login-card">
         <h1>Marea Alta</h1>
-        <p class="subtitle">Admin Panel</p>
-        {% if error %}
-        <div class="error-msg">Invalid username or password.</div>
+        <p class="subtitle" data-i18n="app_title">Marea Alta Admin</p>
+
+        {% if error == "rate_limited" %}
+        <div class="error-msg" data-i18n="rate_limited">Too many attempts.</div>
+        {% elif error %}
+        <div class="error-msg" data-i18n="invalid_login">Invalid username or password.</div>
         {% endif %}
+
         <form method="POST" action="/admin/login">
             <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
+                <label for="username" data-i18n="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username" autofocus>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password" data-i18n="password">Password</label>
                 <input type="password" id="password" name="password" required autocomplete="current-password">
             </div>
-            <button type="submit" class="btn-login">Sign In</button>
+            <button type="submit" class="btn-login" data-i18n="sign_in">Sign in</button>
         </form>
     </div>
+
+    <script>
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                    b.setAttribute('aria-pressed', String(b === btn));
+                });
+            });
+        });
+        document.querySelectorAll('.lang-switch button').forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+        });
+    </script>
 </body>
 </html>

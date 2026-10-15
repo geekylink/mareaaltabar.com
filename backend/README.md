@@ -70,34 +70,61 @@ python manage_admin.py password <username> <new_password>
 
 Once logged in at `/admin`, you can:
 
-- **Party Schedule** (`/admin/schedule`): Edit titles, descriptions, and times for each weekday
-- **Operating Hours**: Set open/close times and mark days as closed
-- **Closed Days**: Add specific date closures (holidays, private events, etc.)
+- **Party Schedule** (`/admin/schedule`): one card per weekday holding the party
+  title and description in **both English and Spanish**, plus that day's opening
+  hours and a "closed" switch. Per-day **Save**, or **Save all days** at the top.
+  A colour bar on the left of each field shows whether that language is filled in.
+- **Closed Days**: add one-off closures (holidays, private events) with a reason
+  in both languages. Reasons save when you click away from the field.
 
 The admin panel is not linked from the public website. It is only accessible by navigating directly to `/admin`.
 
 ## API Endpoints
 
-**Read endpoints are public** — the website fetches them with no login. They are
-the single source of truth for the party schedule.
+**Read endpoints are public** — the website fetches them with no login. Every
+string comes back in **both languages**, so switching language needs no extra
+request. The frontend picks the field matching the visitor's language and falls
+back to English when a translation is blank.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/events` | Public | List all 7 day events |
-| `GET` | `/api/hours` | Public | List all 7 day hours |
-| `GET` | `/api/closed-days` | Public | List all closed days |
+| `GET` | `/api/schedule` | Public | The whole week: titles, descriptions and hours per day |
+| `GET` | `/api/closed-days` | Public | One-off date closures, both languages |
 
 **Write endpoints require an admin session and a CSRF token.**
 
 | Method | Path | Description |
 |---|---|---|
-| `PUT` | `/api/events/{day}` | Update event for a weekday (0=Sun, 6=Sat) |
-| `PUT` | `/api/hours/{day}` | Update hours for a weekday |
-| `POST` | `/api/closed-days` | Add a closed day (today or later) |
-| `DELETE` | `/api/closed-days/{id}` | Remove a closed day |
+| `PUT` | `/api/schedule/{day}` | Save a day's titles, descriptions **and** hours together |
+| `POST` | `/api/closed-days` | Add a closure (today or later) |
+| `PATCH` | `/api/closed-days/{id}` | Correct a closure's wording later |
+| `DELETE` | `/api/closed-days/{id}` | Remove a closure |
 
 Reads send `Cache-Control: no-cache` so admin edits appear without visitors
 having to hard-refresh.
+
+Times are stored 24-hour (`HH:MM`) so the admin panel's `<input type="time">`
+can populate them; the frontend formats them per locale.
+
+## Bilingual Admin Panel
+
+The admin pages are available in English and Spanish. Language follows the
+choice made on the public site (shared `localStorage`, same origin), and each
+page has an **EN / ES** toggle that switches instantly without a reload.
+
+To add a language, extend `STRINGS` in `app/admin_i18n.py` and add the code to
+`SUPPORTED` — no template changes needed.
+
+## Migrations
+
+SQLite cannot rename or drop columns cheaply, so schema changes are applied as
+explicit statements in `app/migrate.py`, run automatically at startup and
+covered by `tests/test_migrations.py`.
+
+The bilingual upgrade is non-destructive: existing single-language content
+becomes English, Spanish is seeded with the same text so nothing renders blank
+before a human translates it, and legacy `4:00 PM` times are normalised to
+`16:00` so the time inputs populate correctly.
 
 ## Security
 
@@ -135,28 +162,23 @@ having to hard-refresh.
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
 | `day` | INTEGER UNIQUE | 0=Sun ... 6=Sat |
-| `time` | TEXT | Display time string |
-| `title` | TEXT | Event name |
-| `note` | TEXT | Description |
-| `created_at` | DATETIME | Auto-set |
-| `updated_at` | DATETIME | Auto-set |
+| `title_en` / `title_es` | TEXT | Party name in both languages |
+| `note_en` / `note_es` | TEXT | Description in both languages |
+| `created_at` / `updated_at` | DATETIME | Auto-set |
 
 ### `hours`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
 | `day` | INTEGER UNIQUE | 0=Sun ... 6=Sat |
-| `open_time` | TEXT | e.g. "16:00" |
-| `close_time` | TEXT | e.g. "04:00" |
+| `open_time` / `close_time` | TEXT | 24-hour `HH:MM` |
 | `is_closed` | BOOLEAN | 0 or 1 |
-| `created_at` | DATETIME | Auto-set |
-| `updated_at` | DATETIME | Auto-set |
+| `created_at` / `updated_at` | DATETIME | Auto-set |
 
 ### `closed_days`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | INTEGER PK | Auto-increment |
 | `date` | TEXT UNIQUE | YYYY-MM-DD format |
-| `reason` | TEXT | Optional reason |
-| `created_at` | DATETIME | Auto-set |
-| `updated_at` | DATETIME | Auto-set |
+| `reason_en` / `reason_es` | TEXT | Reason in both languages |
+| `created_at` / `updated_at` | DATETIME | Auto-set |

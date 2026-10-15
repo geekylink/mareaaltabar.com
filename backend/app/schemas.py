@@ -1,52 +1,41 @@
-"""Pydantic request/response models."""
+"""Pydantic request/response models.
+
+Read responses always include both languages. The frontend picks the field
+matching the visitor's language and falls back to English when a translation is
+blank, so a partially-translated schedule still renders.
+"""
 
 from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
 
 
-# --- Auth ---
+# --- A weekday: event text plus its hours, saved as one unit ---
 
-class LoginRequest(BaseModel):
-    username: str = Field(min_length=1, max_length=128)
-    password: str = Field(min_length=1, max_length=255)
+class DayScheduleUpdate(BaseModel):
+    """Admin write payload for one weekday."""
 
-
-# --- Events ---
-
-class EventUpdate(BaseModel):
-    title: str = Field(default="", max_length=255)
-    note: str = Field(default="", max_length=2000)
-    time: str = Field(default="", max_length=64)
-
-
-class EventResponse(BaseModel):
-    day: int = Field(ge=0, le=6)
-    title: str
-    note: str
-    time: str
-
-
-# --- Hours ---
-
-class HoursUpdate(BaseModel):
+    title_en: str = Field(default="", max_length=255)
+    title_es: str = Field(default="", max_length=255)
+    note_en: str = Field(default="", max_length=2000)
+    note_es: str = Field(default="", max_length=2000)
     open_time: str = Field(default="", max_length=16)
     close_time: str = Field(default="", max_length=16)
     is_closed: bool = False
 
 
-class HoursResponse(BaseModel):
+class DayScheduleResponse(DayScheduleUpdate):
+    """Public read payload for one weekday."""
+
     day: int = Field(ge=0, le=6)
-    open_time: str
-    close_time: str
-    is_closed: bool
 
 
-# --- Closed Days ---
+# --- Closed days ---
 
 class ClosedDayCreate(BaseModel):
     date: date
-    reason: str = Field(default="", max_length=255)
+    reason_en: str = Field(default="", max_length=255)
+    reason_es: str = Field(default="", max_length=255)
 
     @field_validator("date")
     @classmethod
@@ -57,7 +46,13 @@ class ClosedDayCreate(BaseModel):
         return v
 
 
+class ClosedDayUpdate(BaseModel):
+    reason_en: str = Field(default="", max_length=255)
+    reason_es: str = Field(default="", max_length=255)
+
+
 class ClosedDayResponse(BaseModel):
     id: int
     date: str
-    reason: str
+    reason_en: str
+    reason_es: str

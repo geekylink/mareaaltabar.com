@@ -4,56 +4,54 @@
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
-  import { fetchAll } from './lib/api.js';
+  import { load, pick, formatHours } from './lib/api.js';
 
-  // Events and hours are fetched from the backend API
-  let eventsData = [];
-  let hoursData = [];
-  let closedDaysData = [];
+  let schedule = [];
+  let closedDays = [];
   let loading = true;
   let loadError = null;
 
   const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' })).getDay();
 
-  // Reactive: recomputed whenever API data arrives, not just at startup.
-  $: tonight = eventsData.find((e) => e.day === today);
-  $: tonightHours = hoursData.find((h) => h.day === today);
-  $: tonightClosed = tonightHours?.is_closed || tonight?.title === 'Closed';
-  $: tonightLabel = tonightClosed
-    ? $t.party.closedToday
-    : [tonight?.time, tonight?.note].filter(Boolean).join('. ');
+  // `lang` mirrors the visitor's choice, so switching language re-renders from
+  // the already-fetched payload without another request.
+  $: lang = $locale;
+
+  $: tonight = schedule.find((d) => d.day === today);
+  $: tonightTitle = pick(tonight, lang, 'title');
+  $: tonightNote = pick(tonight, lang, 'note');
+  $: tonightClosed = tonight?.is_closed || /^(closed|cerrado)$/i.test(tonightTitle);
+  $: tonightTime = formatHours(tonight, lang, $t.party.closedToday);
 
   // Hero water sits between 50% and 78% of hero height, following the real tide.
   $: waterTop = 78 - $tideLevel * 28;
 
-  $: todayHours = hoursData.find((h) => h.day === today);
-  $: hoursText = !todayHours
-    ? $t.visit.hours
-    : todayHours.is_closed
-      ? $t.party.closedToday
-      : todayHours.open_time && todayHours.close_time
-        ? `${todayHours.open_time} - ${todayHours.close_time}`
-        : $t.visit.hours;
-  $: vars = { full: BAR.full, name: BAR.name, town: BAR.town, year: new Date().getFullYear(), hours: hoursText };
+  $: todayHours = formatHours(schedule.find((d) => d.day === today), lang, $t.party.closedToday);
+  $: vars = {
+    full: BAR.full,
+    name: BAR.name,
+    town: BAR.town,
+    year: new Date().getFullYear(),
+    hours: todayHours || $t.visit.hours,
+  };
 
-  function formatDayTime(event, hours) {
-    if (hours?.is_closed) return $t.party.closedToday;
-    if (event.time) return event.time;
-    if (hours?.open_time && hours?.close_time) return `${hours.open_time} - ${hours.close_time}`;
-    return '';
+  function dayTitle(day) {
+    return pick(day, lang, 'title') || $t.party.noEvent;
+  }
+
+  function dayNote(day) {
+    return day.is_closed ? '' : pick(day, lang, 'note');
   }
 
   async function loadData() {
     loading = true;
     loadError = null;
     try {
-      const result = await fetchAll();
-      eventsData = result.events.data;
-      hoursData = result.hours.data;
-      closedDaysData = result.closedDays.data;
-      // Only surface a notice if we have data to show alongside it.
-      const fallback = result.events.error || result.hours.error || result.closedDays.error;
-      loadError = fallback && eventsData.length > 0 ? fallback : null;
+      const result = await load();
+      schedule = result.schedule;
+      closedDays = result.closedDays;
+      // Only show the notice when we have data to display alongside it.
+      loadError = result.error && schedule.length > 0 ? result.error : null;
     } catch (err) {
       loadError = err.message;
     } finally {
@@ -61,7 +59,6 @@
     }
   }
 
-  // Fetch on page load, then hourly so long-lived tabs stay current.
   loadData();
   const refreshTimer = setInterval(loadData, 60 * 60 * 1000);
   onDestroy(() => clearInterval(refreshTimer));
@@ -111,11 +108,11 @@
 
 <Surf />
 
-{#if loading && eventsData.length === 0}
+{#if loading && schedule.length === 0}
   <div class="loading-state">
     <p>{$t.ui.loading}</p>
   </div>
-{:else if eventsData.length === 0}
+{:else if schedule.length === 0}
   <div class="error-state">
     <p>{loadError || $t.ui.error}</p>
     <button class="btn primary" on:click={loadData}>{$t.ui.retry}</button>
@@ -132,30 +129,30 @@
     {#if tonight && !tonightClosed}
       <div class="tonight">
         <span class="tag">{$t.party.tonight}</span>
-        <h3>{tonight.title}</h3>
-        {#if tonightLabel}<p>{tonightLabel}</p>{/if}
+        <h3>{tonightTitle}</h3>
+        {#if tonightTime}<p>{tonightTime}</p>{/if}
+        {#if tonightNote}<p>{tonightNote}</p>{/if}
       </div>
     {/if}
     <ul class="week">
-      {#each eventsData as e (e.day)}
-        {@const dayHours = hoursData.find((h) => h.day === e.day)}
-        {@const isClosed = dayHours?.is_closed || e.title === 'Closed'}
-        <li class:now={e.day === today} class:closed={isClosed}>
-          <span class="day">{$t.days[e.day]}</span>
+      {#each schedule as day (day.day)}
+        {@const closed = day.is_closed || /^(closed|cerrado)$/i.test(dayTitle(day))}
+        <li class:now={day.day === today} class:closed>
+          <span class="day">{$t.days[day.day]}</span>
           <span class="what">
-            <b>{e.title || $t.party.noEvent}</b>
-            {#if e.note && !isClosed}<br />{e.note}{/if}
+            <b>{closed ? $t.party.closedToday : dayTitle(day)}</b>
+            {#if dayNote(day)}<br />{dayNote(day)}{/if}
           </span>
-          <span class="time">{formatDayTime(e, dayHours)}</span>
+          <span class="time">{closed ? $t.party.closedToday : formatHours(day, lang, $t.party.closedToday)}</span>
         </li>
       {/each}
     </ul>
-    {#if closedDaysData.length > 0}
+    {#if closedDays.length > 0}
       <div class="closed-days">
         <h3>{$t.party.closedToday}</h3>
         <ul>
-          {#each closedDaysData as d (d.id)}
-            <li>{d.date}{d.reason ? ' — ' + d.reason : ''}</li>
+          {#each closedDays as d (d.id)}
+            <li>{d.date}{pick(d, lang, 'reason') ? ' — ' + pick(d, lang, 'reason') : ''}</li>
           {/each}
         </ul>
       </div>

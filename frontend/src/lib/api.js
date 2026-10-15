@@ -1,24 +1,25 @@
 // API client for the Marea Alta backend.
-// Fetches events, hours, and closed days from the backend.
-// Falls back to localStorage cache if the backend is unreachable.
+//
+// The API returns both languages for every string. The caller picks the field
+// matching the visitor's language, so switching language needs no extra request.
 
-const CACHE_KEY_EVENTS = 'marea_alta_events_cache';
-const CACHE_KEY_HOURS = 'marea_alta_hours_cache';
-const CACHE_KEY_CLOSED_DAYS = 'marea_alta_closed_days_cache';
+const CACHE_KEY = 'marea_alta_schedule_cache';
 
-function getCache(key) {
+function getCache() {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(CACHE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function setCache(key, data) {
+function setCache(data) {
   try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch {}
+    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+  } catch {
+    /* private mode or quota: caching is best-effort */
+  }
 }
 
 async function fetchJSON(path) {
@@ -27,53 +28,48 @@ async function fetchJSON(path) {
   return res.json();
 }
 
-export async function fetchEvents() {
+async function load() {
   try {
-    const events = await fetchJSON('/api/events');
-    setCache(CACHE_KEY_EVENTS, events);
-    return { data: events, source: 'api', error: null };
+    const [schedule, closedDays] = await Promise.all([
+      fetchJSON('/api/schedule'),
+      fetchJSON('/api/closed-days'),
+    ]);
+    setCache({ schedule, closedDays });
+    return { schedule, closedDays, error: null };
   } catch (err) {
-    const cached = getCache(CACHE_KEY_EVENTS);
+    const cached = getCache();
     if (cached) {
-      return { data: cached, source: 'cache', error: 'Backend unreachable, showing cached data' };
+      return { ...cached, error: 'Backend unreachable, showing cached data' };
     }
-    return { data: [], source: 'none', error: 'Failed to load events and no cache available' };
+    return { schedule: [], closedDays: [], error: 'Failed to load the schedule' };
   }
 }
 
-export async function fetchHours() {
-  try {
-    const hours = await fetchJSON('/api/hours');
-    setCache(CACHE_KEY_HOURS, hours);
-    return { data: hours, source: 'api', error: null };
-  } catch (err) {
-    const cached = getCache(CACHE_KEY_HOURS);
-    if (cached) {
-      return { data: cached, source: 'cache', error: 'Backend unreachable, showing cached data' };
-    }
-    return { data: [], source: 'none', error: 'Failed to load hours and no cache available' };
-  }
+export { load };
+
+// Picks the visitor's language, falling back to English when a translation is blank.
+export function pick(day, lang, field) {
+  const suffix = lang === 'es' ? '_es' : '_en';
+  const value = day?.[`${field}${suffix}`];
+  if (value && value.trim()) return value;
+  return day?.[`${field}_en`] || '';
 }
 
-export async function fetchClosedDays() {
-  try {
-    const days = await fetchJSON('/api/closed-days');
-    setCache(CACHE_KEY_CLOSED_DAYS, days);
-    return { data: days, source: 'api', error: null };
-  } catch (err) {
-    const cached = getCache(CACHE_KEY_CLOSED_DAYS);
-    if (cached) {
-      return { data: cached, source: 'cache', error: 'Backend unreachable, showing cached data' };
-    }
-    return { data: [], source: 'none', error: 'Failed to load closed days and no cache available' };
-  }
+// Formats a 24-hour "HH:MM" value for display in the visitor's locale.
+export function formatTime(hhmm, lang) {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':');
+  const hour = Number(h);
+  if (Number.isNaN(hour)) return hhmm;
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const display = lang === 'es' ? (hour >= 12 ? 'p. m.' : 'a. m.') : suffix;
+  const base = lang === 'es' ? hour % 12 || 12 : hour % 12 || 12;
+  return `${base}:${m} ${display}`;
 }
 
-export async function fetchAll() {
-  const [events, hours, closedDays] = await Promise.all([
-    fetchEvents(),
-    fetchHours(),
-    fetchClosedDays(),
-  ]);
-  return { events, hours, closedDays };
+export function formatHours(day, lang, closedLabel) {
+  if (!day) return '';
+  if (day.is_closed) return closedLabel;
+  if (!day.open_time || !day.close_time) return '';
+  return `${formatTime(day.open_time, lang)} - ${formatTime(day.close_time, lang)}`;
 }
