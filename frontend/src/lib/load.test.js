@@ -12,6 +12,10 @@ const SCHEDULE = [
   { day: 0, title_en: 'Latin Night', title_es: 'Noche Latina', note_en: '', note_es: '', open_time: '16:00', close_time: '02:00', is_closed: false },
 ];
 const CLOSED = [{ id: 1, date: '2030-12-25', reason_en: 'Christmas', reason_es: 'Navidad' }];
+// A date that has certainly passed. The API filters these out, but a payload
+// written before it did — a stale localStorage cache, an older server-rendered
+// seed — still carries them, and a holiday that passed must not render.
+const PAST = { id: 0, date: '2001-12-25', reason_en: 'New Year', reason_es: 'Año Nuevo' };
 
 function jsonResponse(body) {
   return vi.fn(async (url) => ({
@@ -89,5 +93,42 @@ describe('load() and the server-rendered payload', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.schedule).toEqual(SCHEDULE);
+  });
+});
+
+describe('load() and closures that have passed', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    delete window.__MAREA_ALTA_DATA__;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete window.__MAREA_ALTA_DATA__;
+  });
+
+  it('drops them from the server-rendered payload', async () => {
+    window.__MAREA_ALTA_DATA__ = { schedule: SCHEDULE, closedDays: [PAST, ...CLOSED] };
+    global.fetch = jsonResponse();
+
+    const load = await freshLoad();
+    const result = await load();
+
+    expect(result.closedDays).toEqual(CLOSED);
+  });
+
+  it('drops them from a cache written before the API filtered them', async () => {
+    // What a returning visitor actually has: a payload stored weeks ago.
+    localStorage.setItem(
+      'marea_alta_schedule_cache',
+      JSON.stringify({ schedule: SCHEDULE, closedDays: [PAST, ...CLOSED] }),
+    );
+    global.fetch = vi.fn(async () => ({ ok: false, status: 500 }));
+
+    const load = await freshLoad();
+    const result = await load();
+
+    expect(result.closedDays).toEqual(CLOSED);
+    expect(result.error).toBeTruthy();
   });
 });

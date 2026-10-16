@@ -39,7 +39,7 @@ export default {
     retry: 'Reload report',
     credit: 'Data: Open-Meteo marine model. Tide times are approximate. Always check the water yourself.',
   },
-  party: { title: 'Party schedule', tonight: 'Tonight', closedToday: 'Closed today', noEvent: 'No event scheduled', cacheNotice: 'Showing cached data (offline)' },
+  party: { title: 'Party schedule', tonight: 'Tonight', closedToday: 'Closed today', closedDays: 'Closed days', noEvent: 'No event scheduled', cacheNotice: 'Showing cached data (offline)' },
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   visit: {
     title: 'Find us',

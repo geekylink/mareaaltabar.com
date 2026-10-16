@@ -11,6 +11,44 @@
 
 const CACHE_KEY = 'marea_alta_schedule_cache';
 
+// The bar's own timezone. Ecuador is UTC-5 year-round, and both the schedule and
+// every closure are keyed to the day it is *there* — the mirror of
+// `BAR_UTC_OFFSET` in backend/app/ssr.py.
+const BAR_TZ = 'America/Guayaquil';
+
+// Which day it is at the bar: `{ day, date }`, `day` 0 = Sunday to match the
+// database, `date` as YYYY-MM-DD to match a closure row.
+//
+// Both fields come from one read of the bar's calendar, and the weekday is
+// derived from that, so no visitor timezone can shift either one. `now` is
+// injectable purely so tests can pin a date, as `ssr.bar_today` is.
+export function barToday(now = new Date()) {
+  const parts = {};
+  for (const part of new Intl.DateTimeFormat('en-US', { timeZone: BAR_TZ }).formatToParts(now)) {
+    parts[part.type] = part.value;
+  }
+  // `en-US` hands back an unpadded month and day, and a closure row is compared
+  // as a string, so the padding has to be explicit.
+  const pad = (n) => String(n).padStart(2, '0');
+  const date = `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+  const day = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+  return { day, date };
+}
+
+// Is the bar shut today because of a one-off closure (a holiday, a private
+// booking)? Distinct from the weekly `is_closed` flag, which says nothing about
+// any particular date.
+export function isClosedOn(closedDays, isoDate) {
+  return closedDays.some((d) => d?.date === isoDate);
+}
+
+// The closures still to come. `GET /api/closed-days` already filters, and so
+// does this: the localStorage cache and the server-rendered seed both outlive
+// the date they were fetched on.
+export function upcomingClosedDays(closedDays, isoDate) {
+  return closedDays.filter((d) => d?.date >= isoDate);
+}
+
 function seededData() {
   try {
     return typeof window !== 'undefined' ? window.__MAREA_ALTA_DATA__ : null;
@@ -45,25 +83,42 @@ async function fetchJSON(path) {
 let seeded = false;
 
 async function load() {
+  // The bar's date, not the visitor's: a closure is a fact about Montañita.
+  const today = barToday().date;
+
   // Server-rendered payload, used once. `seeded` keeps the hourly refresh from
   // replaying it after the first hour.
   const seed = seededData();
   if (seed && !seeded && Array.isArray(seed.schedule) && seed.schedule.length > 0) {
     seeded = true;
-    setCache(seed);
-    return { schedule: seed.schedule, closedDays: seed.closedDays || [], error: null };
+    const result = {
+      schedule: seed.schedule,
+      closedDays: upcomingClosedDays(seed.closedDays || [], today),
+      error: null,
+    };
+    setCache(result);
+    return result;
   }
   try {
     const [schedule, closedDays] = await Promise.all([
       fetchJSON('/api/schedule'),
       fetchJSON('/api/closed-days'),
     ]);
-    setCache({ schedule, closedDays });
-    return { schedule, closedDays, error: null };
+    const result = {
+      schedule,
+      closedDays: upcomingClosedDays(closedDays, today),
+      error: null,
+    };
+    setCache(result);
+    return result;
   } catch (err) {
     const cached = getCache();
     if (cached) {
-      return { ...cached, error: 'Backend unreachable, showing cached data' };
+      return {
+        ...cached,
+        closedDays: upcomingClosedDays(cached.closedDays || [], today),
+        error: 'Backend unreachable, showing cached data',
+      };
     }
     return { schedule: [], closedDays: [], error: 'Failed to load the schedule' };
   }

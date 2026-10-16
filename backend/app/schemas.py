@@ -9,6 +9,10 @@ from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
 
+# One clock decides both what can be created and what gets published, so the
+# write guard asks the same `app.ssr` the read filter uses.
+from app.ssr import bar_today
+
 
 # --- A weekday: event text plus its hours, saved as one unit ---
 
@@ -40,8 +44,13 @@ class ClosedDayCreate(BaseModel):
     @field_validator("date")
     @classmethod
     def _reject_past(cls, v: date) -> date:
-        """Closed days must be today or later; past entries are a data-entry mistake."""
-        if v < date.today():
+        """Closed days must be today or later; past entries are a data-entry mistake.
+
+        Compared against today at the bar rather than on the server, so this
+        accepts exactly the dates ``load_closed_days`` will publish. A UTC server
+        between 19:00 and midnight would otherwise reject the bar's own today.
+        """
+        if v < date.fromisoformat(bar_today()[1]):
             raise ValueError("date cannot be in the past")
         return v
 

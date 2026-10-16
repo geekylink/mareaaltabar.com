@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pick, formatTime, formatHours } from './api.js';
+import { pick, formatTime, formatHours, barToday, isClosedOn, upcomingClosedDays } from './api.js';
 
 const day = {
   day: 4,
@@ -72,5 +72,75 @@ describe('formatHours', () => {
 
   it('returns an empty string when times are missing but the day is open', () => {
     expect(formatHours({ ...day, open_time: '', close_time: '' }, 'en', 'Closed')).toBe('');
+  });
+});
+
+describe('barToday', () => {
+  // These mirror the backend's `bar_today`, which owns the same boundary: the
+  // bar is UTC-5, so a UTC instant can still be the previous day in Montañita.
+  it('uses the bar timezone, not the visitor timezone', () => {
+    // 02:30 UTC on Monday is Sunday evening in Montañita.
+    expect(barToday(new Date('2026-01-05T02:30:00Z'))).toEqual({ day: 0, date: '2026-01-04' });
+  });
+
+  it('rolls over at local midnight, not UTC midnight', () => {
+    // 02:30 UTC Tuesday is still Monday there.
+    expect(barToday(new Date('2026-01-06T02:30:00Z'))).toEqual({ day: 1, date: '2026-01-05' });
+    // 05:30 UTC Tuesday is Tuesday there.
+    expect(barToday(new Date('2026-01-06T05:30:00Z'))).toEqual({ day: 2, date: '2026-01-06' });
+  });
+
+  it('numbers the days the way the database does, Sunday first', () => {
+    const week = ['2026-01-04', '2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08', '2026-01-09', '2026-01-10'];
+    expect(week.map((d) => barToday(new Date(`${d}T12:00:00Z`)).day)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  });
+
+  it('returns an ISO date without an argument', () => {
+    expect(barToday().date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe('isClosedOn', () => {
+  const closures = [
+    { id: 1, date: '2030-12-25', reason_en: 'Christmas' },
+    { id: 2, date: '2031-01-01', reason_en: 'New Year' },
+  ];
+
+  it('is true when a closure is dated today', () => {
+    expect(isClosedOn(closures, '2030-12-25')).toBe(true);
+  });
+
+  it('is false when today is merely another closure', () => {
+    expect(isClosedOn(closures, '2031-01-02')).toBe(false);
+  });
+
+  it('is false with no closures at all', () => {
+    expect(isClosedOn([], '2030-12-25')).toBe(false);
+  });
+
+  it('compares the whole date, not a prefix of it', () => {
+    expect(isClosedOn(closures, '2030-12-2')).toBe(false);
+  });
+});
+
+describe('upcomingClosedDays', () => {
+  it('drops closures that have passed and keeps the rest in order', () => {
+    const closures = [
+      { id: 1, date: '2001-12-25' },
+      { id: 2, date: '2030-12-25' },
+      { id: 3, date: '2031-01-01' },
+    ];
+    expect(upcomingClosedDays(closures, '2026-06-15').map((d) => d.date)).toEqual([
+      '2030-12-25',
+      '2031-01-01',
+    ]);
+  });
+
+  it('keeps a closure dated today, since that is the one that matters', () => {
+    expect(upcomingClosedDays([{ id: 1, date: '2026-06-15' }], '2026-06-15')).toHaveLength(1);
+  });
+
+  it('drops rows with no usable date rather than rendering them as today', () => {
+    expect(upcomingClosedDays([{ id: 1 }, { id: 2, date: '2030-12-25' }], '2026-06-15')).toHaveLength(1);
   });
 });

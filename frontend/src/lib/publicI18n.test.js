@@ -18,12 +18,13 @@ const PYTHON = readFileSync(
 // Labels the SPA genuinely does not have. Each one is a deliberate addition in
 // the rendered HTML, not a duplicate — if one is added to the site, drop it
 // from this list so the next edit keeps them in step.
-const SERVER_ONLY = ['opening_hours', 'closed_days'];
+const SERVER_ONLY = ['opening_hours'];
 
 const SHARED_LABELS = {
   schedule_heading: (c) => c.party.title,
   tonight: (c) => c.party.tonight,
   closed_today: (c) => c.party.closedToday,
+  closed_days: (c) => c.party.closedDays,
   no_event: (c) => c.party.noEvent,
 };
 

@@ -90,7 +90,7 @@ back to English when a translation is blank.
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | `GET` | `/api/schedule` | Public | The whole week: titles, descriptions and hours per day |
-| `GET` | `/api/closed-days` | Public | One-off date closures, both languages |
+| `GET` | `/api/closed-days` | Public | One-off date closures, both languages, today and later |
 | `GET` | `/` | Public | The site, with the schedule rendered into the HTML |
 
 **Write endpoints require an admin session and a CSRF token.**
@@ -104,6 +104,20 @@ back to English when a translation is blank.
 
 Reads send `Cache-Control: no-cache` so admin edits appear without visitors
 having to hard-refresh.
+
+**Closures are only published from today onward.** `load_closed_days()` filters
+on `date >= bar_today()[1]`, so a closure stops being returned the day after it
+happens instead of rendering on the site for ever, and `ClosedDayCreate` refuses
+the same dates using the same clock — one clock decides both what can be created
+and what is published. It is the **bar's** date, not the server's: they differ by
+five hours, and a UTC server between 19:00 and midnight would otherwise reject
+the bar's own today.
+
+Past rows stay in the `closed_days` table, but since the panel loads its
+closed-days list from the same public endpoint, they also disappear from the
+admin list. Editing or removing a closure that has already passed is no longer
+possible from the panel; the rows are inert and can be deleted from the database
+whenever is convenient.
 
 Times are stored 24-hour (`HH:MM`) so the admin panel's `<input type="time">`
 can populate them; the frontend formats them per locale.
@@ -138,9 +152,13 @@ logged, rather than the homepage going down.
 
 `app/ssr.py` and `app/routers/api.py` share one set of loaders (`load_schedule`,
 `load_closed_days`, `day_payload`), so the JSON and the HTML cannot describe
-different weeks. `app/public_i18n.py` holds the handful of labels the rendered
-block needs; the rest of the site's wording lives in `frontend/src/content/*.js`,
-and a test in the frontend suite fails if the shared strings drift apart.
+different weeks or different closure notices. A closure dated today closes today's
+row in the rendered HTML for the same reason it closes it in the SPA — otherwise
+the page would promise a party on a public holiday and visibly change the moment
+the app mounted over it. `app/public_i18n.py` holds the handful of labels the
+rendered block needs; the rest of the site's wording lives in
+`frontend/src/content/*.js`, and a test in the frontend suite fails if the shared
+strings drift apart.
 
 **nginx must proxy `/` here.** Serving `dist/index.html` straight off disk skips
 the rendering and puts the schedule back out of reach of crawlers.

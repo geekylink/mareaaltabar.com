@@ -39,7 +39,7 @@ export default {
     retry: 'Recargar reporte',
     credit: 'Datos: Open-Meteo modelo marino. Los tiempos de marea son aproximados. Siempre verifica el agua tú mismo.',
   },
-  party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
+  party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', closedDays: 'Días cerrados', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
   days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   visit: {
     title: 'Encuéntranos',

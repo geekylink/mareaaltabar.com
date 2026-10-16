@@ -110,9 +110,24 @@ def load_schedule(db: DBSession) -> list[dict]:
     return [day_payload(e, hours_by_day.get(e.day)) for e in events]
 
 
-def load_closed_days(db: DBSession) -> list[dict]:
-    """One-off closures, in the shape ``/api/closed-days`` returns."""
-    days = db.execute(select(ClosedDay).order_by(ClosedDay.date)).scalars().all()
+def load_closed_days(db: DBSession, from_date: str | None = None) -> list[dict]:
+    """One-off closures from ``from_date`` onward, in the shape ``/api/closed-days`` returns.
+
+    A closure is only news on and after its date, so rows that have already
+    passed are dropped: otherwise every holiday the bar has ever taken off
+    renders on the site for ever. ``ClosedDay.date`` is an ISO string, which
+    compares correctly in SQL, and the filter is in the query rather than in
+    Python so it cannot drift between this loader and its callers.
+
+    ``from_date`` defaults to today *at the bar*, not on the server — the two
+    differ by five hours, and the row the bar shows is the row it must accept.
+    It is injectable purely so tests can pin a date, as ``bar_today`` is.
+    """
+    if from_date is None:
+        from_date = bar_today()[1]
+    days = db.execute(
+        select(ClosedDay).where(ClosedDay.date >= from_date).order_by(ClosedDay.date)
+    ).scalars().all()
     return [
         {"id": d.id, "date": d.date, "reason_en": d.reason_en, "reason_es": d.reason_es}
         for d in days
@@ -163,20 +178,24 @@ def format_hours(day: dict | None, lang: str, closed_label: str) -> str:
 def build_payload(db: DBSession, lang: str) -> dict:
     """Everything the schedule block renders, resolved for one language.
 
-    Closed days are deliberately returned unfiltered, matching today's
-    ``/api/closed-days`` behaviour: the rendered HTML and the client-rendered
-    HTML must agree, or the page visibly changes on load. Ticket #42 filters
-    both sides to today-and-later.
+    A closure dated today closes the day as surely as the weekday's own
+    ``is_closed`` flag does, so today's row is resolved closed when ``closedDays``
+    contains it. App.svelte merges the same three sources (the flag, a title of
+    "Closed"/"Cerrado", and a closure dated today) into one flag; if this side did
+    not, the rendered HTML would promise a party on a public holiday and the page
+    would visibly change the moment the app mounted over it.
     """
     labels = strings_for(lang)
     today, today_iso = bar_today()
     schedule = load_schedule(db)
     closed_days = load_closed_days(db)
+    closed_today = any(d["date"] == today_iso for d in closed_days)
 
     days = []
     for row in schedule:
         title = pick(row, lang, "title")
-        closed = bool(row["is_closed"]) or bool(CLOSED_TITLE_RE.match(title or ""))
+        shut = row["day"] == today and closed_today
+        closed = shut or bool(row["is_closed"]) or bool(CLOSED_TITLE_RE.match(title or ""))
         days.append(
             {
                 "day": row["day"],
@@ -185,7 +204,11 @@ def build_payload(db: DBSession, lang: str) -> dict:
                 "closed": closed,
                 "title": "" if closed else (title or labels["no_event"]),
                 "note": "" if closed else pick(row, lang, "note"),
-                "hours": format_hours(row, lang, labels["closed_today"]),
+                # The label is swapped for the closed one, but the raw times stay:
+                # a closure is one date, not a change to that weekday's schedule.
+                "hours": labels["closed_today"]
+                if shut
+                else format_hours(row, lang, labels["closed_today"]),
                 "open_time": row["open_time"],
                 "close_time": row["close_time"],
             }

@@ -54,11 +54,11 @@ them without running JavaScript. Proxy `/` to the backend rather than serving
 ### Tests
 
 ```bash
-# Backend: auth, CRUD, migrations, admin-edit propagation
+# Backend: auth, CRUD, migrations, admin-edit propagation, closed-day filtering
 cd backend
 python -m pytest tests/ -v
 
-# Frontend: language switching, fallback and time formatting
+# Frontend: language switching, fallback, time formatting, closed-day handling
 cd ../frontend
 npm test
 ```

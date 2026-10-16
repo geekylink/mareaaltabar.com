@@ -75,7 +75,13 @@ async def update_day(day: int, data: DayScheduleUpdate, db: DBSession = Depends(
 
 @router.get("/api/closed-days", response_model=list[ClosedDayResponse])
 async def list_closed_days(response: Response, db: DBSession = Depends(get_db)):
-    """Public: one-off date closures (holidays, private events)."""
+    """Public: one-off date closures (holidays, private events), today and later.
+
+    ``load_closed_days`` drops rows that have already passed, at the bar's clock
+    rather than the server's, so a closure stops being published the day after it
+    happens. Past rows stay in ``closed_days`` — they are simply never returned,
+    which also means the admin panel's list no longer shows them.
+    """
     response.headers.update(READ_CACHE_CONTROL)
     return load_closed_days(db)
 

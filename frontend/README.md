@@ -17,14 +17,17 @@ npm run test:watch
 
 Vitest with jsdom. Five files:
 
-- `src/lib/api.test.js` — the language-fallback and time-formatting helpers.
+- `src/lib/api.test.js` — the language-fallback and time-formatting helpers, plus
+  the bar's clock and the closed-day helpers.
 - `src/lib/load.test.js` — the server-rendered payload is used once, then the API
-  takes over for the hourly refresh.
+  takes over for the hourly refresh; closures that have passed are dropped from
+  both the seed and a stale cache.
 - `src/lib/publicI18n.test.js` — the labels the backend renders are the same
   strings this site shows, so a rename cannot silently leave the two disagreeing.
 - `src/main.test.js` — the app replaces the server-rendered block on mount.
 - `src/App.test.js` — renders the real component with a mocked `fetch` and
-  asserts the schedule switches language **without a remount**.
+  asserts the schedule switches language **without a remount**, and that a
+  closure dated today hides tonight's party and the opening-hours line.
 
 `src/App.test.js` is a deliberate regression guard. The week list once called
 `pick()` through local wrapper functions, which hid `lang` from Svelte's
@@ -69,6 +72,27 @@ The API returns **both languages** for every string, so:
 - Switching language re-renders from the already-fetched payload — no extra
   request.
 - `formatHours()` renders 24-hour `HH:MM` values as 12-hour times per locale.
+- `barToday()` returns the day and the date **at the bar**, not where the visitor
+  is. It mirrors `ssr.bar_today()`, and the two must agree: the schedule is keyed
+  to Montañita's calendar, so a visitor in another timezone must not shift it.
+
+A day can be shut three ways, and `App.svelte` merges all three into one
+`closedToday` flag:
+
+- the weekday's own `is_closed` flag,
+- a title of exactly "Closed" / "Cerrado" (kept for older rows where the hours and
+  the title disagree), and
+- a **closure dated today** in `closedDays` — a public holiday or a private
+  booking, which the weekly schedule knows nothing about.
+
+That flag hides the Tonight card, replaces tonight's party in the week list with
+the closed label, and stops the Visit section claiming the bar is "open daily,
+afternoon until late" on a day it is shut. Getting this wrong is what made a
+closed holiday still advertise tonight's party.
+
+Closures are also filtered **client-side** by `upcomingClosedDays()`, because
+`GET /api/closed-days` filters to today-and-later but the `localStorage` cache and
+the server-rendered seed both outlive the date they were fetched on.
 
 Resilience and freshness:
 

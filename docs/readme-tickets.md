@@ -31,7 +31,6 @@ Project manager note:
 
 - [Tier 0 — Ship It](#tier-0--ship-it)
   - [41. Deploy the backend to production (VPS)](#41-deploy-the-backend-to-production-vps)
-  - [42. Fix closed-day handling on the public site](#42-fix-closed-day-handling-on-the-public-site)
   - [43. Harden SQLite for concurrent production writes](#43-harden-sqlite-for-concurrent-production-writes)
   - [44. Production environment & secrets runbook](#44-production-environment--secrets-runbook)
   - [36. CI/CD rebuild](#36-cicd-rebuild)
@@ -113,15 +112,6 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 
 ---
 
-### 42. Fix closed-day handling on the public site
-**Impact:** 🔴 · **Effort:** 🟢 · **Category:** Functionality
-
-Two real bugs, both created by the frontend not fully honouring backend data. **First:** `App.svelte` computes `tonightClosed` from the weekday `is_closed` flag and a title regex, but never checks `closedDays` for today's date — so a public holiday the bar explicitly closed for still renders "Tonight: <party name>" in the highlight card, plus an "open until late" hours line in the Visit section. **Second:** `GET /api/closed-days` returns every row with no date filter, so closures render on the site forever; `ClosedDayCreate` blocks *creating* past dates but nothing stops them being *displayed* after they pass. Fix by filtering the API to today-and-later, and by deriving a `closedToday` flag in the frontend that merges both sources into the hero, the Tonight card, and the week row.
-
-**Files:** `backend/app/routers/api.py` (filter closed days), `backend/app/schemas.py` (if a new field is needed), `frontend/src/App.svelte`, `frontend/src/lib/api.js`, `backend/tests/test_api_closed_days.py`
-
----
-
 ### 43. Harden SQLite for concurrent production writes
 **Impact:** 🔴 · **Effort:** 🟢 · **Category:** DevOps
 
@@ -184,6 +174,8 @@ Monitoring a two-tier app by pinging the homepage will miss most failures — th
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** SEO
 
 Add JSON-LD marking the site as a `BarOrPub` with name, address, phone, `geo` coordinates for Montañita, and — the part that used to be free — `openingHoursSpecification` built from the live weekly hours plus any upcoming closures. This is the highest-impact SEO change for a local business, because it is what produces the knowledge panel and the map pin. It depends on #46: the hours are now in the database and change without a deploy, so hardcoding them in `index.html` would be wrong within a week.
+
+**Since #42:** `GET /api/closed-days` hands over today-and-later only, so this ticket no longer needs a date filter of its own — and a closure dated today can be expressed as today's hours rather than quietly dropped.
 
 **Files:** `frontend/index.html` (JSON-LD block), depends on `46` and `6` (phone/address)
 
@@ -630,7 +622,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | Status | # | Ticket | Impact | Effort | Category |
 |:------:|---|--------|:------:|:------:|----------|
 | | 41 | Deploy the backend to production | 🔴 | 🟡 | DevOps |
-| | 42 | Fix closed-day handling on the public site | 🔴 | 🟢 | Functionality |
+| ✅ | 42 | Fix closed-day handling on the public site | 🔴 | 🟢 | Functionality |
 | | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
 | | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
 | | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
@@ -693,8 +685,8 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 **The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
-Tickets 41, 42, 43, 44, 38, 45.
-*Goal: The site is deployed, reachable over HTTPS, safe from data loss, and the two closed-day bugs are fixed. Six tickets — four of them under a day — because none of the rest matters until this is true.*
+Tickets 41, ~~42~~, 43, 44, 38, 45.
+*Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42 is done — the two closed-day bugs are fixed. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
 Tickets 36, 39, 35.
@@ -725,6 +717,9 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Closed-day handling on the public site (#42)
+**Shipped** — `GET /api/closed-days` now returns today and later only, filtered in `load_closed_days()` — the loader the JSON API and the server-rendered homepage share — against the bar's own clock rather than the server's, so a closure stops being published the day after it happens and the two can never disagree about which days are shut. `ClosedDayCreate` refuses the same dates using that same clock, so the bar's own today is accepted even in the five-hour window where the server's date is already tomorrow. Past rows stay in the table but are never returned, which also means they no longer appear in the admin panel's closed-days list. On the site, a day can be shut three ways and all three now agree: the weekday's `is_closed` flag, a title of "Closed"/"Cerrado", and a closure dated today — merged into one `closedToday` flag that hides the Tonight card, replaces tonight's party in the week list with the closed label, and stops the Visit section claiming the bar is open until late. The crawler-visible HTML was fixed the same way, so the first paint and the live app agree instead of the page visibly changing on mount, and the client filters past dates too, because the `localStorage` cache and the embedded payload outlive the date they were fetched on.
 
 ## Server-rendered schedule (#46)
 **Shipped** — The homepage is rendered by FastAPI rather than served off disk. `app/ssr.py` reads `frontend/dist/index.html` and injects the current week — tonight's party, every day's title, description and opening hours, and any closure notices — as plain HTML inside `#app`, so a crawler receives it without executing anything. The same payload is handed to the SPA as `window.__MAREA_ALTA_DATA__`, so the first paint needs no request and the visitor never sees a loading state; the app replaces the block on mount. Rendering happens at request time rather than at build time, because the hours are editable from the admin panel and a build-time render would publish stale ones. `?lang=es` renders the Spanish block, `Cache-Control: no-cache` keeps it current, and the JSON API and the HTML are served from one set of loaders so they cannot disagree.

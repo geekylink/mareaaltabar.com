@@ -19,6 +19,7 @@ from app.ssr import (
     build_payload,
     format_hours,
     format_time,
+    load_closed_days,
     pick,
     render_index_html,
 )
@@ -133,6 +134,72 @@ def test_payload_renders_the_other_language(db_session):
     payload = build_payload(db_session, "es")
     assert payload["days"][0]["day_name"] == "Domingo"
     assert payload["days"][0]["title"] == "Noche Latina"
+
+
+# --- Closed days ------------------------------------------------------------
+
+
+def test_load_closed_days_drops_rows_that_have_passed(db_session):
+    db_session.add(ClosedDay(date="2001-12-25", reason_en="New Year", reason_es="Año Nuevo"))
+    db_session.commit()
+    assert load_closed_days(db_session, from_date="2002-01-01") == []
+    assert [d["date"] for d in load_closed_days(db_session, from_date="2000-01-01")] == [
+        "2001-12-25"
+    ]
+
+
+def test_load_closed_days_keeps_the_from_date_itself(db_session):
+    """`>=`, not `>`: today is the date the frontend needs in order to know it is shut."""
+    today = bar_today()[1]
+    db_session.add(ClosedDay(date=today, reason_en="Holiday", reason_es="Feriado"))
+    db_session.commit()
+    assert [d["date"] for d in load_closed_days(db_session)] == [today]
+
+
+def test_load_closed_days_defaults_to_today_at_the_bar(db_session):
+    """No argument means the real bar clock, so a 2001 holiday is never published."""
+    db_session.add(ClosedDay(date="2001-12-25", reason_en="New Year", reason_es="Año Nuevo"))
+    db_session.commit()
+    assert load_closed_days(db_session) == []
+
+
+def test_payload_closes_today_when_a_closure_dates_it(db_session):
+    """Mirrors App.svelte: a closure dated today closes the day as `is_closed` does.
+
+    Without this the crawler-visible HTML promises tonight's party on a public
+    holiday, and the page visibly changes the moment the SPA mounts over it.
+    """
+    db_session.add(ClosedDay(date=bar_today()[1], reason_en="Holiday", reason_es="Feriado"))
+    db_session.commit()
+
+    tonight = build_payload(db_session, "en")["tonight"]
+
+    assert tonight["closed"] is True
+    assert tonight["title"] == ""
+    assert tonight["note"] == ""
+    assert tonight["hours"] == "Closed today"
+
+
+def test_payload_leaves_other_days_alone_when_today_is_closed(db_session):
+    """One closure is one date: the weekly schedule behind it is untouched."""
+    db_session.add(ClosedDay(date=bar_today()[1], reason_en="Holiday", reason_es="Feriado"))
+    db_session.commit()
+
+    days = build_payload(db_session, "en")["days"]
+    tomorrow = next(d for d in days if not d["is_today"] and not d["closed"])
+
+    assert tomorrow["hours"] != "Closed today"
+    assert tomorrow["title"] != ""
+
+
+def test_payload_carries_todays_closure_in_the_seed(db_session):
+    """The SPA reads the seed, so the closure has to be in it or the first paint disagrees."""
+    db_session.add(ClosedDay(date=bar_today()[1], reason_en="Holiday", reason_es="Feriado"))
+    db_session.commit()
+
+    seed = build_payload(db_session, "en")["seed"]
+
+    assert [d["date"] for d in seed["closedDays"]] == [bar_today()[1]]
 
 
 # --- Injection -------------------------------------------------------------
@@ -261,6 +328,22 @@ def test_root_renders_closure_notices(site, db_session):
     block = schedule_block(site.get("/").text)
     assert "2030-12-25" in block
     assert "Christmas" in block
+
+
+def test_root_does_not_publish_a_closure_that_has_passed(site, db_session):
+    """The rendered HTML and the JSON endpoint both stop at today-and-later."""
+    db_session.add(ClosedDay(date="2001-12-25", reason_en="New Year", reason_es="Año Nuevo"))
+    db_session.commit()
+    html = site.get("/").text
+    assert "2001-12-25" not in html
+    assert "New Year" not in html
+
+
+def test_root_hides_tonights_party_when_today_is_closed(site, db_session):
+    db_session.add(ClosedDay(date=bar_today()[1], reason_en="Holiday", reason_es="Feriado"))
+    db_session.commit()
+    block = schedule_block(site.get("/").text)
+    assert '<div class="ms-tonight">' not in block
 
 
 def test_root_is_not_cached(site):

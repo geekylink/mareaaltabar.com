@@ -4,14 +4,16 @@
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
-  import { load, pick, formatHours } from './lib/api.js';
+  import { load, pick, formatHours, barToday, isClosedOn } from './lib/api.js';
 
   let schedule = [];
   let closedDays = [];
   let loading = true;
   let loadError = null;
 
-  const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Guayaquil' })).getDay();
+  // Which day it is at the bar, not where the visitor is: the schedule is keyed
+  // to Montañita's calendar. `date` is what a closure row is compared against.
+  const { day: today, date: todayIso } = barToday();
 
   // `lang` mirrors the visitor's choice, so switching language re-renders from
   // the already-fetched payload without another request.
@@ -20,13 +22,22 @@
   $: tonight = schedule.find((d) => d.day === today);
   $: tonightTitle = pick(tonight, lang, 'title');
   $: tonightNote = pick(tonight, lang, 'note');
-  $: tonightClosed = tonight?.is_closed || /^(closed|cerrado)$/i.test(tonightTitle);
+
+  // A day can be shut three ways: a closure dated today, the weekday's own
+  // `is_closed` flag, or a title of "Closed"/"Cerrado". All three have to agree
+  // — a public holiday the bar closed for is still an open weekday in the
+  // schedule, and it used to advertise a party and "open until late" anyway.
+  $: closedToday = isClosedOn(closedDays, todayIso);
+  $: tonightClosed = closedToday || tonight?.is_closed || /^(closed|cerrado)$/i.test(tonightTitle);
   $: tonightTime = formatHours(tonight, lang, $t.party.closedToday);
 
   // Hero water sits between 50% and 78% of hero height, following the real tide.
   $: waterTop = 78 - $tideLevel * 28;
 
-  $: todayHours = formatHours(schedule.find((d) => d.day === today), lang, $t.party.closedToday);
+  // "Open daily, afternoon until late" is a lie on a day the bar is shut.
+  $: todayHours = closedToday
+    ? $t.party.closedToday
+    : formatHours(schedule.find((d) => d.day === today), lang, $t.party.closedToday);
   $: vars = {
     full: BAR.full,
     name: BAR.name,
@@ -132,8 +143,8 @@
              Wrapping pick() in a local function hides the dependency and the
              list stops updating when the visitor switches language. -->
         {@const title = pick(day, lang, 'title')}
-        {@const note = day.is_closed ? '' : pick(day, lang, 'note')}
-        {@const closed = day.is_closed || /^(closed|cerrado)$/i.test(title)}
+        {@const closed = (day.day === today && closedToday) || day.is_closed || /^(closed|cerrado)$/i.test(title)}
+        {@const note = closed ? '' : pick(day, lang, 'note')}
         <li class:now={day.day === today} class:closed>
           <span class="day">{$t.days[day.day]}</span>
           <span class="what">
@@ -146,7 +157,7 @@
     </ul>
     {#if closedDays.length > 0}
       <div class="closed-days">
-        <h3>{$t.party.closedToday}</h3>
+        <h3>{$t.party.closedDays}</h3>
         <ul>
           {#each closedDays as d (d.id)}
             <li>{d.date}{pick(d, lang, 'reason') ? ' — ' + pick(d, lang, 'reason') : ''}</li>
