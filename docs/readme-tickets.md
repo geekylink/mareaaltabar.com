@@ -253,7 +253,7 @@ The favicon is an emoji wave inlined as an SVG data URI in `index.html`, and the
 
 The bar sells beer, wine, liquor and cocktails, and the site has zero drink information. Build it the same way `events` and `hours` were built, not as a hardcoded array: add `menu_categories` and `menu_items` tables, a `/admin/menu` page in the style of `admin/schedule.html`, write endpoints behind the existing `write_guard`, and `GET /api/menu` for the public read. Then render a menu section on the site. Every visitor-facing string follows the existing bilingual convention — `name_en`/`name_es`, `description_en`/`description_es` — so `pick()` from `api.js` works unchanged and a half-translated menu still renders.
 
-`docs/bar_menu.md` already contains real prices and is the **starting** menu, not the finished one: seed it into `app/seed.py` alongside the existing schedule seed, then treat completing it as part of the ticket. That file lists beer, coffee, soft drinks and cigarettes, and has no cocktails, wine, spirits or food at all. Confirm the current list and prices with the bar before seeding, and remove the cigarette line from the public menu unless it is genuinely still sold.
+`docs/bar_menu.md` already contains real prices and is the **starting** menu, not the finished one: seed it into `app/seed.py` alongside the existing schedule seed, then the admin users will flush out the menu.
 
 **Files:** `backend/app/models.py`, `backend/app/schemas.py`, `backend/app/seed.py`, new route in `backend/app/routers/api.py`, new `backend/app/templates/admin/menu.html`, `backend/app/admin_i18n.py`, `backend/app/migrate.py`, new `frontend/src/lib/Menu.svelte`, `frontend/src/App.svelte`, `frontend/src/content/en.js` + `es.js`, source data `docs/bar_menu.md`
 
