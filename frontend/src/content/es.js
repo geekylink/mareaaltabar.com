@@ -7,13 +7,14 @@ export default {
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
   ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error' },
-  nav: { surf: 'Surf', party: 'Fiestas', visit: 'Ubicación' },
+  nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',
     line2: 'Baile de noche.',
     tagline: '{full} en {town}. Revisa las olas, luego ven a tomar algo.',
     ctaSurf: 'Surf de hoy',
     ctaParty: 'Programación de fiestas',
+    ctaMenu: 'Ver el menú',
   },
   surf: {
     title: 'Reporte de surf',
@@ -40,6 +41,10 @@ export default {
     credit: 'Datos: Open-Meteo modelo marino. Los tiempos de marea son aproximados. Siempre verifica el agua tú mismo.',
   },
   party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', closedDays: 'Días cerrados', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
+  // Menú de bebidas. Los precios y las promos vienen de la API, aquí solo el texto.
+  // Estas cuatro etiquetas están duplicadas en backend/app/public_i18n.py para el
+  // bloque renderizado en el servidor, y publicI18n.test.js falla si se separan.
+  menu: { title: 'Menú de bebidas', subtitle: 'Cerveza fría, cocteles y lo que más haya en la barra.', ingredients: 'Ingredientes', promo: 'Promo', empty: 'Estamos actualizando el menú. Pregúntanos los precios de hoy.', all: 'Todos los precios en dólares.' },
   days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   visit: {
     title: 'Encuéntranos',

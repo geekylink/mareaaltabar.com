@@ -5,6 +5,8 @@ matching the visitor's language and falls back to English when a translation is
 blank, so a partially-translated schedule still renders.
 """
 
+import re
+import unicodedata
 from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
@@ -65,3 +67,133 @@ class ClosedDayResponse(BaseModel):
     date: str
     reason_en: str
     reason_es: str
+
+
+# --- Menu ---
+
+def slugify(text: str, fallback: str = "menu") -> str:
+    """A URL/anchor-safe slug from a display name: "Cócteles" -> "cocteles".
+
+    Category names are bilingual and typed by hand, so the slug is derived rather
+    than trusted: accents are stripped, everything else non-alphanumeric becomes
+    a single hyphen. ``fallback`` covers a name that is punctuation only.
+    """
+    stripped = unicodedata.normalize("NFKD", text or "")
+    ascii_only = stripped.encode("ascii", "ignore").decode("ascii").lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", ascii_only).strip("-")
+    return slug or fallback
+
+
+class MenuPromoWrite(BaseModel):
+    """One multi-buy offer beneath a drink's headline price."""
+
+    label_en: str = Field(default="", max_length=160)
+    label_es: str = Field(default="", max_length=160)
+
+
+class MenuPromoResponse(MenuPromoWrite):
+    id: int
+    sort_order: int
+
+
+class MenuCategoryWrite(BaseModel):
+    """Admin write payload for one category."""
+
+    name_en: str = Field(default="", max_length=120, validate_default=True)
+    name_es: str = Field(default="", max_length=120)
+    slug: str = Field(default="", max_length=80)
+    is_available: bool = True
+    # None means "leave the order alone". A rename must not silently send the
+    # section back to the top of the menu; only the reorder buttons set it.
+    sort_order: int | None = None
+
+    @field_validator("slug", mode="before")
+    @classmethod
+    def _derive_slug(cls, v, info):
+        """Fill the slug in from the name when the admin leaves it blank.
+
+        Two languages means two candidate names; English leads because it is the
+        one that has to be present for the row to render at all.
+        """
+        if v and str(v).strip():
+            return slugify(str(v))
+        data = info.data or {}
+        name = data.get("name_en") or data.get("name_es") or ""
+        return slugify(name)
+
+    @field_validator("name_en")
+    @classmethod
+    def _require_a_name(cls, v: str) -> str:
+        """A category with no English name has no heading to render."""
+        if not v.strip():
+            raise ValueError("name_en is required")
+        return v
+
+
+class MenuCategoryResponse(MenuCategoryWrite):
+    id: int
+    sort_order: int
+    items: list["MenuItemResponse"] = Field(default_factory=list)
+
+    @field_validator("name_en")
+    @classmethod
+    def _echo_stored_name(cls, v: str) -> str:
+        """A read never rejects stored content.
+
+        A response model stricter than the database would turn one bad row into a
+        500 on the public menu, which is a far worse failure than a drink with no
+        name on it. Writes stay strict; reads stay honest.
+        """
+        return v
+
+
+class MenuItemWrite(BaseModel):
+    """Admin write payload for one drink, including its promo list.
+
+    ``promos`` is the complete set rather than a delta: saving an item replaces
+    its offers in one transaction, which is what lets the panel add and remove
+    promo rows in the same click as the price without a second endpoint.
+    """
+
+    category_id: int
+    name_en: str = Field(default="", max_length=160, validate_default=True)
+    name_es: str = Field(default="", max_length=160)
+    description_en: str = Field(default="", max_length=2000)
+    description_es: str = Field(default="", max_length=2000)
+    ingredients_en: str = Field(default="", max_length=500)
+    ingredients_es: str = Field(default="", max_length=500)
+    price: str = Field(default="", max_length=32)
+    is_available: bool = True
+    promos: list[MenuPromoWrite] = Field(default_factory=list)
+    # None means "keep the current position", so editing a price cannot reorder
+    # the list; the reorder buttons send an explicit value.
+    sort_order: int | None = None
+
+    @field_validator("name_en")
+    @classmethod
+    def _require_a_name(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("name_en is required")
+        return v
+
+
+class MenuItemResponse(MenuItemWrite):
+    id: int
+    sort_order: int
+    promos: list[MenuPromoResponse] = Field(default_factory=list)
+
+    @field_validator("name_en")
+    @classmethod
+    def _echo_stored_name(cls, v: str) -> str:
+        """As above: a read echoes the row rather than second-guessing it."""
+        return v
+
+
+class MenuResponse(BaseModel):
+    """The public read: every available category, in order, with its drinks."""
+
+    categories: list[MenuCategoryResponse]
+
+
+MenuCategoryResponse.model_rebuild()
+MenuItemResponse.model_rebuild()

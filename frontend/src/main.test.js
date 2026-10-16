@@ -10,6 +10,12 @@ const SEED = {
     { day: 0, title_en: 'Latin Night', title_es: 'Noche Latina', note_en: '', note_es: '', open_time: '16:00', close_time: '02:00', is_closed: false },
   ],
   closedDays: [],
+  menu: [
+    {
+      id: 1, slug: 'cocteles', name_en: 'Cocktails', name_es: 'Cócteles',
+      items: [{ id: 1, category_id: 1, name_en: 'Cuba Libre', name_es: 'Cuba Libre', price: '4.00', promos: [] }],
+    },
+  ],
 };
 
 describe('boot', () => {
@@ -46,6 +52,47 @@ describe('boot', () => {
 
     await waitFor(() => expect(document.body.textContent).toContain('Latin Night'));
     // The surf widget still calls Open-Meteo; the schedule must not.
+    const urls = global.fetch.mock.calls.map(([url]) => String(url));
+    expect(urls.filter((u) => u.includes('/api/'))).toEqual([]);
+  });
+});
+
+// The menu route is a second entry point with its own server-rendered block, so
+// it needs the same guard: `mount()` appends, and without the clear the visitor
+// sees the menu twice.
+describe('menu boot', () => {
+  beforeEach(() => {
+    document.body.innerHTML =
+      '<div id="app"><div id="marea-menu"><h2>Drinks menu</h2></div></div>';
+    window.__MAREA_ALTA_DATA__ = SEED;
+    localStorage.clear();
+    global.fetch = vi.fn(async (url) => ({
+      ok: true,
+      status: 200,
+      json: async () => (String(url).includes('/api/menu') ? { categories: SEED.menu } : []),
+    }));
+  });
+
+  afterEach(() => {
+    delete window.__MAREA_ALTA_DATA__;
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+  });
+
+  it('replaces the server-rendered menu instead of stacking on it', async () => {
+    vi.resetModules();
+    await import('./menu-main.js');
+
+    await waitFor(() => expect(document.body.textContent).toContain('Cuba Libre'));
+    expect(document.querySelector('#marea-menu')).toBeNull();
+    expect(document.querySelectorAll('#app > section.menu')).toHaveLength(1);
+  });
+
+  it('paints the menu without asking the API for it', async () => {
+    vi.resetModules();
+    await import('./menu-main.js');
+
+    await waitFor(() => expect(document.body.textContent).toContain('$4.00'));
     const urls = global.fetch.mock.calls.map(([url]) => String(url));
     expect(urls.filter((u) => u.includes('/api/'))).toEqual([]);
   });

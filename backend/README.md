@@ -1,6 +1,6 @@
 # Marea Alta — Backend
 
-FastAPI server with SQLite database for managing the party schedule, operating hours, and closed days. Includes a secure admin panel.
+FastAPI server with SQLite database for managing the party schedule, operating hours, closed days and the drinks menu. Includes a secure admin panel.
 
 ## Setup
 
@@ -47,7 +47,8 @@ python -m pytest tests/ -v
 ```
 
 The suite runs against an in-memory database and covers login/session handling,
-CSRF enforcement, the admin CRUD API, the server-rendered homepage, and
+CSRF enforcement, the admin CRUD API (schedule, closed days and the drinks menu),
+the server-rendered homepage and `/menu`, the bilingual admin strings, and
 end-to-end propagation of admin edits to the public read endpoints *and* to the
 rendered HTML. Tests never touch `data/marea_alta.db`.
 
@@ -77,6 +78,20 @@ Once logged in at `/admin`, you can:
   A colour bar on the left of each field shows whether that language is filled in.
 - **Closed Days**: add one-off closures (holidays, private events) with a reason
   in both languages. Reasons save when you click away from the field.
+- **Drinks Menu** (`/admin/menu`): one card per category — Beer, Wine, Cocktails,
+  and whatever else the bar adds. In each one:
+
+  - **Add item** at the bottom of the card, **Remove** and **↑/↓** on every
+    drink, and **Delete category** on the card itself.
+  - Click a drink to expand it: names, price, description and **ingredients** in
+    both languages. Ingredients are a comma-separated list, which is what the
+    cocktails section shows.
+  - **Promos** live in a sub-list under the price — an item can carry several
+    ("6x $7.00" and "case $12.00"). They save with the item, so the price and
+    the offers beneath it can never disagree.
+  - **On the menu** hides a drink or a whole section without deleting it. That is
+    the reversible move for something sold out; delete is for something gone.
+    A hidden drink is invisible on the site but still editable here.
 
 The admin panel is not linked from the public website. It is only accessible by navigating directly to `/admin`.
 
@@ -91,7 +106,10 @@ back to English when a translation is blank.
 |---|---|---|---|
 | `GET` | `/api/schedule` | Public | The whole week: titles, descriptions and hours per day |
 | `GET` | `/api/closed-days` | Public | One-off date closures, both languages, today and later |
-| `GET` | `/` | Public | The site, with the schedule rendered into the HTML |
+| `GET` | `/api/menu` | Public | The drinks menu: categories, items and promos, both languages |
+| `GET` | `/api/menu/all` | Admin | The same, plus items and categories switched off |
+| `GET` | `/` | Public | The site, with the schedule **and the menu** rendered into the HTML |
+| `GET` | `/menu` | Public | The drinks menu on its own page, rendered into the HTML |
 
 **Write endpoints require an admin session and a CSRF token.**
 
@@ -101,6 +119,31 @@ back to English when a translation is blank.
 | `POST` | `/api/closed-days` | Add a closure (today or later) |
 | `PATCH` | `/api/closed-days/{id}` | Correct a closure's wording later |
 | `DELETE` | `/api/closed-days/{id}` | Remove a closure |
+| `POST` | `/api/menu/categories` | Add a section (Beer, Wine, Food…) |
+| `PATCH` | `/api/menu/categories/{id}` | Rename it, retitle it, move it, or switch it off |
+| `DELETE` | `/api/menu/categories/{id}` | Remove a section and every drink in it |
+| `POST` | `/api/menu/items` | Add a drink, with its promos |
+| `PUT` | `/api/menu/items/{id}` | Save a drink: copy, price, ingredients, promos, availability, category |
+| `DELETE` | `/api/menu/items/{id}` | Take a drink off the menu |
+
+### How the menu is stored
+
+Every visitor-facing string is bilingual (`name_en`/`name_es`,
+`description_en`/`description_es`, `ingredients_en`/`ingredients_es`), so
+`pick()` falls back to English and a half-translated menu still renders.
+
+Three details are deliberate:
+
+- **A price is the headline figure only.** `1.50 (6x $7.00)` from
+  `docs/bar_menu.md` becomes price `1.50` plus a promo row. Several offers can sit
+  under one drink, and the admin edits them in the same save as the price.
+- **`price` is text, not a number.** It is a displayed price, never arithmetic, so
+  it is stored exactly as typed — no float rounding, no locale surprises.
+  Ticket #49's `offers.price` will want a numeric column when it lands.
+- **`/api/menu` hides what has been switched off; `/api/menu/all` does not.**
+  The public read must not publish a sold-out drink, but the panel has to be able
+  to see it, or it could never be switched back on. The admin page loads from
+  `/api/menu/all`.
 
 Reads send `Cache-Control: no-cache` so admin edits appear without visitors
 having to hard-refresh.
@@ -122,13 +165,14 @@ whenever is convenient.
 Times are stored 24-hour (`HH:MM`) so the admin panel's `<input type="time">`
 can populate them; the frontend formats them per locale.
 
-## Server-Rendered Homepage
+## Server-Rendered Homepage and Menu
 
-`/` and `/index.html` are **rendered**, not served off disk. `app/ssr.py` reads
-`frontend/dist/index.html` and injects:
+`/`, `/index.html` and `/menu` are **rendered**, not served off disk. `app/ssr.py`
+reads `frontend/dist/index.html` and `frontend/dist/menu.html` and injects:
 
-- the week's hours and party titles as plain HTML inside `<div id="app">`, so a
-  crawler sees them without running any JavaScript, and
+- the week's hours, party titles and closure notices — and, on the homepage, the
+  drinks menu — as plain HTML inside `<div id="app">`, so a crawler sees them
+  without running any JavaScript, and
 - the same payload as `window.__MAREA_ALTA_DATA__`, which the SPA uses for its
   first paint instead of fetching.
 
@@ -144,6 +188,8 @@ and nothing would notice until the next deploy.
 |---|---|
 | `GET /` | English (the default), or `?lang=es` for Spanish, which also sets `<html lang>` |
 | `GET /index.html` | The same, so an old inbound link does not fall through to the raw shell |
+| `GET /menu` | The drinks menu alone, on its own document — the shareable URL |
+| `GET /menu.html` | The same, so an old inbound link does not fall through to the raw shell |
 
 Anything else — hashed assets, the favicon — is still served by the static mount.
 `Cache-Control: no-cache`, for the same reason the JSON reads use it. If
@@ -151,20 +197,21 @@ rendering fails for any reason the un-injected shell is served and the error is
 logged, rather than the homepage going down.
 
 `app/ssr.py` and `app/routers/api.py` share one set of loaders (`load_schedule`,
-`load_closed_days`, `day_payload`), so the JSON and the HTML cannot describe
-different weeks or different closure notices. A closure dated today closes today's
-row in the rendered HTML for the same reason it closes it in the SPA — otherwise
-the page would promise a party on a public holiday and visibly change the moment
-the app mounted over it. `app/public_i18n.py` holds the handful of labels the
-rendered block needs; the rest of the site's wording lives in
+`load_closed_days`, `load_menu`, `day_payload`), so the JSON and the HTML cannot
+describe different weeks, different closure notices or different menus. A closure
+dated today closes today's row in the rendered HTML for the same reason it closes
+it in the SPA — otherwise the page would promise a party on a public holiday and
+visibly change the moment the app mounted over it. `app/public_i18n.py` holds the
+handful of labels the rendered blocks need; the rest of the site's wording lives in
 `frontend/src/content/*.js`, and a test in the frontend suite fails if the shared
 strings drift apart.
 
-**nginx must proxy `/` here.** Serving `dist/index.html` straight off disk skips
-the rendering and puts the schedule back out of reach of crawlers.
+**nginx must proxy `/` and `/menu` here.** Serving the built HTML straight off
+disk skips the rendering and puts the schedule and the menu back out of reach of
+crawlers. `/assets/` can still be served from disk.
 
-This is also where ticket #5's `openingHoursSpecification` and ticket #16's
-multi-page routes belong.
+This is also where ticket #5's `openingHoursSpecification` and ticket #49's menu
+JSON-LD belong.
 
 ## Bilingual Admin Panel
 
@@ -185,6 +232,11 @@ The bilingual upgrade is non-destructive: existing single-language content
 becomes English, Spanish is seeded with the same text so nothing renders blank
 before a human translates it, and legacy `4:00 PM` times are normalised to
 `16:00` so the time inputs populate correctly.
+
+`migrate_menu_schema` covers the one thing `create_all` will not do: it creates
+missing tables but never alters an existing one, so a database that already has a
+`menu_items` table gets `ingredients_*` and `is_available` added here, with
+defaults that leave the drinks that are already in it intact.
 
 **Known gap:** the closed-days migration copies `reason` into `reason_en` /
 `reason_es` but leaves the old column in place, and it was declared `NOT NULL`
@@ -249,4 +301,36 @@ covered by the migration tests, which build their schema from the models.
 | `id` | INTEGER PK | Auto-increment |
 | `date` | TEXT UNIQUE | YYYY-MM-DD format |
 | `reason_en` / `reason_es` | TEXT | Reason in both languages |
+| `created_at` / `updated_at` | DATETIME | Auto-set |
+
+### `menu_categories`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Auto-increment |
+| `slug` | TEXT UNIQUE | Anchor id on the menu page, e.g. `cocteles` |
+| `name_en` / `name_es` | TEXT | Section heading in both languages |
+| `sort_order` | INTEGER | Menu order, set by the ↑/↓ buttons |
+| `is_available` | BOOLEAN | Cleared hides the section without deleting it |
+| `created_at` / `updated_at` | DATETIME | Auto-set |
+
+### `menu_items`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Auto-increment |
+| `category_id` | INTEGER FK | → menu_categories.id, cascades on delete |
+| `name_en` / `name_es` | TEXT | The drink in both languages |
+| `description_en` / `description_es` | TEXT | Optional flavour text |
+| `ingredients_en` / `ingredients_es` | TEXT | Comma-separated; what cocktails show |
+| `price` | TEXT | Headline price as typed, e.g. `2.50` |
+| `sort_order` | INTEGER | Order within the category |
+| `is_available` | BOOLEAN | Cleared hides the drink without deleting it |
+| `created_at` / `updated_at` | DATETIME | Auto-set |
+
+### `menu_item_promos`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Auto-increment |
+| `menu_item_id` | INTEGER FK | → menu_items.id, cascades on delete |
+| `label_en` / `label_es` | TEXT | e.g. `6x $7.00` / `6 por $7.00` |
+| `sort_order` | INTEGER | Several promos per drink, in order |
 | `created_at` / `updated_at` | DATETIME | Auto-set |

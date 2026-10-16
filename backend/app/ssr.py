@@ -1,4 +1,4 @@
-"""Server-side rendering of the public schedule, for crawlers.
+"""Server-side rendering of the public schedule and menu, for crawlers.
 
 ``App.svelte`` fetches ``/api/schedule`` on mount, so the hours, party titles and
 closure notices never reach the HTML a crawler sees — and for a bar in a tourist
@@ -9,7 +9,9 @@ the current hours rather than whatever was true when the site was last built.
 Two things come out of one pass:
 
 1. A schedule block inside ``<div id="app">`` — plain HTML a crawler (or a
-   visitor with JavaScript disabled) can read.
+   visitor with JavaScript disabled) can read. The menu block joins it on the
+   homepage, and is the whole of ``dist/menu.html``, which ``/menu`` renders the
+   same way so the standalone menu route is indexable on equal terms.
 2. ``window.__MAREA_ALTA_DATA__`` — the same payload seeded into the page so the
    SPA renders immediately instead of showing a loading state and re-fetching.
    ``src/main.js`` clears the server block before ``mount()``; Svelte appends
@@ -34,11 +36,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from app.config import BACKEND_DIR
-from app.models import ClosedDay, Event, Hours
+from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo
 from app.public_i18n import strings_for
 
 FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
 INDEX_HTML = FRONTEND_DIST / "index.html"
+MENU_HTML = FRONTEND_DIST / "menu.html"
 TEMPLATES_DIR = BACKEND_DIR / "app" / "templates"
 
 # The SPA's mount target, and the anchor the schedule block is injected into.
@@ -134,6 +137,83 @@ def load_closed_days(db: DBSession, from_date: str | None = None) -> list[dict]:
     ]
 
 
+def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
+    """The drinks menu: categories in order, each with its items and promos.
+
+    Shared by ``GET /api/menu`` and by both server-rendered pages, so the crawler
+    and the SPA cannot publish different menus.
+
+    ``include_unavailable`` is what the admin panel asks for. The public read
+    hides rows an admin has switched off — a sold-out drink or a section that is
+    off for the season — but the panel has to be able to see them, or it could
+    never switch them back on. Categories with nothing to show are dropped from
+    the public read so an emptied section does not linger as a bare heading, and
+    kept for the panel, which is the only place anything can be added to one.
+    """
+    categories = db.execute(
+        select(MenuCategory).order_by(MenuCategory.sort_order, MenuCategory.id)
+    ).scalars().all()
+    items = db.execute(
+        select(MenuItem).order_by(MenuItem.sort_order, MenuItem.id)
+    ).scalars().all()
+    promos = db.execute(
+        select(MenuItemPromo).order_by(MenuItemPromo.sort_order, MenuItemPromo.id)
+    ).scalars().all()
+
+    promos_by_item: dict[int, list[MenuItemPromo]] = {}
+    for promo in promos:
+        promos_by_item.setdefault(promo.menu_item_id, []).append(promo)
+
+    items_by_category: dict[int, list[dict]] = {}
+    for item in items:
+        if not include_unavailable and not item.is_available:
+            continue
+        items_by_category.setdefault(item.category_id, []).append(
+            {
+                "id": item.id,
+                "category_id": item.category_id,
+                "name_en": item.name_en,
+                "name_es": item.name_es,
+                "description_en": item.description_en,
+                "description_es": item.description_es,
+                "ingredients_en": item.ingredients_en,
+                "ingredients_es": item.ingredients_es,
+                "price": item.price,
+                "sort_order": item.sort_order,
+                "is_available": bool(item.is_available),
+                "promos": [
+                    {
+                        "id": promo.id,
+                        "label_en": promo.label_en,
+                        "label_es": promo.label_es,
+                        "sort_order": promo.sort_order,
+                    }
+                    for promo in promos_by_item.get(item.id, [])
+                ],
+            }
+        )
+
+    menu = []
+    for category in categories:
+        if not include_unavailable and not category.is_available:
+            continue
+        category_items = items_by_category.get(category.id, [])
+        if not category_items and not include_unavailable:
+            continue
+        menu.append(
+            {
+                "id": category.id,
+                "slug": category.slug,
+                "name_en": category.name_en,
+                "name_es": category.name_es,
+                "sort_order": category.sort_order,
+                "is_available": bool(category.is_available),
+                "items": category_items,
+            }
+        )
+    return menu
+
+
 # --- Display helpers (mirrors frontend/src/lib/api.js) ----------------------
 
 
@@ -172,11 +252,22 @@ def format_hours(day: dict | None, lang: str, closed_label: str) -> str:
     return f"{format_time(day['open_time'], lang)} - {format_time(day['close_time'], lang)}"
 
 
+def format_price(price: str | None) -> str:
+    """A stored price as displayed: ``"2.50"`` -> ``"$2.50"``.
+
+    The amount is kept as the bar typed it rather than parsed into a number, so
+    nothing here rounds, and a blank price (an included drink, or one still to be
+    priced) renders as nothing instead of "$0.00".
+    """
+    text = str(price or "").strip()
+    return f"${text}" if text else ""
+
+
 # --- Template payload ------------------------------------------------------
 
 
 def build_payload(db: DBSession, lang: str) -> dict:
-    """Everything the schedule block renders, resolved for one language.
+    """Everything the schedule and menu blocks render, resolved for one language.
 
     A closure dated today closes the day as surely as the weekday's own
     ``is_closed`` flag does, so today's row is resolved closed when ``closedDays``
@@ -214,6 +305,7 @@ def build_payload(db: DBSession, lang: str) -> dict:
             }
         )
 
+    menu = load_menu(db)
     return {
         "lang": lang,
         "labels": labels,
@@ -225,9 +317,46 @@ def build_payload(db: DBSession, lang: str) -> dict:
             {"date": d["date"], "reason": pick(d, lang, "reason")}
             for d in closed_days
         ],
+        "menu": menu_display(menu, lang, labels),
         # Handed to the SPA so the first paint needs no fetch.
-        "seed": {"schedule": schedule, "closedDays": closed_days},
+        "seed": {"schedule": schedule, "closedDays": closed_days, "menu": menu},
     }
+
+
+def menu_display(menu: list[dict], lang: str, labels: dict | None = None) -> list[dict]:
+    """The menu resolved for one language, ready for the rendered block.
+
+    Mirrors what ``Menu.svelte`` does with the same payload: names and copy
+    through :func:`pick`, prices through :func:`format_price`, and each promo
+    prefixed with the shared "Promo" label so the crawler-visible text reads the
+    same as the page.
+    """
+    labels = labels or strings_for(lang)
+    promo_label = labels.get("menu_promo", "Promo")
+    displayed = []
+    for category in menu:
+        items = []
+        for item in category["items"]:
+            ingredients = pick(item, lang, "ingredients")
+            items.append(
+                {
+                    "name": pick(item, lang, "name"),
+                    "description": pick(item, lang, "description"),
+                    "ingredients": [part.strip() for part in ingredients.split(",") if part.strip()],
+                    "price": format_price(item["price"]),
+                    "promos": [f"{promo_label}: {pick(promo, lang, 'label')}".rstrip(": ")
+                               for promo in item["promos"]],
+                }
+            )
+        displayed.append(
+            {
+                "id": category["id"],
+                "slug": category["slug"],
+                "name": pick(category, lang, "name"),
+                "items": items,
+            }
+        )
+    return displayed
 
 
 # --- HTML injection --------------------------------------------------------
@@ -246,31 +375,72 @@ def render_schedule_block(payload: dict) -> str:
     return templates.get_template("partials/schedule.html").render(**payload)
 
 
+def render_menu_block(payload: dict) -> str:
+    """The crawler-readable menu markup, shared by the homepage and /menu."""
+    return templates.get_template("partials/menu.html").render(**payload)
+
+
 def render_schedule_styles() -> str:
     """The ``<style>`` the block needs; the SPA's scoped CSS does not cover it."""
     return templates.get_template("partials/schedule_style.html").render()
 
 
-def render_index_html(index_html: str, payload: dict) -> str:
-    """Inject the schedule styles, markup and data seed into the built index.html."""
-    head = index_html.find(HEAD_CLOSE)
-    start = index_html.find(APP_MOUNT)
+def render_menu_styles() -> str:
+    """Same, for the menu block."""
+    return templates.get_template("partials/menu_style.html").render()
+
+
+def _inject(html: str, payload: dict, blocks: list[str], styles: str, name: str) -> str:
+    """Put rendered blocks and the data seed inside ``<div id="app">``.
+
+    Shared by the homepage and ``/menu`` so both documents are assembled the same
+    way: find the mount point, drop the blocks in ahead of the seed script, and
+    put their styles in the head.
+    """
+    head = html.find(HEAD_CLOSE)
+    start = html.find(APP_MOUNT)
     if head == -1 or start == -1:
         missing = HEAD_CLOSE if head == -1 else APP_MOUNT
         raise RuntimeError(
-            f"Could not find {missing!r} in index.html — the server-rendered "
-            "schedule cannot be injected, so it must not be served."
+            f"Could not find {missing!r} in {name} — the server-rendered content "
+            "cannot be injected, so it must not be served."
         )
 
-    block = render_schedule_block(payload)
     seed = f'<script>window.__MAREA_ALTA_DATA__={_json_seed(payload["seed"])}</script>'
-    filled = f'<div id="app">{block}{seed}</div>'
+    filled = f'<div id="app">{"".join(blocks)}{seed}</div>'
 
-    html = index_html[:start] + filled + index_html[start + len(APP_MOUNT) :]
+    html = html[:start] + filled + html[start + len(APP_MOUNT) :]
     # head < start, so inserting into the head cannot invalidate the offset.
-    return html[:head] + render_schedule_styles() + html[head:]
+    return html[:head] + styles + html[head:]
+
+
+def render_index_html(index_html: str, payload: dict) -> str:
+    """Inject the schedule and menu blocks, styles and data seed into index.html."""
+    return _inject(
+        index_html,
+        payload,
+        [render_schedule_block(payload), render_menu_block(payload)],
+        render_schedule_styles() + render_menu_styles(),
+        "index.html",
+    )
+
+
+def render_menu_html(menu_html: str, payload: dict) -> str:
+    """The same treatment for the standalone menu document, minus the schedule."""
+    return _inject(
+        menu_html,
+        payload,
+        [render_menu_block(payload)],
+        render_menu_styles(),
+        "menu.html",
+    )
 
 
 def render_index(db: DBSession, lang: str) -> str:
-    """Read the built index.html and return it with the schedule rendered in."""
+    """Read the built index.html and return it with the schedule and menu rendered in."""
     return render_index_html(INDEX_HTML.read_text(encoding="utf-8"), build_payload(db, lang))
+
+
+def render_menu(db: DBSession, lang: str) -> str:
+    """Read the built menu.html and return it with the menu rendered in."""
+    return render_menu_html(MENU_HTML.read_text(encoding="utf-8"), build_payload(db, lang))

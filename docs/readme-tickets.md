@@ -4,7 +4,7 @@
 >
 > **What changed.** The original list assumed no backend. That made "add a CMS" and "add backups *if* you have a database" into large speculative projects. Both are now smaller and more concrete: the CMS is *this* database, and backups are a cron line. Meanwhile the backend introduced a class of work the original list never considered — deployment, database concurrency, secrets, and abuse of public write endpoints — which is why **Tier 0 now exists at all**.
 >
-> The business is still drinks. The original argument for putting the menu first holds, and ticket **#1** is the flagship.
+> The business is still drinks. The original argument for putting the menu first held, and ticket **#1** — the flagship — has shipped: the menu is a database, an admin page and a `/menu` route.
 
 **Legend**
 - **Impact:** 🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low
@@ -47,7 +47,6 @@ Project manager note:
   - [48. robots.txt, sitemap.xml & canonical URLs](#48-robotstxt-sitemapxml--canonical-urls)
   - [9. Add proper favicon and app icons](#9-add-proper-favicon-and-app-icons)
 - [Tier 2 — Sell the Drinks](#tier-2--sell-the-drinks)
-  - [1. Add a drinks menu page](#1-add-a-drinks-menu-page)
   - [17. Content tables for promos, packages & gallery](#17-content-tables-for-promos-packages--gallery)
   - [16. Create separate menu page (multi-page structure)](#16-create-separate-menu-page-multi-page-structure)
   - [49. Menu SEO (Menu schema & indexable menu route)](#49-menu-seo-menu-schema--indexable-menu-route)
@@ -106,7 +105,7 @@ Project manager note:
 
 Provision a VPS, install Python 3.12, and run the backend as a managed service. `backend/app/main.py` already mounts `frontend/dist` as a static mount registered *last*, so FastAPI can serve the whole site from one origin with no CORS — that design is the reason this ticket is straightforward. Add a systemd unit (survives reboot, restarts on crash, `--reload` off in production), and an nginx reverse proxy in front of it for TLS, static caching, and gzip. Terminate TLS with Let's Encrypt and redirect HTTP to HTTPS — ticket #45 and the `Secure` cookie flag both depend on it. Set `ENVIRONMENT=production` so `/docs` is disabled and cookies require HTTPS. Document the deploy in `backend/README.md`.
 
-**Since #46:** nginx must proxy `/` to uvicorn rather than serving `dist/index.html` itself — serving the file directly bypasses the server-rendered schedule and puts the hours back out of reach of crawlers. `/assets/` can still be served from disk with a long cache lifetime.
+**Since #46:** nginx must proxy `/` to uvicorn rather than serving `dist/index.html` itself — serving the file directly bypasses the server-rendered schedule and puts the hours back out of reach of crawlers. **Since #1 the same applies to `/menu`**, or the drinks disappear from the crawler's view too. `/assets/` can still be served from disk with a long cache lifetime.
 
 **Files:** new `deploy/marea-alta.service`, new `deploy/nginx.conf`, `backend/README.md` (deploy section), `backend/.env`
 
@@ -229,7 +228,7 @@ Still flying blind on where visitors come from. Plausible (privacy-friendly, no 
 ### 48. robots.txt, sitemap.xml & canonical URLs
 **Impact:** 🟡 · **Effort:** 🟢 · **Category:** SEO
 
-There is no `robots.txt` or sitemap, and the admin panel is only unlinked — it is not excluded from crawling. `/admin`, `/admin/login`, and `/admin/schedule` should be disallowed. The admin templates already carry `<meta name="robots" content="noindex, nofollow">`, which helps but is not a substitute. Serve a sitemap listing the site and, once #16 lands, the menu route. Canonical URLs become relevant at the same time — today there is one page and four anchor targets that all resolve to `/`.
+There is no `robots.txt` or sitemap, and the admin panel is only unlinked — it is not excluded from crawling. `/admin`, `/admin/login`, `/admin/schedule` and `/admin/menu` should be disallowed. The admin templates already carry `<meta name="robots" content="noindex, nofollow">`, which helps but is not a substitute. Serve a sitemap listing the site and `/menu`. Canonical URLs become relevant at the same time — today there is one page with several anchor targets, plus the `/menu` route, which has no canonical tag of its own.
 
 **Files:** new `frontend/public/robots.txt`, new sitemap route or static file, `backend/app/main.py`
 
@@ -246,86 +245,79 @@ The favicon is an emoji wave inlined as an SVG data URI in `index.html`, and the
 
 ## Tier 2 — Sell the Drinks
 
-*The revenue core. The menu is the flagship ticket: the biggest gap in the business, and the first real test of the admin-panel pattern now that it exists.*
-
-### 1. Add a drinks menu page
-**Impact:** 🔴 · **Effort:** 🟡 · **Category:** Functionality
-
-The bar sells beer, wine, liquor and cocktails, and the site has zero drink information. Build it the same way `events` and `hours` were built, not as a hardcoded array: add `menu_categories` and `menu_items` tables, a `/admin/menu` page in the style of `admin/schedule.html`, write endpoints behind the existing `write_guard`, and `GET /api/menu` for the public read. Then render a menu section on the site. Every visitor-facing string follows the existing bilingual convention — `name_en`/`name_es`, `description_en`/`description_es` — so `pick()` from `api.js` works unchanged and a half-translated menu still renders.
-
-`docs/bar_menu.md` already contains real prices and is the **starting** menu, not the finished one: seed it into `app/seed.py` alongside the existing schedule seed, then the admin users will flush out the menu.
-
-**Files:** `backend/app/models.py`, `backend/app/schemas.py`, `backend/app/seed.py`, new route in `backend/app/routers/api.py`, new `backend/app/templates/admin/menu.html`, `backend/app/admin_i18n.py`, `backend/app/migrate.py`, new `frontend/src/lib/Menu.svelte`, `frontend/src/App.svelte`, `frontend/src/content/en.js` + `es.js`, source data `docs/bar_menu.md`
-
----
+*The revenue core. The menu has shipped (#1) — what is left is filling it out, and making it indexable.*
 
 ### 17. Content tables for promos, packages & gallery
 **Impact:** 🔴 · **Effort:** 🟡 · **Category:** Operations
 
 Originally "add a headless CMS (Sanity, Contentful, Strapi)". That was the right instinct and the wrong instrument — the site already has a database, an admin panel, authentication, CSRF, and a bilingual field convention. Adding a third-party CMS would mean maintaining two sources of truth for content that the existing admin panel already handles well. Instead, extract the pattern from #1 into a small set of generic content tables that #7, #20, #22 and #8 all reuse: a `content_sections` / `content_items` pair with `slug`, bilingual `title`/`body`, an optional price, a sort order, an optional date window, and an `is_active` flag. One admin page that lists sections and edits items in place. This ticket is what makes the rest of Tiers 2 and 3 editable without a developer.
 
+Note that #1 has already established the half of this that matters most — the bilingual `_en`/`_es` convention, the availability flag, the sort order and the admin page pattern are all in `menu_categories` / `menu_items`. The remaining question is whether promos and packages get their own tables or become more `menu_categories`.
+
 **Files:** `backend/app/models.py`, `backend/app/migrate.py`, `backend/app/schemas.py`, new `backend/app/templates/admin/content.html`, `backend/app/admin_i18n.py`, `backend/app/static/admin_i18n.js`
 
 ---
 
 ### 16. Create separate menu page (multi-page structure)
-**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Architecture
+**Impact:** 🟠 · **Effort:** 🟢 · **Category:** Architecture
 
-The site is a single page with four anchor targets. That was right when it was a static brochure; it stops being right when there is a menu, a gallery and a contact form. The menu needs its own URL so it can be shared on Instagram and WhatsApp, so Google can index it separately, and so it can carry its own meta tags and JSON-LD (see #49). Two viable routes: a lightweight hash or history router in the SPA, or real server-side routes served by FastAPI alongside the existing static mount. The second is better for SEO and costs little now that the backend is already serving the site — but it means the menu must render without a client-side fetch, so it overlaps deliberately with #46.
+**Mostly landed with #1.** The menu now has its own URL at `/menu`, served as a second Vite entry point (`frontend/menu.html` → `MenuPage.svelte`) and rendered server-side by FastAPI, so it is a real document a crawler can read rather than a client-side view — which is the option this ticket called the better one. `vite.config.js` declares both entry points, so adding a third is a line of configuration.
 
-**Files:** `frontend/src/App.svelte`, new `frontend/src/lib/router.js` or server routes in `backend/app/main.py`
+What is left: the site is still a single page with anchor targets everywhere else (surf, party, visit), and nothing routes between documents yet. There is no client-side navigation, so moving to a gallery or a contact form still means either a hard link or a router.
+
+**Files:** `frontend/vite.config.js` (entry points), `frontend/menu.html` + `frontend/src/menu-main.js` (landed), `frontend/src/App.svelte`
 
 ---
 
 ### 49. Menu SEO (Menu schema & indexable menu route)
-**Impact:** 🟠 · **Effort:** 🟡 · **Category:** SEO
+**Impact:** 🟠 · **Effort:** 🟢 · **Category:** SEO
 
-Once #16 and #1 land, the menu is a page Google can read — and a bar menu is exactly the content people search for. Emit `Menu` and `FoodEstablishment`-adjacent JSON-LD for the menu route, including each item's name, description and `offers.price` in USD. Requires the menu HTML to be server-rendered (from #46/#16), not client-fetched. Verify with Google's Rich Results Test before calling it done. Low effort relative to how often "drinks menu Montañita" gets typed into a phone at 9pm.
+Both preconditions are now met: the menu is on its own indexable route (`/menu`, from #1) and that route is **server-rendered**, so the item names and prices are in the HTML Google reads — which is most of the work this ticket used to be about. What remains is the JSON-LD: emit `Menu` with each item's name, description and `offers.price` in USD. Note that `menu_items.price` is stored as text (`"2.50"`), deliberately, so this ticket also wants to decide whether to add a numeric column or parse at render time — parsing is fine, the value is always a plain amount. Verify with Google's Rich Results Test before calling it done.
 
-**Files:** menu route from `16`, JSON-LD block, `frontend/src/content/en.js` + `es.js`
+**Files:** `frontend/menu.html` (JSON-LD block), `backend/app/templates/partials/menu.html`, `backend/app/models.py` (optional numeric price), `frontend/src/content/en.js` + `es.js`
 
 ---
 
 ### 7. Add happy hour / daily promos section
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** Functionality
 
-The bar runs promos on different days and the site does not mention them. Now that content is editable (#17), promos become rows rather than a code change — the owner updates "Tuesday: 2x1 cocktails 5–7pm" from the admin panel instead of asking a developer. Model recurring promos by weekday, reusing the `events.day` convention, plus a one-off override table for dates. If a promo has a date window, show it only inside that window so stale promos never linger.
+The bar runs promos on different days and the site does not mention them. `menu_item_promos` from #1 already holds an offer label under a price, but it has no *when*: a happy-hour promo is "Tuesday 17:00–19:00", and a promo that is only valid in a window has to stop rendering when the window closes. Add a recurring window by weekday, reusing the `events.day` convention, plus a one-off override table for dates. Decide whether a timed promo is a new table or columns on `menu_item_promos` — the existing rows already hold the label, so extending them is probably the smaller change.
 
-**Files:** `backend/app/models.py`, `backend/app/routers/api.py`, `frontend/src/App.svelte`, `frontend/src/content/en.js` + `es.js`
+**Files:** `backend/app/models.py`, `backend/app/routers/api.py`, `frontend/src/lib/Menu.svelte`, `backend/app/templates/admin/menu.html`
 
 ---
 
 ### 18. Add drink pricing and descriptions
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** Content
 
-Deliberately kept as a separate ticket from menu because it is content work, not engineering, and can be done by anyone with access to the admin panel. Add price and a description to every menu item, with proper detail for signature cocktails — ingredients, flavour profile, the story behind it. Positioning Marea Alta as a cocktail destination rather than a beach bar is the entire point, and a menu of bare names and numbers does not do it. `docs/bar_menu.md` has prices but no descriptions, so both are still outstanding.
+Deliberately kept as a separate ticket from menu because it is content work, not engineering, and can be done by anyone with access to the admin panel. **Prices are done** — `docs/bar_menu.md` was seeded in #1. What is outstanding is the description on every drink, and real detail for the signature cocktails: ingredients, flavour profile, the story behind it. Positioning Marea Alta as a cocktail destination rather than a beach bar is the entire point, and a menu of bare names and numbers does not do it. `ingredients_en` / `ingredients_es` exist and are live for the cocktails section; the cocktail list currently holds only the Cuba Libre.
 
-**Files:** `backend/app/templates/admin/menu.html` (fields from #1), data in the `menu_items` table
+**Files:** data in the `menu_items` table, via `backend/app/templates/admin/menu.html`
 
 ---
 
 ### 11. Add food menu section
-**Impact:** 🟡 · **Effort:** 🟡 · **Category:** Functionality
+**Impact:** 🟡 · **Effort:** 🟢 · **Category:** Functionality
 
-If the bar serves food — snacks, ceviche, burgers — add it as a second set of `menu_categories` rows rather than a separate table. The schema built in #1 is category-driven, so this is mostly a data-entry task plus a filter toggle on the menu section. Even a short snack menu raises average spend and time on site. If food is genuinely minimal, list what exists and move on.
+If the bar serves food — snacks, ceviche, burgers — add it as another `menu_categories` row. The schema built in #1 is category-driven, so this is now **pure data entry**: create the category at `/admin/menu`, type the items in, done. The panel creates and renames categories itself, and an empty category is hidden from the site until it has something in it — which is how "Wine" and "Liquor" are already seeded and empty, waiting. Even a short snack menu raises average spend and time on site. If food is genuinely minimal, list what exists and move on.
 
-**Files:** `backend/app/seed.py`, `frontend/src/lib/Menu.svelte`, `frontend/src/App.svelte`
+**Files:** none — admin panel only
 
 ---
 
 ### 30. Add "Drinks We're Known For" signature section
 **Impact:** 🟡 · **Effort:** 🟢 · **Category:** Content
 
-Highlight 3–5 drinks that cannot be got anywhere else, with photos and the story behind each. Given a reason to try something specific, and gives the social media team a standing content slot. Set `is_active` on the rows so the selection rotates seasonally without a deploy. Distinct from #18: that ticket fills in descriptions for everything, this one curates a handful into a homepage slot.
+Highlight 3–5 drinks that cannot be got anywhere else, with photos and the story behind each. Given a reason to try something specific, and gives the social media team a standing content slot. #1 built the tables this needs but not the selection flag — `menu_items` has `is_available`, which is about whether a drink is being sold, not whether it is the one being pushed. Add an `is_featured` column (and a migration for it), so the selection rotates seasonally without a deploy. Distinct from #18: that ticket fills in descriptions for everything, this one curates a handful into a homepage slot. Blocked on #50 for the photos.
 
-**Files:** `frontend/src/lib/Signature.svelte`, `frontend/src/App.svelte`, `menu_items` rows with `is_featured`
+**Files:** `backend/app/models.py` + `backend/app/migrate.py` (add `is_featured`), `frontend/src/lib/Signature.svelte`, `frontend/src/App.svelte`
 
 ---
 
 ### 10. Add a "Drink of the Day" hero banner
 **Impact:** 🟡 · **Effort:** 🟢 · **Category:** Engagement
 
-Rotate a featured drink in the hero, with name, one line and price. Give people a reason to come *today* rather than "sometime". Because it is a row in the database, the owner can change it in ten seconds — and the daily rotation can be done from the admin panel rather than by editing `data.js`. Also the obvious source of the daily Instagram post, so it serves the social channel as well as the site.
+Rotate a featured drink in the hero, with name, one line and price. Give people a reason to come *today* rather than "sometime". Because it is a row in the database, the owner can change it in ten seconds — and the daily rotation can be done from the admin panel rather than by editing `data.js`. The ingredient and description fields from #1 give the banner something to say; #30's `is_featured` flag, or a separate column, is what picks the drink.
 
 **Files:** `backend/app/models.py` (or reuse #17 content tables), `frontend/src/App.svelte`, `frontend/src/content/en.js` + `es.js`
 
@@ -504,7 +496,7 @@ A monthly contest — visitors post their best photo with a hashtag, the winner 
 ### 27. Add "Perfect Drink" quiz / recommendation
 **Impact:** 🟡 · **Effort:** 🟡 · **Category:** Engagement
 
-Three or four questions — mood, sweet versus strong, beer versus cocktail — ending in a signature recommendation. Highly shareable, and it walks new visitors past the generic options. Rules live as a JSON column or a small config table; results resolve against the `menu_items` rows from #1, so a drink being sold out disappears from the quiz automatically. Keep it light and fun.
+Three or four questions — mood, sweet versus strong, beer versus cocktail — ending in a signature recommendation. Highly shareable, and it walks new visitors past the generic options. Rules live as a JSON column or a small config table; results resolve against the `menu_items` rows from #1, so a drink being sold out disappears from the quiz automatically — `GET /api/menu` already withholds anything with `is_available` cleared. Keep it light and fun.
 
 **Files:** new `frontend/src/lib/Quiz.svelte`, `frontend/src/App.svelte`, quiz rules as data, resolves against `GET /api/menu`
 
@@ -526,7 +518,7 @@ T-shirts, hats, stickers, koozies — an extra revenue stream that turns visitor
 ### 35. Expand automated testing
 **Impact:** 🟠 · **Effort:** 🟡 · **Category:** Quality
 
-Partially delivered already — there are roughly 920 lines of tests: `backend/tests/` covers auth and sessions, CSRF, the schedule and closed-days CRUD, migrations and end-to-end admin-edit propagation; `frontend/src/` has Vitest coverage of the language fallback, time formatting and a regression guard proving the schedule re-renders on language switch without a remount. What is missing is everything above unit level. Add Playwright for the paths that would actually cost money if broken: the menu renders and prices are right, the language toggle works, an admin edit reaches the public page, a reservation submits. Add coverage reporting and let #36 gate on it. Note the SQLite concurrency test from #43 belongs here too.
+Partially delivered already — there are roughly 1,400 lines of tests: `backend/tests/` covers auth and sessions, CSRF, the schedule, closed-days and drinks-menu CRUD, the bilingual admin strings, migrations and end-to-end admin-edit propagation into both the JSON API and the rendered HTML; `frontend/src/` has Vitest coverage of the language fallback, time and price formatting, the menu component, and a regression guard proving the schedule and the menu re-render on language switch without a remount. What is missing is everything above unit level. Add Playwright for the paths that would actually cost money if broken: the menu renders and prices are right, the language toggle works, an admin edit reaches the public page, a reservation submits. Add coverage reporting and let #36 gate on it. Note the SQLite concurrency test from #43 belongs here too.
 
 **Files:** new `frontend/e2e/`, `frontend/playwright.config.js`, new `backend/tests/test_concurrency.py`, `frontend/package.json`, `.github/workflows/ci.yml`
 
@@ -638,13 +630,13 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 4 | Add analytics | 🟠 | 🟢 | Analytics |
 | | 48 | robots.txt, sitemap.xml & canonical URLs | 🟡 | 🟢 | SEO |
 | | 9 | Add proper favicon and app icons | 🟡 | 🟢 | Design |
-| | 1 | Add a drinks menu page | 🔴 | 🟡 | Functionality |
+| ✅ | 1 | Add a drinks menu page | 🔴 | 🟡 | Functionality |
 | | 17 | Content tables for promos, packages & gallery | 🔴 | 🟡 | Operations |
-| | 16 | Create separate menu page (multi-page) | 🟠 | 🟡 | Architecture |
-| | 49 | Menu SEO (Menu schema & indexable route) | 🟠 | 🟡 | SEO |
+| | 16 | Create separate menu page (multi-page) | 🟠 | 🟢 | Architecture |
+| | 49 | Menu SEO (Menu schema & indexable route) | 🟠 | 🟢 | SEO |
 | | 7 | Add happy hour / daily promos | 🟠 | 🟢 | Functionality |
 | | 18 | Add drink pricing and descriptions | 🟠 | 🟢 | Content |
-| | 11 | Add food menu section | 🟡 | 🟡 | Functionality |
+| | 11 | Add food menu section | 🟡 | 🟢 | Functionality |
 | | 30 | Add signature drinks section | 🟡 | 🟢 | Content |
 | | 10 | Add "Drink of the Day" banner | 🟡 | 🟢 | Engagement |
 | | 22 | Add birthday / package deals | 🟠 | 🟢 | Revenue |
@@ -696,9 +688,9 @@ Tickets 36, 39, 35.
 Tickets ~~46~~, 5, 6, 2, 47, 3, 4, 48, 9.
 *Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #5 and #6 build on it.*
 
-**Sprint 3 — "Sell the drinks" (2 weeks)**
-Tickets 1, 17, 16, 49, 7, 18, 11, 30, 10.
-*Goal: The menu exists, the owner can edit it, and it is shareable and indexable. #1 and #17 are the load-bearing pair; #16 and #49 follow once there is a page worth indexing.*
+**Sprint 3 — "Sell the drinks" (1 week)**
+Tickets ~~1~~, 18, 11, 49, 7, 17.
+*Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route. What is left is content (#18, #11) and the JSON-LD (#49); #16 largely landed with it.*
 
 **Sprint 4 — "Convert" (2 weeks)**
 Tickets 15, 12, 51, 14, 52, 50, 8, 13, 22, 19, 20.
@@ -718,20 +710,31 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
 
+## The drinks menu (#1)
+**Shipped** — The menu is now database content, built on the same pattern as `events`/`hours` rather than a hardcoded array. Three tables: `menu_categories` (bilingual name, unique `slug` for the anchor, sort order, `is_available`), `menu_items` (bilingual name/description/**ingredients**, price, sort order, `is_available`) and `menu_item_promos` (several multi-buy offers per drink, each bilingual). `/admin/menu` manages all three — add, rename, reorder and remove categories; add, edit, reorder and remove drinks; add and remove promo rows — with the same "filled EN / filled ES" colour bar the schedule page uses, and the same save-then-refetch discipline so the page always shows what the database holds. Public read is `GET /api/menu`; writes sit behind the existing `write_guard`.
+
+Two calls worth recording. **A price is the headline figure only**: `docs/bar_menu.md` writes `$1.50 (6x $7.00)` in one column, and that became a price of `1.50` plus a promo row, so a drink can carry several offers and each is edited on its own — the bar's real packet prices for cigarettes work the same way. And **`is_available` is the reversible move**: clearing it withdraws a sold-out drink from the site without deleting it, which is why the panel reads from `/api/menu/all` (session required) rather than the public endpoint — a drink hidden from `/api/menu` would otherwise be invisible in the panel too, with no way to bring it back.
+
+`docs/bar_menu.md` was seeded into `app/seed.py` alongside the schedule, so the site had real prices from the first deploy: seven beers, seven other drinks, two cigarettes, and a Cocktails section holding the Cuba Libre at $4.00 with its ingredients. **Wine and liquor are seeded empty** — the bar sells both, the document lists neither — and hidden from the site until something is added, which is also the proof that an empty category does not render as a bare heading.
+
+The menu renders in both the places it should: as a section on the homepage, and at **`/menu`** as its own document. That is ticket #16's preferred option arriving early — a second Vite entry point, a FastAPI route, and server-rendered HTML, so the drinks are in the page a crawler reads and the URL is something you can post on WhatsApp. Both places render the same `Menu.svelte` from the same `load()`, so they cannot drift, and the crawler-visible block comes from the same `load_menu()` the API does.
+
+**What is still open:** #18 (descriptions for every drink; the cocktail list beyond the Cuba Libre), #11 (food, which is now pure data entry), #49 (the `Menu` JSON-LD, plus a decision on a numeric price column), #30 and #10 (`is_featured`, which does not exist yet).
+
 ## Closed-day handling on the public site (#42)
 **Shipped** — `GET /api/closed-days` now returns today and later only, filtered in `load_closed_days()` — the loader the JSON API and the server-rendered homepage share — against the bar's own clock rather than the server's, so a closure stops being published the day after it happens and the two can never disagree about which days are shut. `ClosedDayCreate` refuses the same dates using that same clock, so the bar's own today is accepted even in the five-hour window where the server's date is already tomorrow. Past rows stay in the table but are never returned, which also means they no longer appear in the admin panel's closed-days list. On the site, a day can be shut three ways and all three now agree: the weekday's `is_closed` flag, a title of "Closed"/"Cerrado", and a closure dated today — merged into one `closedToday` flag that hides the Tonight card, replaces tonight's party in the week list with the closed label, and stops the Visit section claiming the bar is open until late. The crawler-visible HTML was fixed the same way, so the first paint and the live app agree instead of the page visibly changing on mount, and the client filters past dates too, because the `localStorage` cache and the embedded payload outlive the date they were fetched on.
 
 ## Server-rendered schedule (#46)
-**Shipped** — The homepage is rendered by FastAPI rather than served off disk. `app/ssr.py` reads `frontend/dist/index.html` and injects the current week — tonight's party, every day's title, description and opening hours, and any closure notices — as plain HTML inside `#app`, so a crawler receives it without executing anything. The same payload is handed to the SPA as `window.__MAREA_ALTA_DATA__`, so the first paint needs no request and the visitor never sees a loading state; the app replaces the block on mount. Rendering happens at request time rather than at build time, because the hours are editable from the admin panel and a build-time render would publish stale ones. `?lang=es` renders the Spanish block, `Cache-Control: no-cache` keeps it current, and the JSON API and the HTML are served from one set of loaders so they cannot disagree.
+**Shipped** — The homepage is rendered by FastAPI rather than served off disk. `app/ssr.py` reads `frontend/dist/index.html` and injects the current week — tonight's party, every day's title, description and opening hours, and any closure notices — as plain HTML inside `#app`, so a crawler receives it without executing anything. Since #1 it also injects the drinks menu, and renders `frontend/dist/menu.html` the same way for the `/menu` route. The same payload is handed to the SPA as `window.__MAREA_ALTA_DATA__`, so the first paint needs no request and the visitor never sees a loading state; the app replaces the block on mount. Rendering happens at request time rather than at build time, because the hours and the menu are editable from the admin panel and a build-time render would publish stale ones. `?lang=es` renders the Spanish block, `Cache-Control: no-cache` keeps it current, and the JSON API and the HTML are served from one set of loaders so they cannot disagree.
 
 ## The bilingual schedule system
-**Shipped** — Weekly party schedule, opening hours and one-off closed days are managed in the SQLite database and edited from a bilingual admin panel at `/admin`. Public read endpoints (`GET /api/schedule`, `GET /api/closed-days`) return every string in both languages, so the frontend switches language without a second request. `pick()` falls back to English when a translation is blank. Non-destructive migrations in `app/migrate.py` upgrade legacy single-language content and normalise legacy `4:00 PM` times to `HH:MM`.
+**Shipped** — Weekly party schedule, opening hours, one-off closed days and the drinks menu are managed in the SQLite database and edited from a bilingual admin panel at `/admin`. Public read endpoints (`GET /api/schedule`, `GET /api/closed-days`, `GET /api/menu`) return every string in both languages, so the frontend switches language without a second request. `pick()` falls back to English when a translation is blank. Non-destructive migrations in `app/migrate.py` upgrade legacy single-language content and normalise legacy `4:00 PM` times to `HH:MM`.
 
 ## Admin authentication & security
 **Shipped** — bcrypt password hashing, server-side sessions in SQLite with random 64-char tokens and 8-hour expiry, HttpOnly + SameSite=Lax cookies (Secure in production), double-submit CSRF protection on all writes, login rate limiting, and a bilingual admin panel that is not linked from the public site.
 
 ## Automated testing foundations
-**Shipped** — ~1,100 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule and closed-days CRUD, migrations, the server-rendered homepage (including HTML escaping and admin-edit propagation), and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time formatting, the server-rendered payload handover, a regression guard proving the app replaces the server-rendered block rather than stacking on it, and a guard keeping the server-rendered labels identical to the site's own wording. Expanded further by ticket #35.
+**Shipped** — ~1,400 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule, closed-days and drinks-menu CRUD (including promo replacement, the availability split between the public and admin reads, and cascade deletes), the bilingual admin strings, migrations, the server-rendered homepage and `/menu` (including HTML escaping and admin-edit propagation), and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time and price formatting, the menu component, the server-rendered payload handover, a regression guard proving the app replaces the server-rendered block rather than stacking on it, and a guard keeping the server-rendered labels identical to the site's own wording. Expanded further by ticket #35.
 
 ## Production build pipeline
-**Shipped** — Vite builds the frontend to `frontend/dist`, and the FastAPI app serves that directory from the same origin so the site and the API share a domain with no CORS and working cookies. `/` is rendered rather than served (see #46 above); the static mount is registered last so it only handles requests the API, admin and index routes did not claim. Deployment itself is ticket #41.
+**Shipped** — Vite builds the frontend to `frontend/dist`, and the FastAPI app serves that directory from the same origin so the site and the API share a domain with no CORS and working cookies. `/` and `/menu` are rendered rather than served (see #46 above); the static mount is registered last so it only handles requests the API, admin and page routes did not claim. Deployment itself is ticket #41.

@@ -1,14 +1,18 @@
-"""Default schedule data used to seed a fresh database.
+"""Default schedule and menu data used to seed a fresh database.
 
 Shared by the app (on startup) and the test suite so both see the same rows.
 Times are stored 24-hour so the admin panel's ``<input type="time">`` can read
 them; the frontend formats them for display.
+
+The menu is a starting point, not a finished one: it is transcribed from
+``docs/bar_menu.md`` so the site has real prices from the first deploy, and the
+admin panel is where the rest of it gets written.
 """
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from app.models import Event, Hours
+from app.models import Event, Hours, MenuCategory, MenuItem, MenuItemPromo
 
 DEFAULT_EVENTS = [
     {
@@ -84,5 +88,168 @@ def seed_schedule(db: DBSession) -> None:
 
     if db.execute(select(Hours).limit(1)).scalar_one_or_none() is None:
         db.add_all(Hours(**row) for row in DEFAULT_HOURS)
+
+    db.commit()
+
+
+# --- Menu ------------------------------------------------------------------
+#
+# Transcribed from docs/bar_menu.md. Each entry is keyed by its category slug so
+# the ordering and the category a drink belongs to are visible in one place.
+#
+# `promos` holds the multi-buy offers that the source document writes inline in
+# the price column — "$1.50 (6x $7.00)" becomes price "1.50" plus a promo row, so
+# the headline price stays the number people actually pay for one.
+
+DEFAULT_MENU = [
+    {
+        "slug": "cerveza",
+        "name_en": "Beer",
+        "name_es": "Cerveza",
+        "items": [
+            {
+                "name_en": "Club Personal",
+                "name_es": "Club personal",
+                "price": "2.50",
+            },
+            {
+                "name_en": "Club Large",
+                "name_es": "Club grande",
+                "price": "4.00",
+            },
+            {
+                "name_en": "Corona",
+                "name_es": "Corona",
+                "price": "4.00",
+            },
+            {
+                "name_en": "Pilsener",
+                "name_es": "Pilsener",
+                "price": "3.00",
+            },
+            {
+                "name_en": "Pilsener Light",
+                "name_es": "Pilsener Light",
+                "price": "3.00",
+            },
+            {
+                "name_en": "Pilsener Can",
+                "name_es": "Pilsener Lata",
+                "price": "1.50",
+                "promos": [
+                    {"label_en": "6x $7.00", "label_es": "6 por $7.00"},
+                ],
+            },
+            {
+                "name_en": "Pilsener Light Can",
+                "name_es": "Pilsener Light Lata",
+                "price": "1.50",
+                "promos": [
+                    {"label_en": "6x $7.00", "label_es": "6 por $7.00"},
+                ],
+            },
+        ],
+    },
+    {
+        "slug": "otras-bebidas",
+        "name_en": "Other Drinks",
+        "name_es": "Otras Bebidas",
+        "items": [
+            {"name_en": "Milk Coffee", "name_es": "Cafe con Leche", "price": "1.50"},
+            {"name_en": "Coffee", "name_es": "Cafe", "price": "1.00"},
+            {"name_en": "Lemonade", "name_es": "Limonada", "price": "1.50"},
+            {"name_en": "Natural Juice", "name_es": "Jugo Natural", "price": "2.00"},
+            {"name_en": "Milkshake", "name_es": "Batidos", "price": "2.50"},
+            {"name_en": "Cola, Sprite, Inca", "name_es": "Cola, Sprite, Inca", "price": "1.00"},
+            {"name_en": "Water", "name_es": "Agua", "price": "1.00"},
+        ],
+    },
+    {
+        "slug": "cigarrillos",
+        "name_en": "Cigarettes",
+        "name_es": "Cigarrillos",
+        "items": [
+            {
+                "name_en": "Elephant",
+                "name_es": "Elephant",
+                "price": "0.25",
+                "promos": [
+                    {"label_en": "Packet $4.00", "label_es": "Paquete $4.00"},
+                ],
+            },
+            {
+                "name_en": "Carnival",
+                "name_es": "Carnival",
+                "price": "0.50",
+                "promos": [
+                    {"label_en": "Packet $7.00", "label_es": "Paquete $7.00"},
+                ],
+            },
+        ],
+    },
+    {
+        "slug": "cocteles",
+        "name_en": "Cocktails",
+        "name_es": "Cócteles",
+        "items": [
+            {
+                "name_en": "Cuba Libre",
+                "name_es": "Cuba Libre",
+                "price": "4.00",
+                "ingredients_en": "Rum, Coca-Cola, Lime juice, Ice",
+                "ingredients_es": "Ron, Coca-Cola, Jugo de limón, Hielo",
+            },
+        ],
+    },
+    # The bar sells wine and liquor but the source document lists neither yet.
+    # Seeded empty and hidden from the public page until something is added, so
+    # the rest of the menu has somewhere to go without a developer.
+    {"slug": "vinos", "name_en": "Wine", "name_es": "Vinos", "items": []},
+    {"slug": "licores", "name_en": "Liquor", "name_es": "Licores", "items": []},
+]
+
+
+def seed_menu(db: DBSession) -> None:
+    """Insert the starting drinks menu if the table is empty.
+
+    Idempotent in the same way as :func:`seed_schedule`: it only inserts when
+    there are no categories, so it can never overwrite what the admin has since
+    typed into the panel. Adding a category to ``DEFAULT_MENU`` therefore seeds
+    only a genuinely fresh database, which is the intent — once the bar is
+    editing the menu, the admin panel is the source of truth.
+    """
+    if db.execute(select(MenuCategory).limit(1)).scalar_one_or_none() is not None:
+        return
+
+    for order, category in enumerate(DEFAULT_MENU):
+        row = MenuCategory(
+            slug=category["slug"],
+            name_en=category["name_en"],
+            name_es=category["name_es"],
+            sort_order=order,
+        )
+        for item_order, item in enumerate(category["items"]):
+            promos = item.get("promos", [])
+            row.items.append(
+                MenuItem(
+                    name_en=item.get("name_en", ""),
+                    name_es=item.get("name_es", ""),
+                    description_en=item.get("description_en", ""),
+                    description_es=item.get("description_es", ""),
+                    ingredients_en=item.get("ingredients_en", ""),
+                    ingredients_es=item.get("ingredients_es", ""),
+                    price=item.get("price", ""),
+                    sort_order=item_order,
+                )
+            )
+            for promo_order, promo in enumerate(promos):
+                row.items[-1].promos.append(
+                    MenuItemPromo(
+                        label_en=promo.get("label_en", ""),
+                        label_es=promo.get("label_es", ""),
+                        sort_order=promo_order,
+                    )
+                )
+        db.add(row)
 
     db.commit()

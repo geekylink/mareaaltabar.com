@@ -11,7 +11,7 @@ from app.database import get_db
 from app.main import app
 from app.models import Admin, Base
 from app.routers.auth import reset_rate_limit
-from app.seed import seed_schedule
+from app.seed import seed_menu, seed_schedule
 
 
 @pytest.fixture(autouse=True)
@@ -24,7 +24,7 @@ def _reset_rate_limiter():
 
 @pytest.fixture()
 def db_session():
-    """Create an in-memory SQLite database session with the default schedule."""
+    """Create an in-memory SQLite database with the default schedule and menu."""
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
@@ -34,6 +34,7 @@ def db_session():
     Base.metadata.create_all(bind=engine)
     session = TestingSessionLocal()
     seed_schedule(session)
+    seed_menu(session)
     try:
         yield session
     finally:

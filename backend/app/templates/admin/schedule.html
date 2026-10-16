@@ -253,10 +253,18 @@
             });
         }
 
+        // Escapes for text nodes *and* attribute values. `textContent` alone
+        // leaves quotes intact, and party titles go into `value="..."` as well
+        // as onto the page — without this, a title containing a quote would
+        // break out of the attribute.
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
         function esc(value) {
-            var div = document.createElement('div');
-            div.textContent = value == null ? '' : value;
-            return div.innerHTML;
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
         }
 
         function setStatus(el, message, isError) {

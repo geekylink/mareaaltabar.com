@@ -143,10 +143,32 @@ def migrate_hours_to_24h(engine: Engine) -> None:
                 )
 
 
+def migrate_menu_schema(engine: Engine) -> None:
+    """Bring an existing ``menu_items`` table up to the current shape.
+
+    A brand-new database needs nothing here: ``create_all`` builds the menu tables
+    from the models at startup. This exists for a database that already has a
+    ``menu_items`` table from an earlier build of the menu, where adding columns
+    to it is exactly the job ``create_all`` will not do — it only creates missing
+    tables, never alters existing ones. ``ingredients_*`` and ``is_available`` are
+    the columns that arrived after the table itself, and both are added with a
+    default so existing drinks survive.
+    """
+    if not _table_exists(engine, "menu_items"):
+        return
+
+    _add_column(engine, "menu_items", "ingredients_en", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_items", "ingredients_es", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_items", "is_available", "BOOLEAN NOT NULL DEFAULT 1")
+
+    log.debug("Menu schema ready")
+
+
 MIGRATIONS = (
     migrate_events_to_bilingual,
     migrate_closed_days_to_bilingual,
     migrate_hours_to_24h,
+    migrate_menu_schema,
 )
 
 

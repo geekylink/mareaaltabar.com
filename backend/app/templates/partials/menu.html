@@ -1,0 +1,46 @@
+{#- Server-rendered drinks menu, injected into <div id="app"> for crawlers and for
+    visitors without JavaScript. Appears on the homepage and is the whole of
+    /menu. Replaced by the SPA on mount, so it only needs to be correct and
+    readable — not interactive.
+
+    Context: ssr.build_payload(). `menu` is already resolved for one language by
+    menu_display(), and everything is auto-escaped, which is what keeps an
+    admin-entered drink name from becoming markup.
+
+    Styling lives in menu_style.html; this block is removed before the SPA mounts,
+    so its styles go with it. -#}
+<div id="marea-menu">
+  <h2>{{ labels.menu_heading }}</h2>
+
+  {% if not menu %}
+  <p class="mm-empty">{{ labels.menu_empty }}</p>
+  {% endif %}
+
+  {% for category in menu %}
+  <section class="mm-category" id="{{ category.slug }}">
+    <h3>{{ category.name }}</h3>
+    <ul class="mm-items">
+      {% for item in category['items'] %}
+      <li class="mm-item">
+        <span class="mm-head">
+          <b class="mm-name">{{ item.name }}</b>
+          {% if item.price %}<span class="mm-price">{{ item.price }}</span>{% endif %}
+        </span>
+        {% if item['promos'] %}
+        <span class="mm-promos">
+          {% for promo in item['promos'] %}<span class="mm-promo">{{ promo }}</span>{% endfor %}
+        </span>
+        {% endif %}
+        {% if item.description %}<span class="mm-desc">{{ item.description }}</span>{% endif %}
+        {% if item.ingredients %}
+        <span class="mm-ingredients">
+          <span class="mm-eyebrow">{{ labels.menu_ingredients }}</span>
+          {{ item['ingredients']|join(', ') }}
+        </span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>

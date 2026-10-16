@@ -4,10 +4,11 @@
 // matching the visitor's language, so switching language needs no extra request.
 //
 // The first load uses the payload the backend embedded in the HTML (it renders
-// the same schedule server-side, for crawlers — see backend/app/ssr.py). That
-// saves a round trip and the loading state on first paint. Anything after that
-// — the hourly refresh, the Refresh button — goes to the API, so the schedule
-// stays live and an admin edit still shows up without a reload.
+// the same schedule and menu server-side, for crawlers — see
+// backend/app/ssr.py). That saves a round trip and the loading state on first
+// paint. Anything after that — the hourly refresh, the Refresh button — goes to
+// the API, so the schedule and menu stay live and an admin edit still shows up
+// without a reload.
 
 const CACHE_KEY = 'marea_alta_schedule_cache';
 
@@ -94,19 +95,22 @@ async function load() {
     const result = {
       schedule: seed.schedule,
       closedDays: upcomingClosedDays(seed.closedDays || [], today),
+      menu: seed.menu || [],
       error: null,
     };
     setCache(result);
     return result;
   }
   try {
-    const [schedule, closedDays] = await Promise.all([
+    const [schedule, closedDays, menu] = await Promise.all([
       fetchJSON('/api/schedule'),
       fetchJSON('/api/closed-days'),
+      fetchJSON('/api/menu'),
     ]);
     const result = {
       schedule,
       closedDays: upcomingClosedDays(closedDays, today),
+      menu: (menu && menu.categories) || [],
       error: null,
     };
     setCache(result);
@@ -117,10 +121,11 @@ async function load() {
       return {
         ...cached,
         closedDays: upcomingClosedDays(cached.closedDays || [], today),
+        menu: cached.menu || [],
         error: 'Backend unreachable, showing cached data',
       };
     }
-    return { schedule: [], closedDays: [], error: 'Failed to load the schedule' };
+    return { schedule: [], closedDays: [], menu: [], error: 'Failed to load the schedule' };
   }
 }
 
@@ -151,4 +156,12 @@ export function formatHours(day, lang, closedLabel) {
   if (day.is_closed) return closedLabel;
   if (!day.open_time || !day.close_time) return '';
   return `${formatTime(day.open_time, lang)} - ${formatTime(day.close_time, lang)}`;
+}
+
+// A stored price as displayed: "2.50" -> "$2.50". The amount is whatever the bar
+// typed, so nothing here rounds, and a blank price (an unpriced drink) renders
+// as nothing rather than "$0.00". Mirrors `format_price` in backend/app/ssr.py.
+export function formatPrice(price) {
+  const text = String(price ?? '').trim();
+  return text ? `$${text}` : '';
 }

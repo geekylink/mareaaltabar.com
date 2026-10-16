@@ -57,3 +57,13 @@ async def admin_schedule(request: Request, admin=Depends(get_current_admin)):
         name="admin/schedule.html",
         context={"admin": admin, **_i18n_payload()},
     )
+
+
+@router.get("/admin/menu", response_class=HTMLResponse)
+async def admin_menu(request: Request, admin=Depends(get_current_admin)):
+    """The drinks menu: add, edit, reorder and remove categories and items."""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/menu.html",
+        context={"admin": admin, **_i18n_payload()},
+    )

@@ -13,15 +13,18 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from app import main as main_module
-from app.models import ClosedDay
+from app.models import ClosedDay, MenuItem
 from app.ssr import (
     bar_today,
     build_payload,
     format_hours,
+    format_price,
     format_time,
     load_closed_days,
+    load_menu,
     pick,
     render_index_html,
+    render_menu_html,
 )
 
 # The shape Vite emits, and the two anchors `ssr.render_index` injects against.
@@ -32,17 +35,29 @@ BUILT_INDEX = (
     "  </body>\n</html>\n"
 )
 
+# The second Vite entry point. Same anchors, its own bundle.
+BUILT_MENU = (
+    "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <title>Menu</title>\n"
+    "  </head>\n  <body>\n    <div id=\"app\"></div>\n"
+    "    <script type=\"module\" crossorigin src=\"/assets/menu-xyz.js\"></script>\n"
+    "  </body>\n</html>\n"
+)
+
 
 @pytest.fixture()
 def site(client, monkeypatch, tmp_path):
     """The test client with a built index.html in place.
 
     `frontend/dist` is gitignored, so the route tests point the server at a
-    fixture shell rather than requiring a build.
+    fixture shell rather than requiring a build. Both documents are needed: the
+    menu is a second Vite entry point with its own route.
     """
     index = tmp_path / "index.html"
     index.write_text(BUILT_INDEX, encoding="utf-8")
+    menu = tmp_path / "menu.html"
+    menu.write_text(BUILT_MENU, encoding="utf-8")
     monkeypatch.setattr(main_module, "INDEX_HTML", index)
+    monkeypatch.setattr(main_module, "MENU_HTML", menu)
     return client
 
 
@@ -284,14 +299,18 @@ def test_seed_json_stays_parseable_with_markup_in_it(db_session):
 
 
 def schedule_block(html: str) -> str:
-    """Just the rendered markup, without the head styles or the JSON seed.
+    """Just the rendered schedule markup, without the head styles, the menu or
+    the JSON seed.
 
     The seed carries both languages on purpose (so the SPA can switch language
     without a request), so language assertions have to look at the block alone.
     """
-    return html[
-        html.index('<div id="marea-schedule">'): html.index("<script>window.__MAREA_ALTA_DATA__")
-    ]
+    start = html.index('<div id="marea-schedule">')
+    for marker in ('<div id="marea-menu">', "<script>window.__MAREA_ALTA_DATA__"):
+        end = html.find(marker, start)
+        if end != -1:
+            return html[start:end]
+    return html[start:]
 
 
 def test_root_renders_the_week_for_a_crawler(site):
@@ -467,3 +486,208 @@ def test_the_api_and_the_rendered_html_agree(site):
     for row in from_api:
         if row["title_en"] and not row["is_closed"]:
             assert row["title_en"] in in_html
+
+
+# --- The menu (ticket #1) ---------------------------------------------------
+
+
+def menu_block(html: str) -> str:
+    """The rendered menu only, without the seed that carries both languages."""
+    start = html.index('<div id="marea-menu">')
+    end = html.find("<script>window.__MAREA_ALTA_DATA__", start)
+    return html[start:end] if end != -1 else html[start:]
+
+
+def test_format_price_mirrors_the_frontend_renderer():
+    assert format_price("2.50") == "$2.50"
+    assert format_price("0.25") == "$0.25"
+    # A drink with no price yet must not read as free.
+    assert format_price("") == ""
+    assert format_price(None) == ""
+
+
+def test_the_homepage_renders_the_menu_for_a_crawler(site):
+    html = site.get("/").text
+    block = menu_block(html)
+    assert "Beer" in block
+    assert "Cocktails" in block
+    # Prices are the point of a menu, so they must not be behind a fetch.
+    assert "$2.50" in block
+    assert "$4.00" in block
+
+
+def test_the_homepage_renders_the_menu_after_the_schedule(site):
+    """Both blocks sit in #app; the schedule comes first, as before."""
+    html = site.get("/").text
+    assert html.index('<div id="marea-schedule">') < html.index('<div id="marea-menu">')
+
+
+def test_the_homepage_menu_has_its_own_styles(site):
+    html = site.get("/").text
+    assert html.index("#marea-menu") < html.index("</head>")
+
+
+def test_promos_render_under_the_price(site):
+    block = menu_block(site.get("/").text)
+    assert "$1.50" in block
+    assert "Promo: 6x $7.00" in block
+
+
+def test_ingredients_render_for_a_cocktail(site):
+    block = menu_block(site.get("/").text)
+    assert "Cuba Libre" in block
+    assert "Rum, Coca-Cola, Lime juice, Ice" in block
+    assert "Ingredients" in block
+
+
+def test_the_homepage_can_render_the_menu_in_spanish(site):
+    block = menu_block(site.get("/?lang=es").text)
+    assert "Cócteles" in block
+    assert "Cerveza" in block
+    assert "Ron, Coca-Cola, Jugo de limón, Hielo" in block
+
+
+def test_the_menu_route_renders_the_whole_menu(site):
+    """A standalone document, so the URL can be shared and indexed on its own."""
+    html = site.get("/menu").text
+    block = menu_block(html)
+    assert '<div id="marea-menu">' in html
+    # The menu route is the menu alone — no schedule block.
+    assert '<div id="marea-schedule">' not in html
+    assert "Beer" in block
+    assert "Cuba Libre" in block
+    assert "$2.50" in block
+
+
+def test_the_menu_route_is_answered_as_html(site):
+    resp = site.get("/menu")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/html")
+    assert resp.headers["cache-control"] == "no-cache"
+
+
+def test_menu_html_is_rendered_too(site):
+    """An old inbound link must not fall through to the raw shell."""
+    assert "Cuba Libre" in site.get("/menu.html").text
+
+
+def test_the_menu_route_defaults_to_english_and_can_switch(site):
+    assert "Cocktails" in menu_block(site.get("/menu").text)
+    spanish = site.get("/menu?lang=es")
+    assert '<html lang="es">' in spanish.text
+    assert "Cócteles" in menu_block(spanish.text)
+
+
+def test_the_menu_route_falls_back_for_an_unknown_language(site):
+    assert "Cocktails" in menu_block(site.get("/menu?lang=zz").text)
+
+
+def test_the_menu_seed_carries_both_languages(db_session):
+    """The SPA picks a language from the seed, so both must be in it."""
+    seed = build_payload(db_session, "en")["seed"]
+    cuba = next(
+        item
+        for category in seed["menu"]
+        for item in category["items"]
+        if item["name_en"] == "Cuba Libre"
+    )
+    assert cuba["ingredients_en"].startswith("Rum")
+    assert cuba["ingredients_es"].startswith("Ron")
+
+
+def test_a_menu_edit_is_visible_in_the_next_render(site, auth_cookies, csrf_token):
+    cocktails = site.get("/api/menu").json()["categories"][-1]
+    assert "Mojito" not in site.get("/menu").text
+
+    site.post(
+        "/api/menu/items",
+        json={
+            "category_id": cocktails["id"],
+            "name_en": "Mojito",
+            "name_es": "Mojito",
+            "price": "5.00",
+            "ingredients_en": "Rum, Mint, Lime, Soda",
+            "ingredients_es": "Ron, Menta, Limón, Soda",
+            "promos": [{"label_en": "2x1", "label_es": "2x1"}],
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    block = menu_block(site.get("/menu").text)
+    assert "Mojito" in block
+    assert "$5.00" in block
+    assert "Rum, Mint, Lime, Soda" in block
+    assert "Promo: 2x1" in block
+
+
+def test_a_hidden_drink_is_not_rendered(site, auth_cookies, csrf_token):
+    menu = site.get("/api/menu").json()["categories"]
+    beer = menu[0]["items"][2]
+    site.put(
+        f"/api/menu/items/{beer['id']}",
+        json={**beer, "is_available": False},
+        headers={"X-CSRF-Token": csrf_token},
+    )
+    assert "Corona" not in menu_block(site.get("/menu").text)
+
+
+def test_admin_entered_menu_markup_is_escaped(site, auth_cookies, csrf_token):
+    cocktails = site.get("/api/menu").json()["categories"][-1]
+    site.post(
+        "/api/menu/items",
+        json={
+            "category_id": cocktails["id"],
+            "name_en": "<script>alert('xss')</script>",
+            "price": "4.00",
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+    html = site.get("/menu").text
+    assert "<script>alert('xss')</script>" not in html
+    assert "&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;" in html
+
+
+def test_the_menu_route_survives_a_render_failure(site, monkeypatch, caplog):
+    """A broken template must not take the menu page down."""
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("menu template exploded")
+
+    monkeypatch.setattr(main_module, "render_menu", boom)
+    with caplog.at_level("ERROR"):
+        resp = site.get("/menu")
+
+    assert resp.status_code == 200
+    assert "marea-menu" not in resp.text
+    assert 'id="app"' in resp.text
+    assert "menu template exploded" in caplog.text
+
+
+def test_the_menu_route_reports_a_missing_build(client, monkeypatch, tmp_path):
+    monkeypatch.setattr(main_module, "MENU_HTML", tmp_path / "nope.html")
+    resp = client.get("/menu")
+    assert resp.status_code == 200
+    assert resp.json()["detail"].startswith("Frontend not built")
+
+
+def test_render_menu_refuses_a_shell_it_cannot_find(db_session):
+    """A silently empty menu is worse than a loud failure."""
+    with pytest.raises(RuntimeError):
+        render_menu_html("<html><body></body></html>", build_payload(db_session, "en"))
+
+
+def test_render_menu_injects_inside_the_mount_point(db_session):
+    html = render_menu_html(BUILT_MENU, build_payload(db_session, "en"))
+    assert '<div id="app"><div id="marea-menu">' in html
+    assert html.count('<div id="app">') == 1
+    assert tags_are_balanced(html)
+
+
+def test_load_menu_hides_what_the_public_may_not_see(db_session):
+    """One loader, two answers: the public read drops rows, the admin read keeps them."""
+    cuba = next(i for c in load_menu(db_session) for i in c["items"] if i["name_en"] == "Cuba Libre")
+    db_session.get(MenuItem, cuba["id"]).is_available = False
+    db_session.commit()
+
+    assert "cocteles" not in [c["slug"] for c in load_menu(db_session)]
+    assert "cocteles" in [c["slug"] for c in load_menu(db_session, include_unavailable=True)]

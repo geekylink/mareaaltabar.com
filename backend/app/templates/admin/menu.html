@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49;
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        .lang-switch {
+            display: flex; gap: 0.25rem; background: rgba(255,255,255,0.12);
+            padding: 0.25rem; border-radius: 999px;
+        }
+        .lang-switch button {
+            background: none; border: none; color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: #fff; color: #0B3C49; }
+
+        main { max-width: 68rem; margin: 2rem auto; padding: 0 1rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .toolbar h2 { font-size: 1.35rem; color: #0B3C49; }
+        .status { font-size: 0.875rem; color: #2E7D32; opacity: 0; transition: opacity 0.3s; }
+        .status.visible { opacity: 1; }
+        .status.error { color: #991B1B; }
+        .intro { font-size: .875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+
+        .btn-primary {
+            background: #0B3C49; color: #fff; border: none;
+            padding: 0.7rem 1.3rem; border-radius: 0.5rem;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-primary:hover { background: #0E4E5E; }
+        .btn-primary:disabled { background: #9aa5a8; cursor: not-allowed; }
+
+        /* One card per category; drinks collapse into a summary line until opened,
+             so a menu with twenty beers is still readable at a glance. */
+        .category {
+            background: #fff; border-radius: 0.85rem; padding: 1.25rem;
+            margin-bottom: 1rem; border: 2px solid transparent;
+        }
+        .category.is-off { background: #FAFAFA; }
+        .cat-head {
+            display: flex; align-items: center; gap: 0.75rem;
+            flex-wrap: wrap; margin-bottom: 1rem;
+        }
+        .cat-head h3 { font-size: 1.15rem; font-weight: 700; color: #0B3C49; margin-right: auto; }
+        .cat-tools { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+        .fields { display: grid; gap: 0.75rem; }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .field label {
+            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
+        }
+        .field input, .field textarea, .field select {
+            width: 100%; padding: 0.55rem 0.7rem;
+            border: 1.5px solid #ddd; border-radius: 0.4rem;
+            font-size: 0.9rem; font-family: inherit;
+        }
+        .field textarea { resize: vertical; min-height: 2.6rem; }
+        .field input:focus, .field textarea:focus, .field select:focus {
+            outline: none; border-color: #0B3C49;
+        }
+        .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
+        .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
+
+        .btn-quiet {
+            background: #fff; color: #0B3C49; border: 1.5px solid #0B3C49;
+            padding: 0.35rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-quiet:hover { background: #0B3C49; color: #fff; }
+        .btn-remove {
+            background: #FEE2E2; color: #991B1B; border: none;
+            padding: 0.35rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; cursor: pointer; white-space: nowrap;
+        }
+        .btn-remove:hover { background: #FECACA; }
+        .toggle {
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.8rem; color: #333; font-weight: 600;
+        }
+
+        .items { list-style: none; margin: 1rem 0 0; }
+        .item { border-top: 1px solid #eee; padding: 0.5rem 0; }
+        .item > summary {
+            cursor: pointer; list-style: none; display: flex;
+            align-items: baseline; gap: 0.6rem; padding: 0.35rem 0;
+        }
+        .item > summary::-webkit-details-marker { display: none; }
+        .item > summary::before { content: '▸'; color: #999; font-size: 0.8rem; }
+        .item[open] > summary::before { content: '▾'; }
+        .item .name { font-weight: 600; }
+        .item .price { font-weight: 700; color: #0B3C49; }
+        .item .flag {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #991B1B; background: #FEE2E2;
+            border-radius: 999px; padding: 0.1rem 0.5rem;
+        }
+        .item .hint { font-size: 0.8rem; color: #888; margin-left: auto; }
+        .item .body { display: grid; gap: 0.75rem; padding: 0.75rem 0 0.25rem; }
+        .item-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+        .promos { border-top: 1px dashed #e5e5e5; padding-top: 0.75rem; }
+        .promos h4 {
+            font-size: 0.7rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;
+        }
+        .promo-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .promo-row input {
+            padding: 0.5rem 0.6rem; border: 1.5px solid #ddd; border-radius: 0.4rem; font-size: 0.85rem;
+        }
+        .promo-row input.filled-es { border-left: 3px solid #FF6B2C; }
+        .promo-row input.filled-en { border-left: 3px solid #0B3C49; }
+        .promo-note { font-size: 0.8rem; color: #888; }
+
+        .add-item {
+            display: grid; gap: 0.75rem; margin-top: 1rem;
+            padding-top: 1rem; border-top: 1px solid #eee;
+        }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.5rem 0; }
+
+        .add-category {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .add-category h3 { font-size: 1.15rem; color: #0B3C49; margin-bottom: 1rem; }
+        .add-category .row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; align-items: end;
+        }
+
+        .loading { padding: 3rem 0; text-align: center; color: #666; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+
+        @media (max-width: 720px) {
+            .field-pair, .add-category .row, .promo-row { grid-template-columns: 1fr; }
+            .promo-row { grid-template-columns: 1fr auto; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <div class="toolbar">
+            <h2 data-i18n="menu_heading">Drinks menu</h2>
+            <span class="status" id="global-status"></span>
+        </div>
+        <p class="intro" data-i18n="menu_intro">
+            Fill in both languages. Leave a translation blank to fall back to English on the site.
+        </p>
+
+        <div id="menu"><div class="loading" data-i18n="loading">Loading...</div></div>
+
+        <div class="add-category">
+            <h3 data-i18n="add_category">Add category</h3>
+            <div class="row">
+                <div class="field">
+                    <label data-i18n="category_name_en">Category name (English)</label>
+                    <input type="text" id="new-cat-en">
+                </div>
+                <div class="field">
+                    <label data-i18n="category_name_es">Category name (Spanish)</label>
+                    <input type="text" id="new-cat-es">
+                </div>
+            </div>
+            <div class="row" style="margin-top:.75rem;">
+                <div class="field">
+                    <label data-i18n="category_slug">Anchor / URL</label>
+                    <input type="text" id="new-cat-slug" placeholder="cocteles">
+                </div>
+                <button class="btn-primary" id="add-category" data-i18n="add_category">Add category</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        // The whole menu lives in one array, refetched after every write, so the
+        // page always shows what the database holds rather than an optimistic
+        // guess. `load()` uses the admin read, which keeps items that have been
+        // switched off — the public one hides them, and the panel could then
+        // never bring one back.
+        var menu = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf()
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        // Escapes for text nodes *and* attribute values. `textContent` alone leaves
+        // quotes intact, and admin-entered drink names go into `value="..."` as
+        // well as onto the page — without this, a name containing a quote would
+        // break out of the attribute.
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function t(key) {
+            return AdminI18n.t(key);
+        }
+
+        function setStatus(message, isError) {
+            var el = document.getElementById('global-status');
+            el.textContent = message;
+            el.classList.toggle('error', !!isError);
+            el.classList.add('visible');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(function () { el.classList.remove('visible'); }, 3000);
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        // Marks which language a field is filled in, so gaps are obvious at a glance.
+        function markFilled(input, lang) {
+            input.classList.toggle('filled-' + lang, !!String(input.value).trim());
+        }
+
+        function watchLanguage(node, lang) {
+            markFilled(node, lang);
+            node.addEventListener('input', function () { markFilled(node, lang); });
+        }
+
+        // --- Rendering ---
+
+        function categoryOptions(selectedId) {
+            return menu.map(function (cat) {
+                return '<option value="' + cat.id + '"' +
+                    (String(cat.id) === String(selectedId) ? ' selected' : '') + '>' +
+                    esc(t('move_category_to') + ': ' + (cat.name_en || cat.name_es)) +
+                    '</option>';
+            }).join('');
+        }
+
+        function renderPromos(item) {
+            var rows = item.promos.map(function (promo, index) {
+                return '' +
+                '<div class="promo-row" data-promo="' + index + '">' +
+                    '<input type="text" data-promo-field="label_en" value="' + esc(promo.label_en) +
+                        '" placeholder="' + esc(t('promo_label_en')) + '">' +
+                    '<input type="text" data-promo-field="label_es" value="' + esc(promo.label_es) +
+                        '" placeholder="' + esc(t('promo_label_es')) + '">' +
+                    '<button type="button" class="btn-remove" data-action="remove-promo">' +
+                        esc(t('remove')) + '</button>' +
+                '</div>';
+            }).join('');
+
+            return '' +
+            '<div class="promos">' +
+                '<h4>' + esc(t('add_promo')) + '</h4>' +
+                (rows || '<p class="promo-note">' + esc(t('no_promos')) + '</p>') +
+                '<button type="button" class="btn-quiet" data-action="add-promo">' +
+                    esc(t('add_promo')) + '</button>' +
+            '</div>';
+        }
+
+        function renderItem(item, index, count) {
+            return '' +
+            '<details class="item" data-id="' + item.id + '">' +
+                '<summary>' +
+                    '<span class="name">' + esc(item.name_en || item.name_es || '—') + '</span>' +
+                    '<span class="price">' + esc(item.price ? '$' + item.price : '') + '</span>' +
+                    (item.is_available ? '' : '<span class="flag">' + esc(t('hide_item')) + '</span>') +
+                    (item.promos.length
+                        ? '<span class="hint">' + esc(item.promos.length + ' ' + t('promos_label')) + '</span>'
+                        : '') +
+                '</summary>' +
+                '<div class="body">' +
+                    '<div class="field-pair">' +
+                        '<div class="field">' +
+                            '<label>EN</label>' +
+                            '<input type="text" data-field="name_en" value="' + esc(item.name_en) + '">' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>ES</label>' +
+                            '<input type="text" data-field="name_es" value="' + esc(item.name_es) + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('item_price')) + '</label>' +
+                            '<input type="text" data-field="price" value="' + esc(item.price) +
+                                '" placeholder="' + esc(t('item_price_hint')) + '">' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('move_category_to')) + '</label>' +
+                            '<select data-field="category_id">' + categoryOptions(item.category_id) + '</select>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('item_description_en')) + '</label>' +
+                            '<textarea rows="2" data-field="description_en">' + esc(item.description_en) + '</textarea>' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('item_description_es')) + '</label>' +
+                            '<textarea rows="2" data-field="description_es">' + esc(item.description_es) + '</textarea>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('item_ingredients_en')) + '</label>' +
+                            '<input type="text" data-field="ingredients_en" value="' + esc(item.ingredients_en) + '">' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>' + esc(t('item_ingredients_es')) + '</label>' +
+                            '<input type="text" data-field="ingredients_es" value="' + esc(item.ingredients_es) + '">' +
+                        '</div>' +
+                    '</div>' +
+                    renderPromos(item) +
+                    '<div class="item-actions">' +
+                        '<label class="toggle">' +
+                            '<input type="checkbox" data-field="is_available"' +
+                                (item.is_available ? ' checked' : '') + '>' +
+                            esc(t('available')) +
+                        '</label>' +
+                        '<button type="button" class="btn-quiet" data-action="save-item">' + esc(t('save')) + '</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-up"' +
+                            (index === 0 ? ' disabled' : '') + '>↑</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-down"' +
+                            (index === count - 1 ? ' disabled' : '') + '>↓</button>' +
+                        '<button type="button" class="btn-remove" data-action="remove-item" style="margin-left:auto;">' +
+                            esc(t('remove')) + '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</details>';
+        }
+
+        function renderAddItem() {
+            return '' +
+            '<div class="add-item">' +
+                '<div class="field-pair">' +
+                    '<div class="field">' +
+                        '<label>EN</label>' +
+                        '<input type="text" data-new-field="name_en" placeholder="' + esc(t('item_name_en')) + '">' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>ES</label>' +
+                        '<input type="text" data-new-field="name_es" placeholder="' + esc(t('item_name_es')) + '">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-pair">' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('item_price')) + '</label>' +
+                        '<input type="text" data-new-field="price" placeholder="' + esc(t('item_price_hint')) + '">' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('item_ingredients_en')) + '</label>' +
+                        '<input type="text" data-new-field="ingredients_en">' +
+                    '</div>' +
+                '</div>' +
+                '<div class="field-pair">' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('item_description_en')) + '</label>' +
+                        '<textarea rows="2" data-new-field="description_en"></textarea>' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('item_description_es')) + '</label>' +
+                        '<textarea rows="2" data-new-field="description_es"></textarea>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="item-actions">' +
+                    '<label class="toggle">' +
+                        '<input type="checkbox" data-new-field="is_available" checked>' +
+                        esc(t('available')) +
+                    '</label>' +
+                    '<button type="button" class="btn-primary" data-action="add-item">' + esc(t('add_item')) + '</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderCategory(category, index) {
+            var count = category.items.length;
+            var items = category.items.map(function (item, i) {
+                return renderItem(item, i, count);
+            }).join('');
+
+            return '' +
+            '<section class="category' + (category.is_available ? '' : ' is-off') +
+                '" data-id="' + category.id + '">' +
+                '<div class="cat-head">' +
+                    '<h3>' + esc(category.name_en || category.name_es) + '</h3>' +
+                    '<div class="cat-tools">' +
+                        '<label class="toggle">' +
+                            '<input type="checkbox" data-cat-field="is_available"' +
+                                (category.is_available ? ' checked' : '') + '>' +
+                            esc(t('available')) +
+                        '</label>' +
+                        '<button type="button" class="btn-quiet" data-action="move-cat-up"' +
+                            (index === 0 ? ' disabled' : '') + '>↑</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-cat-down"' +
+                            (index === menu.length - 1 ? ' disabled' : '') + '>↓</button>' +
+                        '<button type="button" class="btn-quiet" data-action="save-category">' +
+                            esc(t('save')) + '</button>' +
+                        '<button type="button" class="btn-remove" data-action="remove-category">' +
+                            esc(t('delete_category')) + '</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="fields">' +
+                    '<div class="field-pair">' +
+                        '<div class="field">' +
+                            '<label>EN</label>' +
+                            '<input type="text" data-cat-field="name_en" value="' + esc(category.name_en) + '">' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>ES</label>' +
+                            '<input type="text" data-cat-field="name_es" value="' + esc(category.name_es) + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('category_slug')) + '</label>' +
+                        '<input type="text" data-cat-field="slug" value="' + esc(category.slug) + '">' +
+                    '</div>' +
+                '</div>' +
+                '<ul class="items">' +
+                    (items || '<li class="empty-note">' + esc(t('no_items')) + '</li>') +
+                '</ul>' +
+                renderAddItem() +
+            '</section>';
+        }
+
+        function render() {
+            var container = document.getElementById('menu');
+            if (!menu.length) {
+                container.innerHTML = '<p class="empty-note">' + esc(t('no_items')) + '</p>';
+                return;
+            }
+            // Every write re-renders from the database, so an item the admin has
+            // open would snap shut under them after each save.
+            var open = Array.prototype.slice
+                .call(container.querySelectorAll('.item[open]'))
+                .map(function (node) { return node.dataset.id; });
+
+            container.innerHTML = menu.map(renderCategory).join('');
+
+            open.forEach(function (id) {
+                var node = container.querySelector('.item[data-id="' + id + '"]');
+                if (node) node.open = true;
+            });
+            bind();
+        }
+
+        // --- Reading the form back out ---
+        //
+        // Pure reads. The `filled-en` / `filled-es` markers and their input
+        // listeners are attached in bind(), once per rendered element — doing it
+        // here would stack a duplicate listener on every save.
+
+        function collectCategory(section) {
+            var payload = { name_en: '', name_es: '', slug: '', is_available: true };
+            section.querySelectorAll('[data-cat-field]').forEach(function (input) {
+                var field = input.dataset.catField;
+                if (field === 'is_available') {
+                    payload.is_available = input.checked;
+                } else {
+                    payload[field] = input.value;
+                }
+            });
+            return payload;
+        }
+
+        function collectItem(node) {
+            var payload = {
+                category_id: 0, name_en: '', name_es: '', description_en: '', description_es: '',
+                ingredients_en: '', ingredients_es: '', price: '', is_available: true, promos: []
+            };
+            node.querySelectorAll('[data-field]').forEach(function (input) {
+                var field = input.dataset.field;
+                if (field === 'is_available') {
+                    payload.is_available = input.checked;
+                } else if (field === 'category_id') {
+                    payload.category_id = parseInt(input.value, 10);
+                } else {
+                    payload[field] = input.value;
+                }
+            });
+            node.querySelectorAll('[data-promo]').forEach(function (row) {
+                var promo = { label_en: '', label_es: '' };
+                row.querySelectorAll('[data-promo-field]').forEach(function (input) {
+                    promo[input.dataset.promoField] = input.value;
+                });
+                // A promo row with nothing typed in is a draft, not an offer.
+                if (promo.label_en.trim() || promo.label_es.trim()) payload.promos.push(promo);
+            });
+            return payload;
+        }
+
+        function collectNewItem(addBox, categoryId) {
+            var payload = {
+                category_id: categoryId, name_en: '', name_es: '', description_en: '',
+                description_es: '', ingredients_en: '', ingredients_es: '', price: '',
+                is_available: true, promos: []
+            };
+            addBox.querySelectorAll('[data-new-field]').forEach(function (input) {
+                var field = input.dataset.newField;
+                if (field === 'is_available') {
+                    payload.is_available = input.checked;
+                } else {
+                    payload[field] = input.value;
+                }
+            });
+            return payload;
+        }
+
+        // --- Actions ---
+
+        function reload() {
+            return api('/api/menu/all')
+                .then(function (data) {
+                    menu = data.categories || [];
+                    render();
+                });
+        }
+
+        function findItem(id) {
+            for (var i = 0; i < menu.length; i++) {
+                for (var j = 0; j < menu[i].items.length; j++) {
+                    if (String(menu[i].items[j].id) === String(id)) {
+                        return { category: menu[i], item: menu[i].items[j], index: j };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function saveItem(node) {
+            var id = node.dataset.id;
+            var payload = collectItem(node);
+            setStatus(t('saving'), false);
+            return api('/api/menu/items/' + id, { method: 'PUT', body: payload })
+                .then(function () {
+                    return reload();
+                })
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function addItem(addBox, categoryId) {
+            var payload = collectNewItem(addBox, categoryId);
+            if (!payload.name_en.trim()) {
+                setStatus(t('required_field'), true);
+                return Promise.resolve();
+            }
+            setStatus(t('saving'), false);
+            return api('/api/menu/items', { method: 'POST', body: payload })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function removeItem(id) {
+            if (!window.confirm(t('confirm_delete_item'))) return Promise.resolve();
+            return api('/api/menu/items/' + id, { method: 'DELETE' })
+                .then(reload)
+                .catch(function (err) { showAlert(err.message || t('delete_failed')); });
+        }
+
+        function removeCategory(id) {
+            if (!window.confirm(t('confirm_delete_category'))) return Promise.resolve();
+            return api('/api/menu/categories/' + id, { method: 'DELETE' })
+                .then(reload)
+                .catch(function (err) { showAlert(err.message || t('delete_failed')); });
+        }
+
+        function saveCategory(section) {
+            var id = section.dataset.id;
+            setStatus(t('saving'), false);
+            return api('/api/menu/categories/' + id, {
+                method: 'PATCH',
+                body: collectCategory(section)
+            })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function addCategory() {
+            var nameEn = document.getElementById('new-cat-en');
+            var nameEs = document.getElementById('new-cat-es');
+            var slug = document.getElementById('new-cat-slug');
+            if (!nameEn.value.trim() && !nameEs.value.trim()) {
+                setStatus(t('required_field'), true);
+                return Promise.resolve();
+            }
+            setStatus(t('saving'), false);
+            return api('/api/menu/categories', {
+                method: 'POST',
+                body: { name_en: nameEn.value, name_es: nameEs.value, slug: slug.value, is_available: true }
+            })
+                .then(function () {
+                    nameEn.value = '';
+                    nameEs.value = '';
+                    slug.value = '';
+                    return reload();
+                })
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        // Reordering swaps `sort_order` with the neighbour and saves both rows, so
+        // the order survives a reload. Two requests, deliberately sequential:
+        // they write the same rows. The payload comes from the open form rather
+        // than from cached state, so a reorder does not silently discard an edit
+        // that has not been saved yet.
+        function moveItem(id, direction) {
+            var found = findItem(id);
+            if (!found) return Promise.resolve();
+            var items = found.category.items;
+            var target = found.index + direction;
+            if (target < 0 || target >= items.length) return Promise.resolve();
+
+            var a = itemPayload(items[found.index].id);
+            var b = itemPayload(items[target].id);
+            if (!a || !b) return Promise.resolve();
+            var first = items[found.index].sort_order;
+            var second = items[target].sort_order;
+            a.sort_order = second;
+            b.sort_order = first;
+
+            setStatus(t('saving'), false);
+            return api('/api/menu/items/' + a.id, { method: 'PUT', body: a })
+                .then(function () {
+                    return api('/api/menu/items/' + b.id, { method: 'PUT', body: b });
+                })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function moveCategory(id, direction) {
+            var index = menu.findIndex(function (cat) { return String(cat.id) === String(id); });
+            var target = index + direction;
+            if (index < 0 || target < 0 || target >= menu.length) return Promise.resolve();
+
+            var section = document.querySelector('.category[data-id="' + id + '"]');
+            if (!section) return Promise.resolve();
+
+            var a = collectCategory(section);
+            var b = {
+                name_en: menu[target].name_en,
+                name_es: menu[target].name_es,
+                slug: menu[target].slug,
+                is_available: menu[target].is_available
+            };
+            a.sort_order = menu[target].sort_order;
+            b.sort_order = menu[index].sort_order;
+
+            setStatus(t('saving'), false);
+            return api('/api/menu/categories/' + menu[index].id, { method: 'PATCH', body: a })
+                .then(function () {
+                    return api('/api/menu/categories/' + menu[target].id, { method: 'PATCH', body: b });
+                })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        // The item as it currently stands in the form, falling back to the cached
+        // copy if the row is not currently rendered.
+        function itemPayload(id) {
+            var node = document.querySelector('.item[data-id="' + id + '"]');
+            if (node) return collectItem(node);
+            var found = findItem(id);
+            if (!found) return null;
+            var item = found.item;
+            return {
+                category_id: item.category_id,
+                name_en: item.name_en,
+                name_es: item.name_es,
+                description_en: item.description_en,
+                description_es: item.description_es,
+                ingredients_en: item.ingredients_en,
+                ingredients_es: item.ingredients_es,
+                price: item.price,
+                is_available: item.is_available,
+                promos: item.promos.map(function (promo) {
+                    return { label_en: promo.label_en, label_es: promo.label_es };
+                })
+            };
+        }
+
+        // --- Wiring ---
+
+        function bind() {
+            document.querySelectorAll('.category').forEach(function (section) {
+                section.querySelectorAll('[data-action]').forEach(function (button) {
+                    // Item and promo actions are bound by the item loop below;
+                    // binding them here too would fire every handler twice.
+                    if (button.closest('.item')) return;
+                    button.addEventListener('click', function () {
+                        var action = button.dataset.action;
+                        var id = section.dataset.id;
+                        if (action === 'save-category') return saveCategory(section);
+                        if (action === 'remove-category') return removeCategory(id);
+                        if (action === 'move-cat-up') return moveCategory(id, -1);
+                        if (action === 'move-cat-down') return moveCategory(id, 1);
+                        if (action === 'add-item') {
+                            return addItem(section.querySelector('.add-item'), parseInt(id, 10));
+                        }
+                    });
+                });
+            });
+
+            document.querySelectorAll('.item').forEach(function (node) {
+                var id = node.dataset.id;
+                node.querySelectorAll('[data-action]').forEach(function (button) {
+                    button.addEventListener('click', function (event) {
+                        // Otherwise every button inside <details> also toggles it.
+                        event.stopPropagation();
+                        var action = button.dataset.action;
+                        if (action === 'save-item') return saveItem(node);
+                        if (action === 'remove-item') return removeItem(id);
+                        if (action === 'move-up') return moveItem(id, -1);
+                        if (action === 'move-down') return moveItem(id, 1);
+                        if (action === 'add-promo') return addPromoRow(node);
+                        if (action === 'remove-promo') {
+                            button.closest('.promo-row').remove();
+                            return Promise.resolve();
+                        }
+                    });
+                });
+
+                node.querySelectorAll('[data-promo-field]').forEach(function (input) {
+                    watchLanguage(input, input.dataset.promoField.slice(-2));
+                });
+            });
+
+            document.querySelectorAll('[data-cat-field]').forEach(function (input) {
+                if (input.dataset.catField.endsWith('_en') || input.dataset.catField.endsWith('_es')) {
+                    watchLanguage(input, input.dataset.catField.slice(-2));
+                }
+            });
+        }
+
+        // One blank promo row, in both languages, focused ready to type.
+        function addPromoRow(node) {
+            var box = node.querySelector('.promos');
+            var row = document.createElement('div');
+            row.className = 'promo-row';
+            row.dataset.promo = String(node.querySelectorAll('[data-promo]').length);
+            row.innerHTML =
+                '<input type="text" data-promo-field="label_en" placeholder="' + esc(t('promo_label_en')) + '">' +
+                '<input type="text" data-promo-field="label_es" placeholder="' + esc(t('promo_label_es')) + '">' +
+                '<button type="button" class="btn-remove" data-action="remove-promo">' +
+                esc(t('remove')) + '</button>';
+            box.insertBefore(row, box.querySelector('[data-action="add-promo"]'));
+            row.querySelectorAll('[data-promo-field]').forEach(function (input) {
+                watchLanguage(input, input.dataset.promoField.slice(-2));
+            });
+            row.querySelector('[data-action="remove-promo"]').addEventListener('click', function (e) {
+                e.stopPropagation();
+                row.remove();
+            });
+            row.querySelector('input').focus();
+            return Promise.resolve();
+        }
+
+        document.getElementById('add-category').addEventListener('click', addCategory);
+        ['new-cat-en', 'new-cat-es', 'new-cat-slug'].forEach(function (id) {
+            document.getElementById(id).addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addCategory();
+                }
+            });
+        });
+
+        // Re-render on language change so headings, buttons and placeholders follow
+        // the panel's language.
+        document.addEventListener('admin:langchange', render);
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+
+        reload().catch(function (err) { showAlert(err.message); });
+    })();
+    </script>
+</body>
+</html>

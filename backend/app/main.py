@@ -15,8 +15,8 @@ from app.migrate import run_migrations
 from app.models import Base
 from app.public_i18n import DEFAULT_LANG, resolve_lang
 from app.routers import admin, api, auth as auth_router
-from app.seed import seed_schedule
-from app.ssr import FRONTEND_DIST, INDEX_HTML, render_index
+from app.seed import seed_menu, seed_schedule
+from app.ssr import FRONTEND_DIST, INDEX_HTML, MENU_HTML, render_index, render_menu
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +26,12 @@ Base.metadata.create_all(bind=engine)
 # Bring an existing database up to the current schema before touching data
 run_migrations(engine)
 
-# Seed the default weekly schedule if the database is empty
+# Seed the default weekly schedule and starting drinks menu if the tables are
+# empty. Both are idempotent, so this is safe on every startup.
 _db = SessionLocal()
 try:
     seed_schedule(_db)
+    seed_menu(_db)
 finally:
     _db.close()
 
@@ -99,6 +101,37 @@ async def index(lang: str | None = None, db: DBSession = Depends(get_db)):
         # for whatever error reporting the deploy has.
         logger.exception("Server-rendered schedule failed; serving the plain shell")
         html = INDEX_HTML.read_text(encoding="utf-8")
+
+    if lang != DEFAULT_LANG:
+        html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)
+
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+
+
+# The standalone menu route. Its own document rather than a client-side view, so
+# the URL can be shared on WhatsApp and Instagram and indexed on its own — and
+# registered above the static mount, which would otherwise answer `/menu.html`
+# with the un-rendered shell.
+@app.api_route("/menu", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route(
+    "/menu.html", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False
+)
+async def menu(lang: str | None = None, db: DBSession = Depends(get_db)):
+    """Public: the drinks menu, rendered into the HTML for crawlers."""
+    lang = resolve_lang(lang)
+
+    if not MENU_HTML.is_file():
+        # Dev convenience when the second entry point has not been built yet.
+        return JSONResponse(
+            {"detail": "Frontend not built. Run `npm run build` in ../frontend."}
+        )
+
+    try:
+        html = render_menu(db, lang)
+    except Exception:  # noqa: BLE001
+        # Same bargain as the homepage: serve the shell rather than 500.
+        logger.exception("Server-rendered menu failed; serving the plain shell")
+        html = MENU_HTML.read_text(encoding="utf-8")
 
     if lang != DEFAULT_LANG:
         html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)

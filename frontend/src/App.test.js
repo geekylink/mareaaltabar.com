@@ -27,17 +27,49 @@ const WEEK = [
   is_closed: false,
 }));
 
+// The drinks menu, in the shape `GET /api/menu` returns.
+const MENU = [
+  {
+    id: 1, slug: 'cerveza', name_en: 'Beer', name_es: 'Cerveza',
+    items: [
+      {
+        id: 1, category_id: 1, name_en: 'Pilsener Can', name_es: 'Pilsener Lata',
+        price: '1.50', is_available: true,
+        promos: [{ id: 1, label_en: '6x $7.00', label_es: '6 por $7.00' }],
+      },
+    ],
+  },
+  {
+    id: 2, slug: 'cocteles', name_en: 'Cocktails', name_es: 'Cócteles',
+    items: [
+      {
+        id: 2, category_id: 2, name_en: 'Cuba Libre', name_es: 'Cuba Libre',
+        price: '4.00', is_available: true, promos: [],
+        ingredients_en: 'Rum, Coca-Cola, Lime juice',
+        ingredients_es: 'Ron, Coca-Cola, Jugo de limón',
+      },
+    ],
+  },
+];
+
 function mockFetch() {
   return vi.fn(async (url) => {
-    const body = String(url).includes('closed-days') ? [] : SCHEDULE;
-    return { ok: true, status: 200, json: async () => body };
+    const path = String(url);
+    if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
+    if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
+    return { ok: true, status: 200, json: async () => SCHEDULE };
   });
 }
 
 // The backend answers with whatever closures it holds, including today's.
 function mockFetchWithClosures(closedDays, schedule = WEEK) {
   return vi.fn(async (url) => {
-    const body = String(url).includes('closed-days') ? closedDays : schedule;
+    const path = String(url);
+    const body = path.includes('closed-days')
+      ? closedDays
+      : path.includes('/api/menu')
+        ? { categories: MENU }
+        : schedule;
     return { ok: true, status: 200, json: async () => body };
   });
 }
@@ -190,5 +222,75 @@ describe('App closed-day handling', () => {
 
     await waitFor(() => expect(screen.getByText('Closed days')).toBeTruthy());
     expect(screen.getByText(/2030-12-25 — Christmas/)).toBeTruthy();
+  });
+});
+
+// The menu is the flagship ticket and lives on the homepage as its own section.
+// Same language-switch hazard as the week list, so same guard.
+describe('App menu section', () => {
+  beforeEach(() => {
+    locale.set('en');
+    global.fetch = mockFetch();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('renders the categories with their prices', async () => {
+    render(App);
+    // Wait for content, not the heading: the section renders its heading
+    // synchronously while the menu is still in flight.
+    await waitFor(() => expect(screen.getByText('Beer')).toBeTruthy());
+    expect(screen.queryByText('Cerveza')).toBeNull();
+    expect(screen.getByText('$1.50')).toBeTruthy();
+  });
+
+  it('shows promos under the price', async () => {
+    render(App);
+    await waitFor(() => expect(screen.getByText('Promo: 6x $7.00')).toBeTruthy());
+  });
+
+  it('lists a cocktail with its ingredients', async () => {
+    render(App);
+    await waitFor(() => expect(screen.getByText('Cocktails')).toBeTruthy());
+    expect(screen.getByText('Cuba Libre')).toBeTruthy();
+    expect(screen.getByText('Rum, Coca-Cola, Lime juice')).toBeTruthy();
+    expect(screen.getByText('Ingredients')).toBeTruthy();
+  });
+
+  it('switches the whole menu to Spanish without a remount', async () => {
+    render(App);
+    await waitFor(() => expect(screen.getByText('Beer')).toBeTruthy());
+
+    locale.set('es');
+    await tick();
+
+    await waitFor(() => expect(screen.getByText('Cerveza')).toBeTruthy());
+    expect(screen.queryByText('Beer')).toBeNull();
+    expect(screen.getByText('Pilsener Lata')).toBeTruthy();
+    expect(screen.getByText('Promo: 6 por $7.00')).toBeTruthy();
+    expect(screen.getByText('Ron, Coca-Cola, Jugo de limón')).toBeTruthy();
+  });
+
+  it('still shows the menu when the schedule fails to load', async () => {
+    // `/api/menu` answering is independent of `/api/schedule`: a visitor who
+    // cannot see tonight's party can still see what things cost.
+    global.fetch = vi.fn(async (url) => {
+      const path = String(url);
+      if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
+      return { ok: false, status: 500 };
+    });
+    render(App);
+
+    await waitFor(() => expect(screen.getByText('Cuba Libre')).toBeTruthy());
+    expect(screen.getByText('$4.00')).toBeTruthy();
+  });
+
+  it('links to the standalone menu route', async () => {
+    render(App);
+    await waitFor(() => expect(screen.getByText('See the menu')).toBeTruthy());
+    expect(screen.getByText('See the menu').closest('a').getAttribute('href')).toBe('/menu');
   });
 });

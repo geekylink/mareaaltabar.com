@@ -1,6 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import Surf from './lib/Surf.svelte';
+  import Menu from './lib/Menu.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
@@ -8,6 +9,7 @@
 
   let schedule = [];
   let closedDays = [];
+  let menu = [];
   let loading = true;
   let loadError = null;
 
@@ -53,6 +55,7 @@
       const result = await load();
       schedule = result.schedule;
       closedDays = result.closedDays;
+      menu = result.menu;
       // Only show the notice when we have data to display alongside it.
       loadError = result.error && schedule.length > 0 ? result.error : null;
     } catch (err) {
@@ -82,6 +85,7 @@
       <div class="links">
         <a href="#surf">{$t.nav.surf}</a>
         <a href="#party">{$t.nav.party}</a>
+        <a href="#menu">{$t.nav.menu}</a>
         <a href="#visit">{$t.nav.visit}</a>
       </div>
       <select class="lang" bind:value={$locale} aria-label={$t.ui.language}>
@@ -96,6 +100,7 @@
     <div class="cta">
       <a class="btn primary" href="#surf">{$t.hero.ctaSurf}</a>
       <a class="btn ghost" href="#party">{$t.hero.ctaParty}</a>
+      <a class="btn ghost" href="/menu">{$t.hero.ctaMenu}</a>
     </div>
   </div>
 
@@ -168,6 +173,10 @@
   </section>
 {/if}
 
+<!-- The menu renders outside the schedule's loading/error branch: a backend
+     hiccup that blanks the week must not blank the drinks too, and vice versa. -->
+<Menu categories={menu} {lang} {loading} />
+
 <section class="visit" id="visit" aria-labelledby="visit-h">
   <h2 id="visit-h">{$t.visit.title}</h2>
   <p>{fmt($t.visit.text, vars)}</p>
@@ -237,6 +246,7 @@
   .error-state .btn { margin-top: 1rem; }
 
   .party { padding: 4rem 1.25rem; max-width: 68rem; margin-inline: auto; }
+  :global(#menu) { scroll-margin-top: 2rem; }
   .section-header { display: flex; justify-content: space-between; align-items: center; }
   .btn-refresh {
     background: none;

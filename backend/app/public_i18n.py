@@ -1,9 +1,9 @@
-"""Bilingual labels for the server-rendered schedule block.
+"""Bilingual labels for the server-rendered schedule and menu blocks.
 
 The public site is a Svelte SPA whose wording lives in
 ``frontend/src/content/{en,es}.js``. Ticket #46 renders the schedule into the
-HTML at request time for crawlers, which means the server needs a handful of the
-same labels in Python.
+HTML at request time for crawlers, and #1 does the same for the menu, which means
+the server needs a handful of the same labels in Python.
 
 This is a deliberate, bounded duplication: only the strings the rendered block
 itself needs are here — day names and three or four labels — not the whole site
@@ -26,6 +26,10 @@ STRINGS = {
         "no_event": "No event scheduled",
         "opening_hours": "Opening hours",
         "closed_days": "Closed days",
+        "menu_heading": "Drinks menu",
+        "menu_ingredients": "Ingredients",
+        "menu_promo": "Promo",
+        "menu_empty": "The menu is being updated. Ask us for today's prices.",
         "days": [
             "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
         ],
@@ -37,6 +41,10 @@ STRINGS = {
         "no_event": "Sin evento programado",
         "opening_hours": "Horario",
         "closed_days": "Días cerrados",
+        "menu_heading": "Menú de bebidas",
+        "menu_ingredients": "Ingredientes",
+        "menu_promo": "Promo",
+        "menu_empty": "Estamos actualizando el menú. Pregúntanos los precios de hoy.",
         "days": [
             "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
         ],

@@ -5,8 +5,8 @@ import en from '../content/en.js';
 import es from '../content/es.js';
 
 // `backend/app/public_i18n.py` holds the labels the server-rendered schedule
-// block uses. Most of them are the same strings the SPA shows, and the two
-// copies live in different languages' files — so a rename on one side would
+// and menu blocks use. Most of them are the same strings the SPA shows, and the
+// two copies live in different languages' files — so a rename on one side would
 // leave the crawler-visible text disagreeing with the page for ever. This reads
 // the Python file and checks the shared labels against the content modules.
 // Vitest runs with `frontend/` as its root.
@@ -26,6 +26,10 @@ const SHARED_LABELS = {
   closed_today: (c) => c.party.closedToday,
   closed_days: (c) => c.party.closedDays,
   no_event: (c) => c.party.noEvent,
+  menu_heading: (c) => c.menu.title,
+  menu_ingredients: (c) => c.menu.ingredients,
+  menu_promo: (c) => c.menu.promo,
+  menu_empty: (c) => c.menu.empty,
 };
 
 const CONTENT = { en, es };
