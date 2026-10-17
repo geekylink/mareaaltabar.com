@@ -35,6 +35,7 @@ npm run dev
 - Site: <http://localhost:5173>
 - Drinks menu: <http://localhost:5173/menu> (or `/menu` on the backend port)
 - Admin panel: <http://localhost:8000/admin> (not linked from the site)
+- Admin logs: <http://localhost:8000/admin/logs> (read-only: logins, menu and schedule changes)
 
 ### Production
 
@@ -56,7 +57,7 @@ or that rendering is skipped.
 ### Tests
 
 ```bash
-# Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering
+# Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs
 cd backend
 python -m pytest tests/ -v
 

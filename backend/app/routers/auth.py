@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session as DBSession
 
-from app import auth
+from app import audit, auth
 from app.config import settings
 from app.database import get_db
 
@@ -43,20 +43,33 @@ async def login(
     password: str = Form(...),
     db: DBSession = Depends(get_db),
 ):
-    ip = request.client.host if request.client else "unknown"
+    # Every outcome is logged, the refusals included: an attempt the rate limiter
+    # turned away is exactly the one an owner wants to see afterwards. `password`
+    # is deliberately not passed to the logger — see `audit.log_login_attempt`.
+    ip = audit.request_ip(request)
+    user_agent = request.headers.get("user-agent", "")
+
+    def record(outcome: str) -> None:
+        audit.log_login_attempt(
+            db, username=username, ip=ip, user_agent=user_agent, outcome=outcome
+        )
 
     if _is_rate_limited(ip):
+        record(audit.OUTCOME_RATE_LIMITED)
         return RedirectResponse(url="/admin/login?error=rate_limited", status_code=303)
 
     admin = auth.authenticate_admin(db, username, password)
     if admin is None:
         _record_failure(ip)
+        record(audit.OUTCOME_INVALID)
         return RedirectResponse(url="/admin/login?error=1", status_code=303)
 
     # Success clears any prior failures for this IP
     _failed_attempts.pop(ip, None)
 
     session = auth.create_session(db, admin.id)
+
+    record(audit.OUTCOME_SUCCESS)
 
     response = RedirectResponse(url="/admin", status_code=303)
     max_age = settings.SESSION_TTL_HOURS * 3600

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49;
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        .lang-switch {
+            display: flex; gap: 0.25rem; background: rgba(255,255,255,0.12);
+            padding: 0.25rem; border-radius: 999px;
+        }
+        .lang-switch button {
+            background: none; border: none; color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: #fff; color: #0B3C49; }
+
+        main { max-width: 68rem; margin: 2rem auto; padding: 0 1rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+
+        .toolbar { margin-bottom: 1rem; }
+        .toolbar h2 { font-size: 1.35rem; color: #0B3C49; }
+        .intro { font-size: 0.875rem; color: #666; line-height: 1.5; margin-top: 0.25rem; }
+        .readonly-note {
+            font-size: 0.8rem; color: #555; background: #fff; border: 2px solid #e6e6e6;
+            border-radius: 0.6rem; padding: 0.6rem 0.85rem; margin-bottom: 1rem;
+        }
+
+        /* The menu bar across the top of the page: one link per log. They are
+           real links to real hashes, so a log can be bookmarked or sent to
+           someone, and Back/Forward work. */
+        .log-menu {
+            display: flex; gap: 0.25rem; flex-wrap: wrap;
+            background: #fff; border-radius: 0.75rem; padding: 0.35rem;
+            margin-bottom: 1rem; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .log-menu a {
+            flex: 1 1 auto; text-align: center; text-decoration: none;
+            color: #0B3C49; font-weight: 600; font-size: 0.9rem;
+            padding: 0.6rem 0.9rem; border-radius: 0.5rem;
+        }
+        .log-menu a:hover { background: #f0f4f5; }
+        .log-menu a[aria-selected="true"] { background: #0B3C49; color: #fff; }
+        .log-menu a:focus-visible { outline: 3px solid #FF6B2C; outline-offset: 2px; }
+
+        .panel {
+            background: #fff; border-radius: 0.85rem; padding: 1.25rem;
+            margin-bottom: 1.5rem; border: 2px solid transparent;
+        }
+        .panel[hidden] { display: none; }
+        .panel-head {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+        }
+        .panel-head h3 { font-size: 1.05rem; color: #0B3C49; }
+        .count { font-size: 0.8rem; color: #888; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td {
+            text-align: left; padding: 0.55rem 0.6rem;
+            border-bottom: 1px solid #f0f0f0; vertical-align: top;
+        }
+        th {
+            font-size: 0.7rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            border-bottom: 2px solid #eee; white-space: nowrap;
+        }
+        tbody tr:last-of-type td { border-bottom: none; }
+        td.when { white-space: nowrap; color: #555; }
+        td.ip, td.mono {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 0.78rem; white-space: nowrap;
+        }
+        .ua {
+            display: block; max-width: 16rem; color: #999; font-size: 0.7rem;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .what strong { color: #0B3C49; }
+        .what .ref { color: #888; font-size: 0.75rem; }
+        .changes { line-height: 1.5; }
+        .changes .field {
+            display: inline-block; background: #f0f4f5; color: #0B3C49;
+            border-radius: 0.3rem; padding: 0 0.3rem; font-size: 0.75rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            margin-right: 0.25rem;
+        }
+        .changes .to { font-weight: 700; }
+        .changes .from { color: #991B1B; text-decoration: line-through; }
+
+        .badge {
+            display: inline-block; border-radius: 999px; padding: 0.1rem 0.55rem;
+            font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+        }
+        .badge.ok { background: #DCFCE7; color: #166534; }
+        .badge.bad { background: #FEE2E2; color: #991B1B; }
+        .badge.warn { background: #FEF3C7; color: #92400E; }
+        .badge.create { background: #DBEAFE; color: #1E40AF; }
+        .badge.update { background: #EDE9FE; color: #5B21B6; }
+        .badge.delete { background: #FEE2E2; color: #991B1B; }
+
+        .panel-foot { margin-top: 1rem; display: flex; justify-content: center; }
+        .btn-more {
+            background: #fff; color: #0B3C49; border: 2px solid #0B3C49;
+            padding: 0.5rem 1.2rem; border-radius: 0.5rem;
+            font-size: 0.875rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-more:hover { background: #0B3C49; color: #fff; }
+        .btn-more:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .loading { padding: 2rem 0; text-align: center; color: #666; }
+        .empty-note { padding: 1.5rem 0; text-align: center; color: #888; font-size: 0.9rem; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+
+        @media (max-width: 720px) {
+            .log-menu a { flex-basis: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <div class="toolbar">
+            <h2 data-i18n="logs_heading">Logs</h2>
+            <p class="intro" data-i18n="logs_intro">Read-only. Entries here cannot be edited or deleted.</p>
+            <p class="intro" data-i18n="logs_retention" data-i18n-args='{"days": "{{ log_retention_days }}"}'>Entries are kept for {{ log_retention_days }} days.</p>
+        </div>
+
+        <div class="readonly-note" data-i18n="logs_readonly_note">
+            Nothing on this page can be changed: there is no route that accepts a
+            change to a log, only routes that read them.
+        </div>
+
+        <!-- One link per log. The hash is the whole navigation state, so a log
+             can be linked to directly and Back/Forward behave. -->
+        <nav class="log-menu" role="tablist">
+            <a href="#logins" role="tab" id="tab-logins" data-tab="logins" aria-controls="panel-logins" aria-selected="true"><span data-i18n="tab_logins">Logins</span></a>
+            <a href="#menu" role="tab" id="tab-menu" data-tab="menu" aria-controls="panel-menu" aria-selected="false"><span data-i18n="tab_menu_changes">Menu changes</span></a>
+            <a href="#schedule" role="tab" id="tab-schedule" data-tab="schedule" aria-controls="panel-schedule" aria-selected="false"><span data-i18n="tab_schedule_changes">Schedule changes</span></a>
+        </nav>
+
+        <section class="panel" id="panel-logins" role="tabpanel" aria-labelledby="tab-logins" tabindex="0">
+            <div class="panel-head">
+                <h3 data-i18n="tab_logins">Logins</h3>
+                <span class="count" id="count-logins"></span>
+            </div>
+            <div class="table-wrap" id="wrap-logins">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="col_when">When</th>
+                            <th data-i18n="col_username">Username</th>
+                            <th data-i18n="col_ip">IP</th>
+                            <th data-i18n="col_outcome">Outcome</th>
+                            <th data-i18n="col_user_agent">User agent</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows-logins"></tbody>
+                </table>
+            </div>
+            <div id="empty-logins" hidden class="empty-note" data-i18n="no_login_entries">No login attempts recorded yet.</div>
+            <div class="panel-foot">
+                <button class="btn-more" id="more-logins" data-i18n="logs_load_more" hidden>Load more</button>
+            </div>
+        </section>
+
+        <section class="panel" id="panel-menu" role="tabpanel" aria-labelledby="tab-menu" tabindex="0" hidden>
+            <div class="panel-head">
+                <h3 data-i18n="tab_menu_changes">Menu changes</h3>
+                <span class="count" id="count-menu"></span>
+            </div>
+            <div class="table-wrap" id="wrap-menu">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="col_when">When</th>
+                            <th data-i18n="col_who">Who</th>
+                            <th data-i18n="col_ip">IP</th>
+                            <th data-i18n="col_action">Action</th>
+                            <th data-i18n="col_what">What</th>
+                            <th data-i18n="col_changes">Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows-menu"></tbody>
+                </table>
+            </div>
+            <div id="empty-menu" hidden class="empty-note" data-i18n="no_menu_entries">No menu changes recorded yet.</div>
+            <div class="panel-foot">
+                <button class="btn-more" id="more-menu" data-i18n="logs_load_more" hidden>Load more</button>
+            </div>
+        </section>
+
+        <section class="panel" id="panel-schedule" role="tabpanel" aria-labelledby="tab-schedule" tabindex="0" hidden>
+            <div class="panel-head">
+                <h3 data-i18n="tab_schedule_changes">Schedule changes</h3>
+                <span class="count" id="count-schedule"></span>
+            </div>
+            <div class="table-wrap" id="wrap-schedule">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="col_when">When</th>
+                            <th data-i18n="col_who">Who</th>
+                            <th data-i18n="col_ip">IP</th>
+                            <th data-i18n="col_action">Action</th>
+                            <th data-i18n="col_what">What</th>
+                            <th data-i18n="col_changes">Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows-schedule"></tbody>
+                </table>
+            </div>
+            <div id="empty-schedule" hidden class="empty-note" data-i18n="no_schedule_entries">No schedule changes recorded yet.</div>
+            <div class="panel-foot">
+                <button class="btn-more" id="more-schedule" data-i18n="logs_load_more" hidden>Load more</button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        // Day names per language; index matches the backend's day (0 = Sunday).
+        var DAY_NAMES = {
+            en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            es: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+        };
+
+        var ENDPOINTS = { logins: '/api/logs/logins', menu: '/api/logs/menu', schedule: '/api/logs/schedule' };
+        var TABS = ['logins', 'menu', 'schedule'];
+        var PAGE = 200;
+
+        // Rows are fetched a page at a time and kept, so "Load more" appends and
+        // switching tabs back and forth costs nothing.
+        var state = {};
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url) {
+            // The X-CSRF-Token header is not needed for a GET, and is sent only
+            // because `api()` is shared with the editing pages' helper shape.
+            return fetch(url, {
+                method: 'GET',
+                headers: { 'X-CSRF-Token': csrf() }
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.json();
+            });
+        }
+
+        // Escapes for text nodes *and* attribute values. `textContent` alone
+        // leaves quotes intact, and usernames, drink names and typed values all
+        // reach this page from the database — without this, a name containing a
+        // quote would break out of the attribute it is rendered into.
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function t(key, args) {
+            var template = AdminI18n.t(key);
+            if (!args) return template;
+            // Same {name} substitution the data-i18n attributes get server-side
+            // markup, for the strings this page fills in as it renders.
+            return template.replace(/\{(\w+)\}/g, function (match, name) {
+                return args[name] != null ? args[name] : match;
+            });
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        // Rendered in the reader's own locale, which is the bar's for anyone
+        // actually using this page. Timestamps arrive labelled UTC.
+        function when(iso) {
+            var date = new Date(iso);
+            return isNaN(date.getTime()) ? esc(iso) : esc(date.toLocaleString());
+        }
+
+        function uaCell(text) {
+            if (!text) return '';
+            // The full string stays in the title attribute; the cell is clipped
+            // so one long browser string cannot stretch the table.
+            return '<span class="ua" title="' + esc(text) + '">' + esc(text) + '</span>';
+        }
+
+        function outcomeBadge(outcome) {
+            var tone = outcome === 'success' ? 'ok'
+                : outcome === 'rate_limited' ? 'warn'
+                : 'bad';
+            return '<span class="badge ' + tone + '">' + esc(t('outcome_' + outcome)) + '</span>';
+        }
+
+        function actionBadge(action) {
+            return '<span class="badge ' + esc(action) + '">' + esc(t('action_' + action)) + '</span>';
+        }
+
+        // "title_en" -> "title (EN)": the column is filled with database field
+        // names, and the language suffix is the one part an admin cannot guess.
+        function fieldLabel(field) {
+            var match = /^(.*)_(en|es)$/.exec(field);
+            return match ? match[1] + ' (' + match[2].toUpperCase() + ')' : field;
+        }
+
+        function fmtValue(value) {
+            if (value === null || value === undefined) return '—';
+            if (typeof value === 'boolean') return value ? t('value_yes') : t('value_no');
+            if (Array.isArray(value)) {
+                if (!value.length) return '—';
+                return value.map(fmtValue).join(', ');
+            }
+            if (typeof value === 'object') {
+                // A promo row: both languages, because that is what it held.
+                var parts = [];
+                Object.keys(value).forEach(function (key) {
+                    if (value[key]) parts.push(value[key]);
+                });
+                return parts.length ? parts.join(' / ') : '—';
+            }
+            return value === '' ? '—' : String(value);
+        }
+
+        // "price: 4.00 → 4.50", one chip per field that actually changed.
+        function changesCell(details) {
+            var fields = Object.keys(details || {});
+            if (!fields.length) return '—';
+            return fields.map(function (field) {
+                var entry = details[field];
+                if (entry && typeof entry === 'object' && 'from' in entry) {
+                    return '<span class="field">' + esc(fieldLabel(field)) + '</span>' +
+                        '<span class="from">' + esc(fmtValue(entry.from)) + '</span> → ' +
+                        '<span class="to">' + esc(fmtValue(entry.to)) + '</span>';
+                }
+                return '<span class="field">' + esc(fieldLabel(field)) + '</span>' +
+                    '<span class="to">' + esc(fmtValue(entry)) + '</span>';
+            }).join('<br>');
+        }
+
+        // The stored target is "<kind>:<id>", so the label can be built in the
+        // language on screen. `schedule_day` needs the weekday, which is why the
+        // id is kept separate from the name.
+        function whatCell(entry) {
+            var parts = String(entry.target || '').split(':');
+            var kind = parts[0];
+            var id = parts.slice(1).join(':');
+            var label = t('target_' + kind);
+
+            if (kind === 'schedule_day') {
+                var names = DAY_NAMES[AdminI18n.lang] || DAY_NAMES.en;
+                var day = parseInt(id, 10);
+                return '<strong>' + esc(label) + ' · ' + esc(names[day] || id) + '</strong>';
+            }
+
+            var ref = kind === 'closed_day' ? id : '#' + id;
+            var name = entry.target_name
+                ? '<div class="ref">' + esc(entry.target_name) + '</div>'
+                : '';
+            return '<strong>' + esc(label) + '</strong> <span class="ref">' + esc(ref) + '</span>' + name;
+        }
+
+        function loginRow(entry) {
+            return '<tr>' +
+                '<td class="when">' + when(entry.created_at) + '</td>' +
+                '<td>' + esc(entry.username) + '</td>' +
+                '<td class="ip">' + esc(entry.ip) + '</td>' +
+                '<td>' + outcomeBadge(entry.outcome) + '</td>' +
+                '<td class="mono">' + uaCell(entry.user_agent) + '</td>' +
+            '</tr>';
+        }
+
+        function changeRow(entry) {
+            return '<tr>' +
+                '<td class="when">' + when(entry.created_at) + '</td>' +
+                '<td>' + esc(entry.admin_username) + '</td>' +
+                '<td class="ip">' + esc(entry.ip) + uaCell(entry.user_agent) + '</td>' +
+                '<td>' + actionBadge(entry.action) + '</td>' +
+                '<td class="what">' + whatCell(entry) + '</td>' +
+                '<td class="changes">' + changesCell(entry.details) + '</td>' +
+            '</tr>';
+        }
+
+        // The column counts differ between the login log and the two change
+        // logs, so the placeholder row needs to know which table it is in.
+        var COLSPANS = { logins: 5, menu: 6, schedule: 6 };
+
+        function render(tab) {
+            var data = state[tab];
+            var rows = document.getElementById('rows-' + tab);
+            var renderer = tab === 'logins' ? loginRow : changeRow;
+
+            rows.innerHTML = data.entries.map(renderer).join('');
+            document.getElementById('empty-' + tab).hidden = data.entries.length > 0;
+            document.getElementById('wrap-' + tab).hidden = data.entries.length === 0;
+            document.getElementById('count-' + tab).textContent = t('logs_showing', {
+                shown: data.entries.length,
+                total: data.total
+            });
+            var more = document.getElementById('more-' + tab);
+            more.hidden = data.entries.length >= data.total;
+        }
+
+        function load(tab) {
+            var data = state[tab];
+            var button = document.getElementById('more-' + tab);
+            var offset = data.entries.length;
+
+            button.disabled = true;
+            api(ENDPOINTS[tab] + '?limit=' + PAGE + '&offset=' + offset)
+                .then(function (payload) {
+                    data.entries = data.entries.concat(payload.entries || []);
+                    data.total = payload.total || 0;
+                    render(tab);
+                })
+                .catch(function (err) { showAlert(err.message); })
+                .finally(function () { button.disabled = false; });
+        }
+
+        function ensureLoaded(tab) {
+            var data = state[tab];
+            if (data.loaded) return;
+            document.getElementById('rows-' + tab).innerHTML =
+                '<tr><td colspan="' + COLSPANS[tab] + '"><div class="loading">' +
+                esc(t('loading')) + '</div></td></tr>';
+            api(ENDPOINTS[tab] + '?limit=' + PAGE)
+                .then(function (payload) {
+                    data.entries = payload.entries || [];
+                    data.total = payload.total || 0;
+                    data.loaded = true;
+                    render(tab);
+                })
+                .catch(function (err) {
+                    document.getElementById('rows-' + tab).innerHTML = '';
+                    showAlert(err.message);
+                });
+        }
+
+        // Only the selected log is loaded and shown, so opening the page does
+        // not fetch two logs nobody is looking at.
+        function activate(tab) {
+            TABS.forEach(function (name) {
+                var selected = name === tab;
+                document.getElementById('tab-' + name).setAttribute('aria-selected', String(selected));
+                document.getElementById('panel-' + name).hidden = !selected;
+            });
+            ensureLoaded(tab);
+        }
+
+        function tabFromHash() {
+            var name = (window.location.hash || '').replace('#', '');
+            return TABS.indexOf(name) === -1 ? 'logins' : name;
+        }
+
+        document.querySelectorAll('.log-menu a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                activate(link.dataset.tab);
+            });
+            // Arrow keys move between tabs, as the tab pattern expects.
+            link.addEventListener('keydown', function (e) {
+                var step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+                if (!step) return;
+                e.preventDefault();
+                var index = (TABS.indexOf(link.dataset.tab) + step + TABS.length) % TABS.length;
+                var next = document.getElementById('tab-' + TABS[index]);
+                next.focus();
+                activate(TABS[index]);
+            });
+        });
+
+        TABS.forEach(function (tab) {
+            document.getElementById('more-' + tab).addEventListener('click', function () {
+                load(tab);
+            });
+        });
+
+        // Back and Forward move between logs, because the hash is the state.
+        window.addEventListener('hashchange', function () {
+            activate(tabFromHash());
+        });
+
+        // Re-render on language change so weekday names, badges and the column
+        // headings all follow the UI language.
+        document.addEventListener('admin:langchange', function () {
+            TABS.forEach(function (tab) {
+                if (state[tab].loaded) render(tab);
+            });
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+
+        TABS.forEach(function (tab) {
+            state[tab] = { entries: [], total: 0, loaded: false };
+        });
+
+        activate(tabFromHash());
+    })();
+    </script>
+</body>
+</html>

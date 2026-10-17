@@ -24,6 +24,8 @@ Copy `.env` and adjust values as needed:
 | `COOKIE_SECURE` | `true` (prod) | Set `true` to require HTTPS for cookies |
 | `RATE_LIMIT_ATTEMPTS` | `5` | Max login attempts per window |
 | `RATE_LIMIT_WINDOW_MINUTES` | `10` | Rate limit window duration |
+| `LOG_RETENTION_DAYS` | `90` | How long a login or change-log entry survives the purge |
+| `DAILY_LOG_PURGE` | `true` | Set `false` to purge from cron instead of in the server |
 
 ## Running
 
@@ -48,9 +50,10 @@ python -m pytest tests/ -v
 
 The suite runs against an in-memory database and covers login/session handling,
 CSRF enforcement, the admin CRUD API (schedule, closed days and the drinks menu),
-the server-rendered homepage and `/menu`, the bilingual admin strings, and
-end-to-end propagation of admin edits to the public read endpoints *and* to the
-rendered HTML. Tests never touch `data/marea_alta.db`.
+the login and change logs with their retention purge, the server-rendered
+homepage and `/menu`, the bilingual admin strings, and end-to-end propagation of
+admin edits to the public read endpoints *and* to the rendered HTML. Tests never
+touch `data/marea_alta.db`.
 
 ## Admin Management
 
@@ -66,6 +69,9 @@ python manage_admin.py delete <username>
 
 # Reset a password
 python manage_admin.py password <username> <new_password>
+
+# Delete log entries older than the retention window (the server does this daily)
+python manage_admin.py purge-logs --days 90
 ```
 
 ## Admin Panel
@@ -92,8 +98,58 @@ Once logged in at `/admin`, you can:
   - **On the menu** hides a drink or a whole section without deleting it. That is
     the reversible move for something sold out; delete is for something gone.
     A hidden drink is invisible on the site but still editable here.
+- **Logs** (`/admin/logs`): a read-only page with three logs behind a menu bar —
+  **Logins**, **Menu changes** and **Schedule changes**. Nothing on it can be
+  edited or deleted, because no route accepts a change to a log.
+  - **Logins** shows every attempt, successful or not, with the username typed,
+    the IP and the browser — so a run of wrong passwords from one address is
+    visible. The password is never stored, and there is no column it could go in.
+  - **Menu changes** and **Schedule changes** show who changed what, from which
+    IP, and the exact fields that moved: `price: 4.00 → 4.50`. Closed days are
+    in the schedule log, since they are schedule content edited on the same page.
 
 The admin panel is not linked from the public website. It is only accessible by navigating directly to `/admin`.
+
+## Logs
+
+Two tables, both append-only: `login_attempts` and `audit_log`. They are written
+by `app/audit.py`, and nothing in the application updates or deletes a row — the
+only exception is the retention purge.
+
+**A change and its log row are one transaction.** Every write handler adds its
+entry with `audit.log_change` and lets its own `commit()` publish both, so a
+change can never exist without its log row. The flip side is deliberate: a write
+that cannot be logged fails rather than going through unrecorded.
+
+**A save that changes nothing logs nothing.** `audit.diff()` keeps only the fields
+whose value actually moved, so a week of "Save all days" presses on an untouched
+schedule cannot bury the one save that mattered.
+
+**A login row is written defensively.** `log_login_attempt` swallows its own
+errors, because a full disk must not stop the owner logging in to fix the disk. It
+commits on the spot — there is no surrounding transaction to join.
+
+Reads are `GET`-only and session-guarded, so a `POST`, `PUT` or `DELETE` against
+`/api/logs/*` is a 405 rather than a rejected payload.
+
+### Retention
+
+Entries older than `LOG_RETENTION_DAYS` (90 by default) are deleted every day at
+**07:00 at the bar**, by a sleeping task started in the app's `lifespan` and
+cancelled on shutdown. Ecuador is UTC-5 with no daylight saving, so the fixed
+offset from `app/ssr.py` is exact and no tzdata package is needed. Failures are
+logged and retried the next day; housekeeping never takes the server down.
+
+```bash
+# Manual purge, for before a backup or when the daily job is switched off
+python manage_admin.py purge-logs --days 90
+```
+
+With `--workers 4` every worker runs the purge at the same minute. That is
+harmless — the loser's `DELETE` matches no rows — and it is why the purge is
+written to be idempotent rather than guarded by a lock table. Set
+`DAILY_LOG_PURGE=false` to switch the job off entirely when a cron entry runs
+`manage_admin.py purge-logs` instead.
 
 ## API Endpoints
 
@@ -108,8 +164,15 @@ back to English when a translation is blank.
 | `GET` | `/api/closed-days` | Public | One-off date closures, both languages, today and later |
 | `GET` | `/api/menu` | Public | The drinks menu: categories, items and promos, both languages |
 | `GET` | `/api/menu/all` | Admin | The same, plus items and categories switched off |
+| `GET` | `/api/logs/logins` | Admin | Every login attempt, newest first (`?limit=`&middot;`?offset=`) |
+| `GET` | `/api/logs/menu` | Admin | Every change to the drinks menu |
+| `GET` | `/api/logs/schedule` | Admin | Every change to the week, closures included |
 | `GET` | `/` | Public | The site, with the schedule **and the menu** rendered into the HTML |
 | `GET` | `/menu` | Public | The drinks menu on its own page, rendered into the HTML |
+
+The three log reads are the only endpoints with no write counterpart anywhere in
+the application. `limit` defaults to 200 and is clamped to 500; each returns
+`{"entries": [...], "total": n}` newest first.
 
 **Write endpoints require an admin session and a CSRF token.**
 
@@ -125,6 +188,9 @@ back to English when a translation is blank.
 | `POST` | `/api/menu/items` | Add a drink, with its promos |
 | `PUT` | `/api/menu/items/{id}` | Save a drink: copy, price, ingredients, promos, availability, category |
 | `DELETE` | `/api/menu/items/{id}` | Take a drink off the menu |
+
+**Every write above also writes a log row**, in the same transaction, through
+`change_author` + `audit.log_change`. See [Logs](#logs).
 
 ### How the menu is stored
 
@@ -257,6 +323,12 @@ covered by the migration tests, which build their schema from the models.
 - **Security headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
 - **SQL injection**: SQLAlchemy 2.0 parameterized queries
 - **XSS**: Jinja2 auto-escaping, no inline scripts
+- **Logs are append-only and read-only over HTTP**: no route writes to
+  `login_attempts` or `audit_log` except the retention purge, the log reads are
+  session-guarded, and **no password is ever passed to the logger** — so it
+  cannot be stored even by accident. The IP recorded is the peer address the
+  server saw, which behind a proxy is the proxy's address; adding trusted-proxy
+  handling would be a security change of its own.
 
 ## Database Schema
 
@@ -334,3 +406,32 @@ covered by the migration tests, which build their schema from the models.
 | `label_en` / `label_es` | TEXT | e.g. `6x $7.00` / `6 por $7.00` |
 | `sort_order` | INTEGER | Several promos per drink, in order |
 | `created_at` / `updated_at` | DATETIME | Auto-set |
+
+### `login_attempts`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Auto-increment |
+| `username` | TEXT | Whatever was typed, so unknown usernames are logged too |
+| `ip` | TEXT | Peer address the server saw |
+| `outcome` | TEXT | `success` / `invalid_credentials` / `rate_limited` |
+| `user_agent` | TEXT | Truncated to 255 characters |
+| `created_at` | DATETIME | Auto-set (UTC) |
+
+There is **no password column**, and none of the code paths can put one there.
+
+### `audit_log`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK | Auto-increment |
+| `area` | TEXT | `menu` / `schedule` — which log the row appears in |
+| `action` | TEXT | `create` / `update` / `delete` |
+| `admin_username` | TEXT | Plain string, not a FK, so it survives deleting the admin |
+| `ip` / `user_agent` | TEXT | Same as the login log |
+| `target` | TEXT | `<kind>:<id>` — e.g. `schedule_day:5`, `menu_item:41` |
+| `target_name` | TEXT | The row's own name, verbatim (`Cuba Libre`) |
+| `details` | JSON | `{"open_time": {"from": "16:00", "to": "18:00"}}` for an update; the row's fields for a create or delete |
+| `created_at` | DATETIME | Auto-set (UTC) |
+
+Indexed on `created_at`, and on `(area, created_at)` — every read is "the newest
+N of one area". Both tables are created by `create_all` at startup, so they need
+no entry in `app/migrate.py`: that file only *alters* tables that already exist.

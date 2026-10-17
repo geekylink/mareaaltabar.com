@@ -8,7 +8,17 @@ translation service. Day-of-week integers follow JavaScript convention
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -172,6 +182,77 @@ class MenuItemPromo(Base):
     )
 
     item: Mapped["MenuItem"] = relationship(back_populates="promos")
+
+
+class LoginAttempt(Base):
+    """One row per login attempt, whatever the outcome.
+
+    Written on every ``POST /admin/login`` — the success, the wrong password, the
+    username that does not exist, and the attempts the rate limiter turned away —
+    because spotting the attempts is the point, not just recording the successes.
+    The username is whatever was typed, so a stranger guessing at names shows up
+    here instead of leaving no trace at all.
+
+    There is deliberately no password column, and no column one could go in: the
+    submitted password is never handed to the logger, so it cannot land here even
+    by accident. ``user_agent`` is kept for the same reason the IP is — to tell a
+    real admin's browser apart from a script replaying their credentials.
+    """
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    # success | invalid_credentials | rate_limited
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AuditEntry(Base):
+    """Who changed what, and what the row looked like beforehand.
+
+    This is the answer to "who changed Friday's hours to 4pm, and when" — with two
+    people editing the same week there is no other way to find out, and no way to
+    spot an accidental edit afterwards. An entry is written in the same
+    transaction as the change it describes, so a change can never exist without
+    its log row.
+
+    ``admin_username`` is a plain string rather than a foreign key on purpose:
+    deleting an admin must not delete the record of what they did. ``details``
+    carries the substance — for an update, only the fields that actually changed,
+    as ``{"open_time": {"from": "16:00", "to": "18:00"}}``, so the log answers
+    what changed instead of repeating the whole row on every save. For a create or
+    a delete it is the row's own fields.
+
+    Nothing in the application updates or deletes a row here; the only way out is
+    the retention purge in :mod:`app.audit`.
+    """
+
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # menu | schedule
+    area: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    # create | update | delete
+    action: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    admin_username: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    # A "<kind>:<id>" key — 'schedule_day:5', 'menu_item:41' — so the panel can
+    # render the row in the language it is currently in.
+    target: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    # The row's own name, verbatim: admin-entered content, not UI text.
+    target_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    details: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# Every read of these tables is "the newest N, of one area", which is the shape
+# these indexes serve once the tables have filled up.
+Index("ix_login_attempts_created", LoginAttempt.created_at)
+Index("ix_audit_log_area_created", AuditEntry.area, AuditEntry.created_at)
 
 
 class ClosedDay(Base):

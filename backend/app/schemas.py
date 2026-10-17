@@ -7,7 +7,7 @@ blank, so a partially-translated schedule still renders.
 
 import re
 import unicodedata
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -197,3 +197,56 @@ class MenuResponse(BaseModel):
 
 MenuCategoryResponse.model_rebuild()
 MenuItemResponse.model_rebuild()
+
+
+# --- Logs ---
+#
+# Read-only. There is no write model for either table and no route that accepts
+# one, so nothing here can be constructed from a request body — the panel cannot
+# edit a log, and neither can anything else.
+
+class LoginAttemptResponse(BaseModel):
+    """One login attempt: the username typed, where from, and how it ended.
+
+    There is no password field, on purpose — see ``app.audit.log_login_attempt``.
+    """
+
+    id: int
+    username: str
+    ip: str
+    outcome: str
+    user_agent: str
+    created_at: datetime
+
+
+class AuditEntryResponse(BaseModel):
+    """One change to the menu or the schedule, and who made it."""
+
+    id: int
+    area: str
+    action: str
+    admin_username: str
+    ip: str
+    user_agent: str
+    # "<kind>:<id>" — the panel turns this into a localized label.
+    target: str
+    target_name: str
+    # field -> {"from": ..., "to": ...} for an update; the row's own fields for a
+    # create or a delete.
+    details: dict = Field(default_factory=dict)
+    created_at: datetime
+
+
+class LoginLogResponse(BaseModel):
+    """One page of the login log, newest first."""
+
+    entries: list[LoginAttemptResponse]
+    total: int
+
+
+class AuditLogResponse(BaseModel):
+    """One page of the menu or schedule change log, newest first."""
+
+    area: str
+    entries: list[AuditEntryResponse]
+    total: int

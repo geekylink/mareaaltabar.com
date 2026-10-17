@@ -6,7 +6,7 @@ from collections import defaultdict
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session as DBSession
 
-from app import auth
+from app import audit, auth
 from app.database import get_db
 from app.models import Admin, Session
 
@@ -69,6 +69,25 @@ def get_current_session(
         raise HTTPException(status_code=401, detail="Session expired or invalid")
 
     return session
+
+
+def change_author(
+    request: Request,
+    admin: Admin = Depends(get_current_admin),
+) -> audit.ChangeAuthor:
+    """The identity and origin of whoever is making a change.
+
+    Every write handler takes this instead of the bare admin, because a log entry
+    that cannot answer "from where" is only half an audit trail — a shared or
+    stolen session still names a username, but not the machine it came from. It
+    authenticates exactly as :func:`get_current_admin` does, so adding it to a
+    route cannot weaken the guard already in ``write_guard``.
+    """
+    return audit.ChangeAuthor(
+        username=admin.username,
+        ip=audit.request_ip(request),
+        user_agent=audit.clean_user_agent(request.headers.get("user-agent")),
+    )
 
 
 # --- CSRF protection ---

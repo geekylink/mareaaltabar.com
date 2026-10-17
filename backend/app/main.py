@@ -1,5 +1,6 @@
 """FastAPI application entry point."""
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -8,13 +9,13 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as DBSession
 
-from app import auth
+from app import audit, auth
 from app.config import BACKEND_DIR, settings
 from app.database import SessionLocal, engine, get_db
 from app.migrate import run_migrations
 from app.models import Base
 from app.public_i18n import DEFAULT_LANG, resolve_lang
-from app.routers import admin, api, auth as auth_router
+from app.routers import admin, api, auth as auth_router, logs
 from app.seed import seed_menu, seed_schedule
 from app.ssr import FRONTEND_DIST, INDEX_HTML, MENU_HTML, render_index, render_menu
 
@@ -35,6 +36,35 @@ try:
 finally:
     _db.close()
 
+async def _daily_log_purge() -> None:
+    """Delete expired log rows at 07:00 at the bar, every day, until cancelled.
+
+    A plain sleeping task rather than a scheduler dependency: there is one job,
+    it is idempotent, and a failure is logged and retried at tomorrow's run. The
+    server must never go down because housekeeping did.
+
+    With `--workers 4` every worker runs this, so four identical DELETEs land at
+    the same minute. That is harmless — the second one matches no rows — and it is
+    why the purge is written to be idempotent rather than guarded by a lock that
+    would need its own table.
+    """
+    while True:
+        await asyncio.sleep(audit.seconds_until_next_purge())
+        db = SessionLocal()
+        try:
+            removed = audit.purge_old_logs(db)
+            logger.info(
+                "Purged expired logs older than %s days: %s",
+                settings.LOG_RETENTION_DAYS,
+                ", ".join(f"{table}={count}" for table, count in removed.items()),
+            )
+        except Exception:  # noqa: BLE001 - housekeeping must not kill the app
+            logger.exception("Daily log purge failed; will try again tomorrow")
+            db.rollback()
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: cleanup expired sessions
@@ -43,7 +73,21 @@ async def lifespan(app: FastAPI):
         auth.cleanup_expired_sessions(db)
     finally:
         db.close()
-    yield
+
+    purge_task = None
+    if settings.DAILY_LOG_PURGE:
+        purge_task = asyncio.create_task(_daily_log_purge())
+
+    try:
+        yield
+    finally:
+        # Cancelled on shutdown rather than left holding a session open.
+        if purge_task is not None:
+            purge_task.cancel()
+            try:
+                await purge_task
+            except asyncio.CancelledError:
+                pass
 
 
 # Hide docs in production
@@ -66,6 +110,7 @@ async def security_headers(request: Request, call_next):
 app.include_router(auth_router.router)
 app.include_router(admin.router)
 app.include_router(api.router)
+app.include_router(logs.router)
 
 # Serve the built frontend from the same origin, so the site and the API that
 # feeds it share a domain (no CORS, cookies work). Registered last so it only

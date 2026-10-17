@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.admin_i18n import SUPPORTED, strings_for
+from app.config import settings
 from app.dependencies import get_current_admin
 
 router = APIRouter()
@@ -66,4 +67,25 @@ async def admin_menu(request: Request, admin=Depends(get_current_admin)):
         request=request,
         name="admin/menu.html",
         context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/logs", response_class=HTMLResponse)
+async def admin_logs(request: Request, admin=Depends(get_current_admin)):
+    """Read-only: login attempts, and every menu and schedule change.
+
+    The rows come from the JSON endpoints in ``routers.logs``, which are GET-only
+    and session-guarded. Nothing on this page can be edited or deleted, because
+    there is no route that would accept it.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/logs.html",
+        context={
+            "admin": admin,
+            # Shown on the page so the retention window is not a secret: it is
+            # the same setting the daily purge and the CLI use.
+            "log_retention_days": settings.LOG_RETENTION_DAYS,
+            **_i18n_payload(),
+        },
     )

@@ -228,7 +228,7 @@ Still flying blind on where visitors come from. Plausible (privacy-friendly, no 
 ### 48. robots.txt, sitemap.xml & canonical URLs
 **Impact:** 🟡 · **Effort:** 🟢 · **Category:** SEO
 
-There is no `robots.txt` or sitemap, and the admin panel is only unlinked — it is not excluded from crawling. `/admin`, `/admin/login`, `/admin/schedule` and `/admin/menu` should be disallowed. The admin templates already carry `<meta name="robots" content="noindex, nofollow">`, which helps but is not a substitute. Serve a sitemap listing the site and `/menu`. Canonical URLs become relevant at the same time — today there is one page with several anchor targets, plus the `/menu` route, which has no canonical tag of its own.
+There is no `robots.txt` or sitemap, and the admin panel is only unlinked — it is not excluded from crawling. `/admin`, `/admin/login`, `/admin/schedule`, `/admin/menu` and `/admin/logs` should be disallowed. The admin templates already carry `<meta name="robots" content="noindex, nofollow">`, which helps but is not a substitute. Serve a sitemap listing the site and `/menu`. Canonical URLs become relevant at the same time — today there is one page with several anchor targets, plus the `/menu` route, which has no canonical tag of its own.
 
 **Files:** new `frontend/public/robots.txt`, new sitemap route or static file, `backend/app/main.py`
 
@@ -543,11 +543,13 @@ Right now the only way to change a password or add a user is the `manage_admin.p
 ---
 
 ### 55. Audit log of admin edits
-**Impact:** 🟡 · **Effort:** 🟡 · **Category:** Operations
+**Impact:** 🟡 · **Effort:** 🟡 · **Category:** Operations · **Status:** ✅ Shipped
 
 With more than one admin (#54) and more content types in the database (#17, #53), there is no way to answer "who changed Friday's hours to 4pm and when". Add an `audit_log` table capturing admin id, action, target, before/after JSON and timestamp, written in the same transaction as the change. Display recent entries on the dashboard. Cheap insurance against accidental edits and the only defence when two people are editing the same schedule.
 
 **Files:** new `audit_log` table in `backend/app/models.py`, `backend/app/routers/api.py`, `backend/app/routers/admin.py`, `backend/app/templates/admin/dashboard.html`
+
+**Shipped** — `login_attempts` and `audit_log` tables, written by `app/audit.py` and added to every write handler in the same transaction as the change; a read-only `/admin/logs` page with three logs (login attempts, menu changes, schedule changes) behind a menu bar, fed by GET-only endpoints in `backend/app/routers/logs.py`; username, IP and user agent on every row; a diff of only the fields that actually changed; and a 90-day retention purge, run daily at 07:00 at the bar or manually with `manage_admin.py purge-logs`.
 
 ---
 
@@ -662,7 +664,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 35 | Expand automated testing | 🟠 | 🟡 | Quality |
 | | 37 | Add error tracking (Sentry) | 🟠 | 🟡 | DevOps |
 | | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
-| | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
+| ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
 | | 33 | Accessibility pass | ⚪ | 🟡 | Design |
 | | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
 | | 31 | Add PWA support | 🟠 | 🟡 | UX |
@@ -732,6 +734,13 @@ The menu renders in both the places it should: as a section on the homepage, and
 
 ## Admin authentication & security
 **Shipped** — bcrypt password hashing, server-side sessions in SQLite with random 64-char tokens and 8-hour expiry, HttpOnly + SameSite=Lax cookies (Secure in production), double-submit CSRF protection on all writes, login rate limiting, and a bilingual admin panel that is not linked from the public site.
+
+## Audit log of admin edits (#55)
+**Shipped** — Two append-only tables, `login_attempts` and `audit_log`, written by `app/audit.py` and added to every write handler in `app/routers/api.py`. `/admin/logs` is a read-only page with three logs behind a menu bar: every login attempt (successes, wrong passwords, unknown usernames and rate-limited attempts alike, each with the username typed, the IP and the browser), every menu change, and every schedule change including closed days. A change and its log row are written in **one transaction**, so a change can never exist unrecorded, and the entry carries only the fields that actually moved — `price: 4.00 → 4.50` — so a week of "Save all days" presses on an untouched schedule cannot bury the one save that mattered. **The password is never passed to the logger**, and there is no column it could go in. Reads are GET-only and session-guarded: a `POST`, `PUT` or `DELETE` against `/api/logs/*` is a 405 rather than a rejected payload, which is what makes the page strictly read-only rather than read-only by convention.
+
+Entries are kept for 90 days (`LOG_RETENTION_DAYS`), purged every day at 07:00 at the bar by a sleeping task in the app's `lifespan`, or by hand with `manage_admin.py purge-logs --days 90`. The purge is idempotent, so running it against a live multi-worker server — where every worker fires it at the same minute — costs a redundant `DELETE` that matches nothing and never an error.
+
+**What is still open:** #54 (a second admin), which is what makes attribution worth more than a single name on a row.
 
 ## Automated testing foundations
 **Shipped** — ~1,400 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule, closed-days and drinks-menu CRUD (including promo replacement, the availability split between the public and admin reads, and cascade deletes), the bilingual admin strings, migrations, the server-rendered homepage and `/menu` (including HTML escaping and admin-edit propagation), and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time and price formatting, the menu component, the server-rendered payload handover, a regression guard proving the app replaces the server-rendered block rather than stacking on it, and a guard keeping the server-rendered labels identical to the site's own wording. Expanded further by ticket #35.

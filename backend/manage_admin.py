@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""CLI tool to manage admin users for the Marea Alta backend.
+"""CLI tool to manage admin users and the admin logs.
 
 Usage:
     python manage_admin.py create <username> <password>
     python manage_admin.py list
     python manage_admin.py delete <username>
     python manage_admin.py password <username> <new_password>
+    python manage_admin.py purge-logs [--days 90]
 """
 
 import argparse
@@ -17,7 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from sqlalchemy import select
 
-from app import auth
+from app import audit, auth
+from app.config import settings
 from app.database import SessionLocal, engine
 from app.models import Admin, Base
 
@@ -89,8 +91,31 @@ def reset_password(username: str, new_password: str) -> None:
         db.close()
 
 
+def purge_logs(days: int | None) -> None:
+    """Delete login and change-log rows past the retention window.
+
+    The server does this by itself at 07:00 at the bar; this is the manual
+    version, for shrinking the database before a backup or when a long-running
+    process has been restarted with the daily purge disabled. It is idempotent,
+    so running it while the server is up is safe.
+    """
+    keep_days = settings.LOG_RETENTION_DAYS if days is None else days
+    db = SessionLocal()
+    try:
+        removed = audit.purge_old_logs(db, keep_days)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        sys.exit(1)
+    finally:
+        db.close()
+
+    print(f"Removed log entries older than {keep_days} days:")
+    for table, count in removed.items():
+        print(f"  {table}: {count}")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Manage Marea Alta admin users")
+    parser = argparse.ArgumentParser(description="Manage Marea Alta admin users and logs")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # create
@@ -110,6 +135,18 @@ def main():
     password_parser.add_argument("username")
     password_parser.add_argument("new_password")
 
+    # purge-logs
+    purge_parser = subparsers.add_parser(
+        "purge-logs",
+        help="Delete log entries older than the retention window",
+    )
+    purge_parser.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        help=f"Days to keep (default: LOG_RETENTION_DAYS, currently {settings.LOG_RETENTION_DAYS})",
+    )
+
     args = parser.parse_args()
 
     if args.command == "create":
@@ -120,6 +157,8 @@ def main():
         delete_admin(args.username)
     elif args.command == "password":
         reset_password(args.username, args.new_password)
+    elif args.command == "purge-logs":
+        purge_logs(args.days)
 
 
 if __name__ == "__main__":

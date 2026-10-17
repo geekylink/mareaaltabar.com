@@ -66,7 +66,7 @@ def test_the_menu_page_covers_the_menu_and_schedule_strings():
             assert key in STRINGS[lang], f"{key} missing from {lang}"
 
 
-@pytest.mark.parametrize("page", ["admin/menu.html", "admin/schedule.html"])
+@pytest.mark.parametrize("page", ["admin/menu.html", "admin/schedule.html", "admin/logs.html"])
 def test_admin_pages_escape_quotes(page):
     """`esc()` output goes into `value="..."` as well as into the page.
 
@@ -88,3 +88,47 @@ def test_admin_pages_escape_quotes(page):
     assert "div.textContent" not in text, (
         f"{page} esc() is textContent-based, which leaves quotes unescaped in attributes"
     )
+
+
+def test_the_logs_page_covers_its_own_strings():
+    """The logs page needs its headings and column labels in both languages."""
+    logs_page = (TEMPLATES / "admin" / "logs.html").read_text(encoding="utf-8")
+    for key in ("logs_heading", "logs_intro", "logs_retention", "tab_logins",
+                "tab_menu_changes", "tab_schedule_changes", "col_ip", "col_changes",
+                "no_login_entries", "no_menu_entries", "no_schedule_entries"):
+        assert key in logs_page, key
+        for lang in SUPPORTED:
+            assert key in STRINGS[lang], f"{key} missing from {lang}"
+
+
+def test_the_logs_page_builds_its_badge_labels_from_prefixes():
+    """Badges look their label up as 'outcome_' + the stored value rather than
+    naming each one, so the prefixes are what the template must contain."""
+    logs_page = (TEMPLATES / "admin" / "logs.html").read_text(encoding="utf-8")
+    for prefix in ("'outcome_' +", "'action_' +", "'target_' +"):
+        assert prefix in logs_page, prefix
+
+
+@pytest.mark.parametrize(
+    "outcome", ["success", "invalid_credentials", "rate_limited"]
+)
+def test_every_login_outcome_has_a_label(outcome):
+    """`outcomeBadge` looks the label up as 'outcome_' + the stored value, so a
+    stored outcome with no string renders as the bare key."""
+    for lang in SUPPORTED:
+        assert f"outcome_{outcome}" in STRINGS[lang], f"{lang} is missing outcome_{outcome}"
+
+
+@pytest.mark.parametrize("action", ["create", "update", "delete"])
+def test_every_change_action_has_a_label(action):
+    for lang in SUPPORTED:
+        assert f"action_{action}" in STRINGS[lang], f"{lang} is missing action_{action}"
+
+
+@pytest.mark.parametrize(
+    "target", ["schedule_day", "closed_day", "menu_category", "menu_item"]
+)
+def test_every_audit_target_kind_has_a_label(target):
+    """`whatCell` builds 'target_' + the stored kind the same way."""
+    for lang in SUPPORTED:
+        assert f"target_{target}" in STRINGS[lang], f"{lang} is missing target_{target}"
