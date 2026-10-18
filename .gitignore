@@ -28,6 +28,10 @@ backend/data/
 *.sqlite
 *.sqlite3
 
+# Docker
+# Root env file for docker-compose variable substitution (see .env.example).
+/.env
+
 # Build / Output
 repomix-output.xml
 *.log

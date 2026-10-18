@@ -1,0 +1,57 @@
+# Single-container deployment for Marea Alta.
+#
+# One service, one published port, one volume. FastAPI serves the API *and* the
+# built frontend, including the server-rendered `/` and `/menu`, so no separate
+# web server is needed.
+#
+# The `version` key is retained for the standalone `docker-compose` v1 tool; the
+# newer `docker compose` plugin ignores it (and prints an obsolete-version note).
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: marea-alta:latest
+    # No container_name: compose derives one from the project directory, so a
+    # second stack — the smoke test's, or a staging one — can run alongside this
+    # one. Refer to the service as `web` (`docker-compose exec web ...`).
+    restart: unless-stopped
+
+    # The only port that is opened. 8000 inside the container, ${APP_PORT} on the
+    # host. Put TLS in front of this (Cloudflare, host nginx) when you have it.
+    ports:
+      - "${APP_PORT:-8080}:8000"
+
+    environment:
+      # Production: disables /docs and the OpenAPI schema.
+      ENVIRONMENT: production
+      # Database (and sessions and logs) on the volume, so data survives
+      # rebuilds and `docker compose down`.
+      DATABASE_PATH: /data/marea_alta.db
+      # There is no TLS in this single-container setup, so the session cookies
+      # must not be marked Secure or the admin login silently fails over plain
+      # HTTP. Set this to "true" once HTTPS terminates in front of the container.
+      COOKIE_SECURE: "false"
+
+    volumes:
+      - marea_alta_data:/data
+
+    # Container-level healthcheck is defined in the Dockerfile; this mirrors it
+    # so `docker compose ps` shows a status even on older compose versions.
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/schedule')"
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+volumes:
+  # Named volume so the SQLite database and every admin edit persist across
+  # restarts, rebuilds and upgrades. Reset with `docker compose down -v`.
+  marea_alta_data:

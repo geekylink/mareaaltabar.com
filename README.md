@@ -54,6 +54,46 @@ the HTML so search engines can read them without running JavaScript. Proxy `/`
 and `/menu` to the backend rather than serving the files directly from nginx,
 or that rendering is skipped.
 
+### Docker (single container)
+
+One container runs the whole site: the Dockerfile builds the frontend and copies
+it into the image beside the backend, and FastAPI serves the API, `/`, `/menu`
+and the assets from a single origin and a single port.
+
+```bash
+cp .env.example .env          # optional: set APP_PORT (default 8080)
+docker-compose up -d --build  # build and start; site on http://localhost:8080
+docker-compose logs -f web    # follow logs
+docker-compose down           # stop (data is kept)
+```
+
+- **One port.** `8080` on the host by default (`APP_PORT` in `.env`), `8000`
+  inside the container. That is the only port opened.
+- **Data persists.** The SQLite database — which also holds admin sessions and
+  the login/change logs — lives in the named volume `marea_alta_data` at
+  `/data`. It survives rebuilds, `docker-compose down` and upgrades. Wipe it
+  deliberately with `docker-compose down -v`.
+- **One worker.** SQLite does not tolerate concurrent writers, and the app runs
+  a single uvicorn worker on purpose.
+
+Create the first admin inside the running container (it writes to the volume):
+
+```bash
+docker-compose exec web python manage_admin.py create admin 'yourpassword'
+```
+
+**TLS.** This setup has no TLS of its own, so `COOKIE_SECURE` is `false` in
+`docker-compose.yml` — otherwise the browsers would drop the session cookie over
+plain HTTP and admin login would fail. Once HTTPS terminates in front of the
+container (Cloudflare, or nginx on the host), set `COOKIE_SECURE: "true"`.
+
+#### Verifying a build
+
+`tests/docker_smoke_test.sh` builds the image, starts it on an isolated project
+and port, and checks the site end to end — the rendered pages, the API, the
+single published port, the volume, admin login and persistence across a restart.
+See [tests/README.md](tests/README.md).
+
 ### Tests
 
 ```bash

@@ -1,0 +1,39 @@
+# Keep the build context small and the image free of local state.
+# The frontend is rebuilt inside the image, so its dist and node_modules are
+# never needed from the host.
+
+# Version control / CI
+.git
+.github
+
+# Node
+**/node_modules
+frontend/dist
+frontend/coverage
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/venv
+**/.venv
+**/*.egg-info
+
+# Local database and secrets — never bake these into the image
+backend/data
+backend/.env
+*.db
+*.sqlite
+*.sqlite3
+
+# Docs and misc
+docs
+repomix-output.xml
+*.log
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
