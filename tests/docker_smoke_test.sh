@@ -232,7 +232,7 @@ fi
 # ---------------------------------------------------------------------------
 info "Admin: create, log in, save"
 
-if dc exec -T web python manage_admin.py create "$ADMIN_USER" "$ADMIN_PASS" 2>&1 | grep -q 'created successfully'; then
+if dc exec -T web python manage_admin.py create "$ADMIN_USER" --password="$ADMIN_PASS" 2>&1 | grep -q 'created successfully'; then
   ok "admin created inside the container"
 else
   bad "admin created inside the container"

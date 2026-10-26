@@ -1,10 +1,33 @@
-# Docker tests
+# Tests
+
+Two scripts: [`test_all.sh`](#test_allsh) runs every suite in the project,
+[`docker_smoke_test.sh`](#docker_smoke_testsh) verifies the deployed container.
+
+## `test_all.sh`
+
+One command for everything — frontend (vitest), backend (pytest), then the docker
+smoke test — with a summary at the end.
+
+```bash
+tests/test_all.sh              # one line per suite + summary
+tests/test_all.sh --silent     # only failures + summary (alias: --quiet)
+```
+
+The terminal output stays short deliberately. The complete output of every suite
+is written to `tests/test_all.log`, which is **replaced on each run** (it is
+gitignored), so `less tests/test_all.log` always shows the full picture of the
+most recent run — including the failures behind the names printed on the
+terminal.
+
+Exit code `0` if every suite passed, `1` if a suite or a test failed, `2` on a
+bad command line. It runs all three suites even after one fails, so a single run
+tells you the state of everything.
+
+## `docker_smoke_test.sh`
 
 Automated verification for the single-container deployment (see the
 [Docker section](../README.md#docker-single-container) in the root README and
 [`Dockerfile`](../Dockerfile) / [`docker-compose.yml`](../docker-compose.yml)).
-
-## `docker_smoke_test.sh`
 
 Builds the image, starts it under its own compose project on its own port, and
 checks the container end to end. It answers "does this newly built container

@@ -21,7 +21,7 @@ Two terminals. The backend owns the schedule and menu data; the frontend display
 cd backend
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-python manage_admin.py create admin yourpassword   # create the first admin
+python manage_admin.py create admin                # create the first admin (prompts for a password)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -79,7 +79,7 @@ docker-compose down           # stop (data is kept)
 Create the first admin inside the running container (it writes to the volume):
 
 ```bash
-docker-compose exec web python manage_admin.py create admin 'yourpassword'
+docker-compose exec web python manage_admin.py create admin   # prompts for a password
 ```
 
 **TLS.** This setup has no TLS of its own, so `COOKIE_SECURE` is `false` in
@@ -97,6 +97,9 @@ See [tests/README.md](tests/README.md).
 ### Tests
 
 ```bash
+# Everything at once: frontend, backend and the docker smoke test, with a summary
+tests/test_all.sh            # --silent prints only failures and the summary
+
 # Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs
 cd backend
 python -m pytest tests/ -v
@@ -105,6 +108,9 @@ python -m pytest tests/ -v
 cd ../frontend
 npm test
 ```
+
+`tests/test_all.sh` keeps the terminal short and writes the full output of every
+suite to `tests/test_all.log`, replaced on each run.
 
 ## Documentation
 

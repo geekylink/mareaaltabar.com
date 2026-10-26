@@ -58,8 +58,8 @@ touch `data/marea_alta.db`.
 ## Admin Management
 
 ```bash
-# Create an admin user
-python manage_admin.py create <username> <password>
+# Create an admin user (asks for the password twice, input hidden)
+python manage_admin.py create <username>
 
 # List all admins
 python manage_admin.py list
@@ -67,12 +67,18 @@ python manage_admin.py list
 # Delete an admin
 python manage_admin.py delete <username>
 
-# Reset a password
-python manage_admin.py password <username> <new_password>
+# Reset a password (asks for the password twice, input hidden)
+python manage_admin.py password <username>
 
 # Delete log entries older than the retention window (the server does this daily)
 python manage_admin.py purge-logs --days 90
 ```
+
+Pass `--password <password>` to either command to skip the prompt. That is for
+development and testing only: a password on the command line is visible in shell
+history and in the process list. Without a terminal and without the flag the
+command refuses to run rather than reading a possibly echoed password from
+stdin.
 
 ## Admin Panel
 
