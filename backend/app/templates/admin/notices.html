@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 56rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+        .field { margin-bottom: 0.9rem; }
+        .field label {
+            display: block; font-size: 0.7rem; font-weight: 700; color: #777;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
+        }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 0.6rem 0.7rem; border: 1.5px solid #ddd;
+            border-radius: 0.4rem; font-size: 0.9rem; font-family: inherit;
+        }
+        .field textarea { resize: vertical; min-height: 3.5rem; }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            outline: none; border-color: #0B3C49;
+        }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .hint { font-size: 0.78rem; color: #888; margin: -0.25rem 0 1rem; }
+        .checkline { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+        .checkline input { width: auto; }
+        .btn-primary {
+            background: #FF6B2C; color: #fff; border: none; padding: 0.65rem 1.2rem;
+            border-radius: 0.45rem; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-primary:hover { background: #e85a1c; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .notice-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #eee;
+        }
+        .notice-row:last-child { border-bottom: none; }
+        .notice-main { flex: 1; min-width: 0; }
+        .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
+        .badge {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; padding: 0.18rem 0.45rem; border-radius: 999px;
+        }
+        .severity-info { background: #DBEAFE; color: #1E3A8A; }
+        .severity-warning { background: #FEF3C7; color: #92400E; }
+        .severity-critical { background: #FEE2E2; color: #991B1B; }
+        .status-live { background: #D1FAE5; color: #065F46; }
+        .status-scheduled { background: #E0E7FF; color: #3730A3; }
+        .status-expired, .status-off { background: #E5E7EB; color: #4B5563; }
+        .notice-message { font-size: 0.95rem; line-height: 1.45; white-space: pre-wrap; }
+        .notice-meta { font-size: 0.78rem; color: #777; margin-top: 0.4rem; }
+        .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-small {
+            border: none; padding: 0.4rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-toggle { background: #E0F2FE; color: #075985; }
+        .btn-toggle:hover { background: #BAE6FD; }
+        .btn-delete { background: #FEE2E2; color: #991B1B; }
+        .btn-delete:hover { background: #FECACA; }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        .success-banner {
+            background: #D1FAE5; color: #065F46; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            .field-pair { grid-template-columns: 1fr; }
+            .notice-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <section class="section">
+            <h2 data-i18n="notices_heading">Emergency notice</h2>
+            <p class="intro" data-i18n="notices_intro">A notice appears at the top of the site while it is switched on and inside its time window.</p>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="message-en" data-i18n="notice_message_en">Message (English)</label>
+                    <textarea id="message-en" data-i18n="notice_message_en" placeholder="Message (English)"></textarea>
+                </div>
+                <div class="field">
+                    <label for="message-es" data-i18n="notice_message_es">Message (Spanish)</label>
+                    <textarea id="message-es" data-i18n="notice_message_es" placeholder="Message (Spanish)"></textarea>
+                </div>
+            </div>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="severity" data-i18n="notice_severity">Severity</label>
+                    <select id="severity">
+                        <option value="info" data-i18n="notice_severity_info">Info</option>
+                        <option value="warning" data-i18n="notice_severity_warning">Warning</option>
+                        <option value="critical" data-i18n="notice_severity_critical">Critical</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label class="checkline" style="margin-top:1.5rem;">
+                        <input type="checkbox" id="is-active" checked>
+                        <span data-i18n="notice_active">Show on the site</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="starts-at" data-i18n="notice_starts">Starts (optional)</label>
+                    <input type="datetime-local" id="starts-at">
+                </div>
+                <div class="field">
+                    <label for="ends-at" data-i18n="notice_ends">Ends (optional)</label>
+                    <input type="datetime-local" id="ends-at">
+                </div>
+            </div>
+            <p class="hint" data-i18n="notice_window_hint">Bar time. Leave both blank for a notice that runs until you switch it off.</p>
+
+            <button class="btn-primary" id="add-notice" data-i18n="add_notice">Add notice</button>
+        </section>
+
+        <section class="section">
+            <h2 data-i18n="notices_heading">Emergency notice</h2>
+            <div id="notices"><p class="empty-note" data-i18n="loading">Loading...</p></div>
+        </section>
+    </main>
+
+    <script>
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        var notices = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf()
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function messageFor(notice) {
+            if (AdminI18n.lang === 'es') return notice.message_es || notice.message_en;
+            return notice.message_en || notice.message_es;
+        }
+
+        function nowBar() {
+            var parts = {};
+            new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Guayaquil',
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+            }).formatToParts(new Date()).forEach(function (part) {
+                parts[part.type] = part.value;
+            });
+            return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute;
+        }
+
+        function statusOf(notice) {
+            if (!notice.is_active) return 'off';
+            if (notice.is_live) return 'live';
+            if (notice.starts_at && notice.starts_at > nowBar()) return 'scheduled';
+            return 'expired';
+        }
+
+        function showAlert(message, isSuccess) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="' + (isSuccess ? 'success-banner' : 'error-banner') + '"></div>';
+            slot.querySelector('div').textContent = message;
+            clearTimeout(slot._timer);
+            slot._timer = setTimeout(function () { slot.innerHTML = ''; }, 4000);
+        }
+
+        function render() {
+            var container = document.getElementById('notices');
+            if (!notices.length) {
+                container.innerHTML = '<p class="empty-note">' + esc(AdminI18n.t('no_notices')) + '</p>';
+                return;
+            }
+
+            container.innerHTML = notices.map(function (notice) {
+                var status = statusOf(notice);
+                var windowText = (notice.starts_at || '—') + ' → ' + (notice.ends_at || '∞');
+                var severityKey = 'notice_severity_' + notice.severity;
+                var statusKey = 'notice_status_' + status;
+                var toggleKey = notice.is_active ? 'notice_turn_off' : 'notice_turn_on';
+                return '' +
+                '<div class="notice-row" data-id="' + notice.id + '">' +
+                    '<div class="notice-main">' +
+                        '<div class="badges">' +
+                            '<span class="badge severity-' + esc(notice.severity) + '">' + esc(AdminI18n.t(severityKey)) + '</span>' +
+                            '<span class="badge status-' + esc(status) + '">' + esc(AdminI18n.t(statusKey)) + '</span>' +
+                        '</div>' +
+                        '<p class="notice-message">' + esc(messageFor(notice)) + '</p>' +
+                        '<p class="notice-meta">' + esc(windowText) + '</p>' +
+                    '</div>' +
+                    '<div class="actions">' +
+                        '<button type="button" class="btn-small btn-toggle" data-action="toggle">' + esc(AdminI18n.t(toggleKey)) + '</button>' +
+                        '<button type="button" class="btn-small btn-delete" data-action="delete">' + esc(AdminI18n.t('notice_delete')) + '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function refresh() {
+            return api('/api/notices/all').then(function (rows) {
+                notices = rows || [];
+                render();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('notice_save_failed') + ' (' + err.message + ')', false);
+            });
+        }
+
+        function payloadFromForm() {
+            return {
+                message_en: document.getElementById('message-en').value,
+                message_es: document.getElementById('message-es').value,
+                severity: document.getElementById('severity').value,
+                starts_at: document.getElementById('starts-at').value,
+                ends_at: document.getElementById('ends-at').value,
+                is_active: document.getElementById('is-active').checked
+            };
+        }
+
+        function payloadFrom(notice) {
+            return {
+                message_en: notice.message_en,
+                message_es: notice.message_es,
+                severity: notice.severity,
+                starts_at: notice.starts_at,
+                ends_at: notice.ends_at,
+                is_active: notice.is_active
+            };
+        }
+
+        function clearForm() {
+            document.getElementById('message-en').value = '';
+            document.getElementById('message-es').value = '';
+            document.getElementById('severity').value = 'info';
+            document.getElementById('starts-at').value = '';
+            document.getElementById('ends-at').value = '';
+            document.getElementById('is-active').checked = true;
+        }
+
+        document.getElementById('add-notice').addEventListener('click', function () {
+            var button = this;
+            button.disabled = true;
+            api('/api/notices', { method: 'POST', body: payloadFromForm() }).then(function () {
+                clearForm();
+                showAlert(AdminI18n.t('notice_created'), true);
+                return refresh();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('notice_save_failed') + ' (' + err.message + ')', false);
+            }).finally(function () {
+                button.disabled = false;
+            });
+        });
+
+        document.getElementById('notices').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var row = button.closest('.notice-row');
+            var id = Number(row.dataset.id);
+            var notice = notices.find(function (item) { return item.id === id; });
+            if (!notice) return;
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm(AdminI18n.t('confirm_delete_notice'))) return;
+                api('/api/notices/' + id, { method: 'DELETE' }).then(function () {
+                    return refresh();
+                }).catch(function (err) {
+                    showAlert(AdminI18n.t('notice_save_failed') + ' (' + err.message + ')', false);
+                });
+                return;
+            }
+
+            if (button.dataset.action === 'toggle') {
+                var body = payloadFrom(notice);
+                body.is_active = !notice.is_active;
+                button.disabled = true;
+                api('/api/notices/' + id, { method: 'PUT', body: body }).then(function () {
+                    showAlert(AdminI18n.t('notice_updated'), true);
+                    return refresh();
+                }).catch(function (err) {
+                    showAlert(AdminI18n.t('notice_save_failed') + ' (' + err.message + ')', false);
+                    button.disabled = false;
+                });
+            }
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                render();
+            });
+        });
+        document.addEventListener('admin:langchange', render);
+        syncLangButtons();
+        refresh();
+    })();
+    </script>
+</body>
+</html>

@@ -268,3 +268,39 @@ class ClosedDay(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+
+
+class Notice(Base):
+    """An emergency banner: a closure, a power cut, a last-minute change.
+
+    The point is that the owner can publish one from the admin panel without a
+    deploy, so it is a row rather than a template. ``message_*`` are bilingual
+    as everywhere else. ``severity`` only chooses the banner's colour
+    (``info``, ``warning`` or ``critical``); it carries no other behaviour.
+
+    The time window is stored as bar-local ``YYYY-MM-DDTHH:MM`` strings, which
+    compare correctly in SQL and need no timezone conversion at read time. A
+    blank ``starts_at`` means "from now", and a blank ``ends_at`` means "until
+    someone switches it off". ``is_active`` is the immediate off switch, separate
+    from the window, so a notice can be paused and brought back unchanged.
+    """
+
+    __tablename__ = "notices"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    message_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    message_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # info | warning | critical
+    severity: Mapped[str] = mapped_column(String(16), nullable=False, default="info")
+    starts_at: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    ends_at: Mapped[str] = mapped_column(String(16), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+# The public read is "currently live notices, newest first", which is exactly
+# what this index serves once a year of emergency banners has accumulated.
+Index("ix_notices_active_created", Notice.is_active, Notice.created_at)

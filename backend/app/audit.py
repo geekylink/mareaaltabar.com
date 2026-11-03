@@ -50,6 +50,9 @@ TARGET_SCHEDULE_DAY = "schedule_day"
 TARGET_CLOSED_DAY = "closed_day"
 TARGET_MENU_CATEGORY = "menu_category"
 TARGET_MENU_ITEM = "menu_item"
+# Notices are logged in the schedule area: a closure notice is schedule news,
+# and a fourth tab on /admin/logs would separate two halves of the same job.
+TARGET_NOTICE = "notice"
 
 # 07:00 at the bar, which is when the retention purge runs.
 PURGE_HOUR_BAR = 7

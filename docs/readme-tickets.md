@@ -57,7 +57,6 @@ Project manager note:
   - [12. Add email capture / newsletter signup](#12-add-email-capture--newsletter-signup)
   - [51. Notify the bar when a submission arrives](#51-notify-the-bar-when-a-submission-arrives)
   - [14. Add reservation / table booking system](#14-add-reservation--table-booking-system)
-  - [52. Emergency notice banner](#52-emergency-notice-banner)
   - [50. Image upload pipeline](#50-image-upload-pipeline)
   - [8. Add photo gallery](#8-add-photo-gallery)
   - [13. Embed Instagram feed](#13-embed-instagram-feed)
@@ -329,15 +328,6 @@ For weekends and events when the bar fills. Start with the WhatsApp deep link fr
 
 ---
 
-### 52. Emergency notice banner
-**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Functionality
-
-New capability the backend makes possible and worth its effort. Power cut, storm closure, sold-out event, a guest who needs to know the kitchen is closed: today the only way to tell anyone is a social post that most visitors never see. Add a `notices` table with bilingual text, an active window and a severity, an admin control to set and clear it, and a banner on the site that appears above everything when active. This is the highest-value use of the admin panel per line of code, because it is the one thing that matters when it is wrong — and it is exactly the scenario `closed_days` only partly covers (#42).
-
-**Files:** new `notices` table, new routes in `backend/app/routers/api.py`, `backend/app/templates/admin/dashboard.html`, `frontend/src/App.svelte`, `frontend/src/content/en.js` + `es.js`
-
----
-
 ### 50. Image upload pipeline
 **Impact:** 🟠 · **Effort:** 🟡 · **Category:** Infrastructure
 
@@ -578,7 +568,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 12 | Add email capture / newsletter | 🟠 | 🟢 | Growth |
 | | 51 | Notify the bar on new submissions | 🟠 | 🟡 | Operations |
 | | 14 | Add reservation / booking system | 🟠 | 🟡 | Functionality |
-| | 52 | Emergency notice banner | 🟠 | 🟡 | Functionality |
+| ✅ | 52 | Emergency notice banner | 🟠 | 🟡 | Functionality |
 | | 50 | Image upload pipeline | 🟠 | 🟡 | Infrastructure |
 | | 8 | Add photo gallery | 🟠 | 🟡 | Functionality |
 | | 13 | Embed Instagram feed | 🟠 | 🟡 | Social Media |
@@ -625,7 +615,7 @@ Tickets ~~1~~, 18, 11, ~~49~~, 7, 17.
 *Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route — and ~~#49~~ added the `Menu` JSON-LD. What is left is content (#18, #11); #16 largely landed with #1.*
 
 **Sprint 4 — "Convert" (2 weeks)**
-Tickets 15, 12, 51, 14, 52, 50, 8, 13, 22, 19, 20.
+Tickets 15, 12, 51, 14, ~~52~~, 50, 8, 13, 22, 19, 20.
 *Goal: Turn visitors into conversations. #51 is not optional — forms without a notification channel are worse than no form. #50 unlocks #8.*
 
 **Sprint 5 — "Events & community" (2–3 weeks)**
@@ -644,6 +634,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## Automated database backups and restore drill (#38)
 **Shipped** — `scripts/backup.py` copies the SQLite database through `sqlite3.Connection.backup()`, the same consistent-snapshot mechanism as `sqlite3 .backup`, so a write in progress cannot tear the copy. `scripts/backup.sh` is the cron-friendly wrapper. Each run writes `marea_alta-YYYY-MM-DD.db` and a monthly `marea_alta-YYYY-MM.db`, verifies every file with `PRAGMA integrity_check` before atomically replacing the destination, and prunes only files matching those patterns — a stray file in the backup directory is left alone. Retention defaults to 14 daily and 12 monthly copies, adjustable with `--retain-days` and `--retain-months`; `--verify` re-checks one file or every backup in the directory. `docs/deployment.md` replaces the manual `sqlite3` recipe with the script, a nightly cron line, the off-box copy step and a restore drill that restores into a scratch database and confirms the schedule before touching the live file. `backend/tests/test_backup.py` covers the copy, a full restore, same-day replacement, retention bounds, unrelated files and corrupt-backup rejection.
+
+## Emergency notice banner (#52)
+**Shipped** — The owner can now put a message at the top of the site without a deploy. A `notices` table holds bilingual text, a severity (`info`, `warning`, `critical`), an optional bar-local start and end, and an `is_active` switch. `load_notices()` is the one place that decides whether a notice is live — switched on **and** inside its window — and both the public `GET /api/notices` and the server-rendered pages use it, so the banner a crawler reads and the banner the SPA renders cannot disagree. `GET /api/notices/all`, `POST`, `PUT` and `DELETE` are session- and CSRF-guarded; every write is logged in the schedule log as `notice:<id>`, so a fourth log tab was not needed. `/admin/notices` adds, pauses, resumes and deletes notices, and links from the dashboard. The banner renders above the hero on `/` and above the menu on `/menu`, on the first paint and after the SPA mounts; the payload is in `window.__MAREA_ALTA_DATA__` and the localStorage cache, with older cached payloads treated as "no notices" rather than crashing. `backend/tests/test_notices.py` covers the window, the public/admin split, validation, audit rows, server-rendered HTML in both languages and escaping; `frontend/src/lib/notice.test.js` covers language fallback, severity and the empty state.
 
 ## SQLite concurrency hardening (#43)
 **Shipped** — `app/database.py` now builds the engine through `create_db_engine()`, which applies `journal_mode=WAL`, a 30-second `busy_timeout` and `foreign_keys=ON` on every connection. A second writer waits for the lock instead of raising `database is locked`, and readers keep working while a writer commits. The app still runs **one worker**; WAL improves the failure mode, it does not make SQLite multi-writer. `backend/README.md` no longer advertises `--workers 4`, and `backend/tests/test_concurrency.py` asserts the pragmas and drives four separate sessions writing at once.

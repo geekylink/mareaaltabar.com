@@ -37,7 +37,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from app.config import BACKEND_DIR
-from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo
+from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo, Notice
 from app.public_i18n import strings_for
 
 FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
@@ -87,6 +87,19 @@ def bar_today(now: datetime | None = None) -> tuple[int, str]:
         now = now.replace(tzinfo=timezone.utc)
     local = now.astimezone(timezone(BAR_UTC_OFFSET))
     return (local.weekday() + 1) % 7, local.date().isoformat()
+
+
+def bar_now(now: datetime | None = None) -> str:
+    """The bar's clock as a ``YYYY-MM-DDTHH:MM`` string.
+
+    Notice windows are stored in that shape, which sorts and compares as text.
+    ``now`` is injectable for the same reason as :func:`bar_today`.
+    """
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return now.astimezone(timezone(BAR_UTC_OFFSET)).strftime("%Y-%m-%dT%H:%M")
 
 
 # --- Shared data loading ---------------------------------------------------
@@ -215,6 +228,50 @@ def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
     return menu
 
 
+def load_notices(
+    db: DBSession,
+    include_inactive: bool = False,
+    now: datetime | None = None,
+) -> list[dict]:
+    """Emergency banners, newest first, with ``is_live`` resolved.
+
+    ``include_inactive`` is the difference between the two reads, exactly as
+    ``include_unavailable`` is for the menu: the public site gets only notices
+    that are switched on *and* inside their window, while the admin panel gets
+    every row so a paused, expired or scheduled notice remains visible and can
+    be brought back.
+
+    The window comparison is done here rather than in SQL so the admin's
+    ``is_live`` and the public filter can never drift apart.
+    """
+    now_iso = bar_now(now)
+    rows = db.execute(
+        select(Notice).order_by(Notice.created_at.desc(), Notice.id.desc())
+    ).scalars().all()
+
+    notices = []
+    for notice in rows:
+        live = bool(notice.is_active) and (
+            (not notice.starts_at or notice.starts_at <= now_iso)
+            and (not notice.ends_at or notice.ends_at >= now_iso)
+        )
+        if not include_inactive and not live:
+            continue
+        notices.append(
+            {
+                "id": notice.id,
+                "message_en": notice.message_en,
+                "message_es": notice.message_es,
+                "severity": notice.severity,
+                "starts_at": notice.starts_at,
+                "ends_at": notice.ends_at,
+                "is_active": bool(notice.is_active),
+                "is_live": live,
+            }
+        )
+    return notices
+
+
 # --- Display helpers (mirrors frontend/src/lib/api.js) ----------------------
 
 
@@ -307,6 +364,7 @@ def build_payload(db: DBSession, lang: str) -> dict:
         )
 
     menu = load_menu(db)
+    notices = load_notices(db)
     return {
         "lang": lang,
         "labels": labels,
@@ -319,9 +377,27 @@ def build_payload(db: DBSession, lang: str) -> dict:
             for d in closed_days
         ],
         "menu": menu_display(menu, lang, labels),
+        "notices": notice_display(notices, lang),
         # Handed to the SPA so the first paint needs no fetch.
-        "seed": {"schedule": schedule, "closedDays": closed_days, "menu": menu},
+        "seed": {
+            "schedule": schedule,
+            "closedDays": closed_days,
+            "menu": menu,
+            "notices": notices,
+        },
     }
+
+
+def notice_display(notices: list[dict], lang: str) -> list[dict]:
+    """The notices resolved for the server-rendered block, one message each."""
+    return [
+        {
+            "id": notice["id"],
+            "severity": notice["severity"],
+            "message": pick(notice, lang, "message"),
+        }
+        for notice in notices
+    ]
 
 
 def menu_display(menu: list[dict], lang: str, labels: dict | None = None) -> list[dict]:
@@ -473,6 +549,11 @@ def render_schedule_block(payload: dict) -> str:
     return templates.get_template("partials/schedule.html").render(**payload)
 
 
+def render_notice_block(payload: dict) -> str:
+    """The crawler-readable emergency banner, if any notice is live."""
+    return templates.get_template("partials/notice.html").render(**payload)
+
+
 def render_menu_block(payload: dict) -> str:
     """The crawler-readable menu markup, shared by the homepage and /menu."""
     return templates.get_template("partials/menu.html").render(**payload)
@@ -481,6 +562,11 @@ def render_menu_block(payload: dict) -> str:
 def render_schedule_styles() -> str:
     """The ``<style>`` the block needs; the SPA's scoped CSS does not cover it."""
     return templates.get_template("partials/schedule_style.html").render()
+
+
+def render_notice_styles() -> str:
+    """Same, for the emergency banner."""
+    return templates.get_template("partials/notice_style.html").render()
 
 
 def render_menu_styles() -> str:
@@ -521,12 +607,16 @@ def _inject(
 
 
 def render_index_html(index_html: str, payload: dict) -> str:
-    """Inject the schedule and menu blocks, styles and data seed into index.html."""
+    """Inject the notice, schedule and menu blocks, styles and data seed."""
     return _inject(
         index_html,
         payload,
-        [render_schedule_block(payload), render_menu_block(payload)],
-        render_schedule_styles() + render_menu_styles(),
+        [
+            render_notice_block(payload),
+            render_schedule_block(payload),
+            render_menu_block(payload),
+        ],
+        render_notice_styles() + render_schedule_styles() + render_menu_styles(),
         "index.html",
     )
 
@@ -541,8 +631,8 @@ def render_menu_html(menu_html: str, payload: dict) -> str:
     return _inject(
         menu_html,
         payload,
-        [render_menu_block(payload)],
-        render_menu_styles(),
+        [render_notice_block(payload), render_menu_block(payload)],
+        render_notice_styles() + render_menu_styles(),
         "menu.html",
         render_menu_json_ld(payload),
     )

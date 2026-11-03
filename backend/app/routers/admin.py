@@ -96,6 +96,20 @@ async def admin_menu(request: Request, admin=Depends(get_current_admin)):
     )
 
 
+@router.get("/admin/notices", response_class=HTMLResponse)
+async def admin_notices(request: Request, admin=Depends(get_current_admin)):
+    """Emergency banner control: add, pause, resume and delete notices.
+
+    The rows come from ``/api/notices/all`` so the list includes paused and
+    scheduled notices, which the public read hides.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/notices.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
 @router.get("/admin/logs", response_class=HTMLResponse)
 async def admin_logs(request: Request, admin=Depends(get_current_admin)):
     """Read-only: login attempts, and every menu and schedule change.

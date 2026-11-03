@@ -25,7 +25,7 @@ from app import audit
 from app.audit import ChangeAuthor
 from app.database import get_db
 from app.dependencies import change_author, csrf_protect, get_current_admin
-from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo
+from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo, Notice
 from app.schemas import (
     ClosedDayCreate,
     ClosedDayResponse,
@@ -37,8 +37,17 @@ from app.schemas import (
     MenuItemResponse,
     MenuItemWrite,
     MenuResponse,
+    NoticeResponse,
+    NoticeWrite,
 )
-from app.ssr import day_payload, load_closed_days, load_menu, load_schedule
+from app.ssr import (
+    bar_now,
+    day_payload,
+    load_closed_days,
+    load_menu,
+    load_notices,
+    load_schedule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +89,14 @@ async def healthz(db: DBSession = Depends(get_db)):
 EVENT_FIELDS = ("title_en", "title_es", "note_en", "note_es")
 HOURS_FIELDS = ("open_time", "close_time", "is_closed")
 CLOSED_DAY_FIELDS = ("date", "reason_en", "reason_es")
+NOTICE_FIELDS = (
+    "message_en",
+    "message_es",
+    "severity",
+    "starts_at",
+    "ends_at",
+    "is_active",
+)
 CATEGORY_FIELDS = ("slug", "name_en", "name_es", "sort_order", "is_available")
 ITEM_FIELDS = (
     "category_id",
@@ -314,6 +331,161 @@ async def delete_closed_day(
     )
 
     db.delete(closed_day)
+    db.commit()
+
+
+# --- Emergency notices (ticket #52) ---------------------------------------
+#
+# The public read is the same shape as the admin read, minus everything that is
+# not live. Writes are logged in the schedule area as `notice:<id>`: a closure
+# notice is schedule news, and the logs page already has a schedule tab.
+
+def _notice_response(notice: Notice) -> NoticeResponse:
+    """One saved notice, with whether it is on the site right now."""
+    now = bar_now()
+    live = bool(notice.is_active) and (
+        (not notice.starts_at or notice.starts_at <= now)
+        and (not notice.ends_at or notice.ends_at >= now)
+    )
+    return NoticeResponse(
+        id=notice.id,
+        message_en=notice.message_en,
+        message_es=notice.message_es,
+        severity=notice.severity,
+        starts_at=notice.starts_at,
+        ends_at=notice.ends_at,
+        is_active=bool(notice.is_active),
+        is_live=live,
+    )
+
+
+@router.get("/api/notices", response_model=list[NoticeResponse])
+async def list_notices(response: Response, db: DBSession = Depends(get_db)):
+    """Public: notices that are switched on and inside their window."""
+    response.headers.update(READ_CACHE_CONTROL)
+    return [NoticeResponse(**notice) for notice in load_notices(db)]
+
+
+@router.get(
+    "/api/notices/all",
+    response_model=list[NoticeResponse],
+    dependencies=[Depends(get_current_admin)],
+)
+async def list_all_notices(response: Response, db: DBSession = Depends(get_db)):
+    """Admin: every notice, including paused, scheduled and expired rows.
+
+    The panel needs the hidden ones: a notice switched off for an hour must be
+    visible there, or it could never be switched back on.
+    """
+    response.headers.update(READ_CACHE_CONTROL)
+    return [
+        NoticeResponse(**notice)
+        for notice in load_notices(db, include_inactive=True)
+    ]
+
+
+@router.post(
+    "/api/notices",
+    response_model=NoticeResponse,
+    status_code=201,
+    dependencies=write_guard,
+)
+async def create_notice(
+    data: NoticeWrite,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: publish (or schedule) an emergency banner."""
+    notice = Notice(
+        message_en=data.message_en,
+        message_es=data.message_es,
+        severity=data.severity,
+        starts_at=data.starts_at,
+        ends_at=data.ends_at,
+        is_active=data.is_active,
+    )
+    db.add(notice)
+
+    # Flushed so the log can name the notice by its id.
+    db.flush()
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_CREATE,
+        author=author,
+        target=audit.format_target(audit.TARGET_NOTICE, notice.id),
+        target_name=_display_name(notice.message_en, notice.message_es),
+        details=audit.snapshot(notice, NOTICE_FIELDS),
+    )
+
+    db.commit()
+    db.refresh(notice)
+    return _notice_response(notice)
+
+
+@router.put(
+    "/api/notices/{notice_id}",
+    response_model=NoticeResponse,
+    dependencies=write_guard,
+)
+async def update_notice(
+    notice_id: int,
+    data: NoticeWrite,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: edit a notice, or toggle ``is_active`` to switch it off and on."""
+    notice = db.execute(select(Notice).where(Notice.id == notice_id)).scalar_one_or_none()
+    if notice is None:
+        raise HTTPException(status_code=404, detail="Notice not found")
+
+    before = audit.snapshot(notice, NOTICE_FIELDS)
+
+    notice.message_en = data.message_en
+    notice.message_es = data.message_es
+    notice.severity = data.severity
+    notice.starts_at = data.starts_at
+    notice.ends_at = data.ends_at
+    notice.is_active = data.is_active
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_UPDATE,
+        author=author,
+        target=audit.format_target(audit.TARGET_NOTICE, notice.id),
+        target_name=_display_name(notice.message_en, notice.message_es),
+        details=audit.diff(before, audit.snapshot(notice, NOTICE_FIELDS)),
+    )
+
+    db.commit()
+    db.refresh(notice)
+    return _notice_response(notice)
+
+
+@router.delete("/api/notices/{notice_id}", status_code=204, dependencies=write_guard)
+async def delete_notice(
+    notice_id: int,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: remove a notice for good."""
+    notice = db.execute(select(Notice).where(Notice.id == notice_id)).scalar_one_or_none()
+    if notice is None:
+        raise HTTPException(status_code=404, detail="Notice not found")
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_DELETE,
+        author=author,
+        target=audit.format_target(audit.TARGET_NOTICE, notice.id),
+        target_name=_display_name(notice.message_en, notice.message_es),
+        details=audit.snapshot(notice, NOTICE_FIELDS),
+    )
+
+    db.delete(notice)
     db.commit()
 
 

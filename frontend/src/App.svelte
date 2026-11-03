@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import Surf from './lib/Surf.svelte';
   import Menu from './lib/Menu.svelte';
+  import NoticeBanner from './lib/NoticeBanner.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
@@ -10,6 +11,7 @@
   let schedule = [];
   let closedDays = [];
   let menu = [];
+  let notices = [];
   let loading = true;
   let loadError = null;
 
@@ -56,6 +58,7 @@
       schedule = result.schedule;
       closedDays = result.closedDays;
       menu = result.menu;
+      notices = result.notices || [];
       // Only show the notice when we have data to display alongside it.
       loadError = result.error && schedule.length > 0 ? result.error : null;
     } catch (err) {
@@ -77,6 +80,8 @@
 </script>
 
 <svelte:window on:unmount={() => clearInterval(refreshInterval)} />
+
+<NoticeBanner {notices} {lang} />
 
 <header class="hero">
   <nav aria-label={$t.ui.mainNav}>

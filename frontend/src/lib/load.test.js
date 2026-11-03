@@ -22,11 +22,17 @@ const MENU = [
     items: [{ id: 1, category_id: 1, name_en: 'Cuba Libre', name_es: 'Cuba Libre', price: '4.00' }],
   },
 ];
+const NOTICES = [
+  { id: 1, message_en: 'Closed tonight.', message_es: 'Cerrado esta noche.', severity: 'warning', is_active: true, is_live: true },
+];
 
 function jsonResponse(body) {
   return vi.fn(async (url) => {
     const path = String(url);
-    const data = path.includes('closed-days') ? CLOSED : path.includes('/api/menu') ? { categories: MENU } : SCHEDULE;
+    const data = path.includes('closed-days') ? CLOSED
+      : path.includes('/api/notices') ? NOTICES
+      : path.includes('/api/menu') ? { categories: MENU }
+      : SCHEDULE;
     return { ok: true, status: 200, json: async () => data };
   });
 }
@@ -43,7 +49,7 @@ describe('load() and the server-rendered payload', () => {
   });
 
   it('uses the embedded payload without calling the API', async () => {
-    window.__MAREA_ALTA_DATA__ = { schedule: SCHEDULE, closedDays: CLOSED, menu: MENU };
+    window.__MAREA_ALTA_DATA__ = { schedule: SCHEDULE, closedDays: CLOSED, menu: MENU, notices: NOTICES };
     const fetchMock = jsonResponse();
     global.fetch = fetchMock;
 
@@ -53,6 +59,7 @@ describe('load() and the server-rendered payload', () => {
     expect(result.schedule).toEqual(SCHEDULE);
     expect(result.closedDays).toEqual(CLOSED);
     expect(result.menu).toEqual(MENU);
+    expect(result.notices).toEqual(NOTICES);
     expect(result.error).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -79,11 +86,12 @@ describe('load() and the server-rendered payload', () => {
     // Stands in for the hourly timer and the Refresh button.
     const refreshed = await load();
 
-    // The refresh fetches the schedule, the closures and the menu. The seeded
-    // first paint fetches nothing.
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    // The refresh fetches the schedule, the closures, the menu and the notices.
+    // The seeded first paint fetches nothing.
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(refreshed.schedule).toEqual(SCHEDULE);
     expect(refreshed.menu).toEqual(MENU);
+    expect(refreshed.notices).toEqual(NOTICES);
   });
 
   it('ignores an empty payload rather than showing a blank schedule', async () => {
@@ -103,9 +111,10 @@ describe('load() and the server-rendered payload', () => {
     const load = await freshLoad();
     const result = await load();
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(result.schedule).toEqual(SCHEDULE);
     expect(result.menu).toEqual(MENU);
+    expect(result.notices).toEqual(NOTICES);
   });
 
   it('survives a seed written before the menu existed', async () => {

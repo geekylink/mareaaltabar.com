@@ -96,21 +96,24 @@ async function load() {
       schedule: seed.schedule,
       closedDays: upcomingClosedDays(seed.closedDays || [], today),
       menu: seed.menu || [],
+      notices: seed.notices || [],
       error: null,
     };
     setCache(result);
     return result;
   }
   try {
-    const [schedule, closedDays, menu] = await Promise.all([
+    const [schedule, closedDays, menu, notices] = await Promise.all([
       fetchJSON('/api/schedule'),
       fetchJSON('/api/closed-days'),
       fetchJSON('/api/menu'),
+      fetchJSON('/api/notices'),
     ]);
     const result = {
       schedule,
       closedDays: upcomingClosedDays(closedDays, today),
       menu: (menu && menu.categories) || [],
+      notices: notices || [],
       error: null,
     };
     setCache(result);
@@ -122,10 +125,17 @@ async function load() {
         ...cached,
         closedDays: upcomingClosedDays(cached.closedDays || [], today),
         menu: cached.menu || [],
+        notices: cached.notices || [],
         error: 'Backend unreachable, showing cached data',
       };
     }
-    return { schedule: [], closedDays: [], menu: [], error: 'Failed to load the schedule' };
+    return {
+      schedule: [],
+      closedDays: [],
+      menu: [],
+      notices: [],
+      error: 'Failed to load the schedule',
+    };
   }
 }
 

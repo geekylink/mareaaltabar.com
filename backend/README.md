@@ -121,6 +121,12 @@ Once logged in at `/admin`, you can:
   - **On the menu** hides a drink or a whole section without deleting it. That is
     the reversible move for something sold out; delete is for something gone.
     A hidden drink is invisible on the site but still editable here.
+- **Emergency Notice** (`/admin/notices`): a short banner at the top of the
+  public site for a closure, a power cut or a last-minute change. Write it in
+  both languages, choose Info / Warning / Critical, and optionally set a start
+  and end time in bar time. **Turn off** pauses a notice without deleting it;
+  delete is for a notice that is no longer needed. Live notices are logged in the
+  schedule log as `notice:<id>`.
 - **Logs** (`/admin/logs`): a read-only page with three logs behind a menu bar —
   **Logins**, **Menu changes** and **Schedule changes**. Nothing on it can be
   edited or deleted, because no route accepts a change to a log.
@@ -191,6 +197,8 @@ back to English when a translation is blank.
 | `GET` | `/api/closed-days` | Public | One-off date closures, both languages, today and later |
 | `GET` | `/api/menu` | Public | The drinks menu: categories, items and promos, both languages |
 | `GET` | `/api/menu/all` | Admin | The same, plus items and categories switched off |
+| `GET` | `/api/notices` | Public | Live emergency notices: switched on and inside their window |
+| `GET` | `/api/notices/all` | Admin | Every notice, including paused, scheduled and expired ones |
 | `GET` | `/api/logs/logins` | Admin | Every login attempt, newest first (`?limit=`&middot;`?offset=`) |
 | `GET` | `/api/logs/menu` | Admin | Every change to the drinks menu |
 | `GET` | `/api/logs/schedule` | Admin | Every change to the week, closures included |
@@ -228,6 +236,9 @@ cheap, public, and deliberately does not expose the database error.
 | `POST` | `/api/menu/items` | Add a drink, with its promos |
 | `PUT` | `/api/menu/items/{id}` | Save a drink: copy, price, ingredients, promos, availability, category |
 | `DELETE` | `/api/menu/items/{id}` | Take a drink off the menu |
+| `POST` | `/api/notices` | Add an emergency notice |
+| `PUT` | `/api/notices/{id}` | Edit a notice, or switch it on/off |
+| `DELETE` | `/api/notices/{id}` | Delete a notice |
 
 **Every write above also writes a log row**, in the same transaction, through
 `change_author` + `audit.log_change`. See [Logs](#logs).

@@ -1,0 +1,13 @@
+{#- Styles for the server-rendered emergency banner, injected into <head>.
+
+    The SPA's CSS is built from Svelte's scoped styles, so none of it applies to
+    this markup. These rules cover the first paint and visitors without
+    JavaScript. -#}
+<style>
+  #marea-notices { display: grid; gap: 2px; }
+  #marea-notices .mn-notice { padding: .9rem 1.25rem; color: #fff; }
+  #marea-notices .mn-notice p { max-width: 68rem; margin: 0 auto; font-weight: 700; text-align: center; line-height: 1.4; }
+  #marea-notices .mn-info { background: #0b3c49; }
+  #marea-notices .mn-warning { background: #b45309; }
+  #marea-notices .mn-critical { background: #991b1b; }
+</style>

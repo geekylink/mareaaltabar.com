@@ -56,6 +56,7 @@ function mockFetch() {
   return vi.fn(async (url) => {
     const path = String(url);
     if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
+    if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
     if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
     return { ok: true, status: 200, json: async () => SCHEDULE };
   });
@@ -67,9 +68,11 @@ function mockFetchWithClosures(closedDays, schedule = WEEK) {
     const path = String(url);
     const body = path.includes('closed-days')
       ? closedDays
-      : path.includes('/api/menu')
-        ? { categories: MENU }
-        : schedule;
+      : path.includes('/api/notices')
+        ? []
+        : path.includes('/api/menu')
+          ? { categories: MENU }
+          : schedule;
     return { ok: true, status: 200, json: async () => body };
   });
 }
@@ -279,6 +282,7 @@ describe('App menu section', () => {
     // cannot see tonight's party can still see what things cost.
     global.fetch = vi.fn(async (url) => {
       const path = String(url);
+      if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
       if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
       return { ok: false, status: 500 };
     });

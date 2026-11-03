@@ -9,7 +9,7 @@ import re
 import unicodedata
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # One clock decides both what can be created and what gets published, so the
 # write guard asks the same `app.ssr` the read filter uses.
@@ -67,6 +67,74 @@ class ClosedDayResponse(BaseModel):
     date: str
     reason_en: str
     reason_es: str
+
+
+# --- Emergency notices ---
+
+NOTICE_SEVERITIES = ("info", "warning", "critical")
+
+# `datetime-local` without seconds: what the admin panel's input emits.
+_NOTICE_TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$")
+
+
+class NoticeWrite(BaseModel):
+    """Admin write payload for one emergency banner.
+
+    At least one language must carry a message: a blank banner would occupy the
+    top of the site without telling anyone anything. The window is optional at
+    both ends — blank start means "now", blank end means "until switched off".
+    """
+
+    message_en: str = Field(default="", max_length=500)
+    message_es: str = Field(default="", max_length=500)
+    severity: str = Field(default="info", max_length=16)
+    starts_at: str = Field(default="", max_length=16)
+    ends_at: str = Field(default="", max_length=16)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def _check_values(self):
+        if not (self.message_en.strip() or self.message_es.strip()):
+            raise ValueError("a notice needs a message in at least one language")
+
+        if self.severity not in NOTICE_SEVERITIES:
+            raise ValueError("severity must be info, warning or critical")
+
+        for field in ("starts_at", "ends_at"):
+            value = getattr(self, field).strip()
+            if not value:
+                setattr(self, field, "")
+                continue
+            if not _NOTICE_TIME_RE.fullmatch(value):
+                raise ValueError(f"{field} must be YYYY-MM-DDTHH:MM")
+            try:
+                datetime.fromisoformat(value)
+            except ValueError as exc:
+                raise ValueError(f"{field} is not a valid date and time") from exc
+            setattr(self, field, value)
+
+        if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
+            raise ValueError("ends_at must be after starts_at")
+
+        return self
+
+
+class NoticeResponse(BaseModel):
+    """One notice, with ``is_live`` computed at read time.
+
+    ``is_live`` is the answer to "is this on the site right now?" — active *and*
+    inside its window — which is what the admin list needs in order to explain
+    why a notice that exists is not showing.
+    """
+
+    id: int
+    message_en: str
+    message_es: str
+    severity: str
+    starts_at: str
+    ends_at: str
+    is_active: bool
+    is_live: bool = False
 
 
 # --- Menu ---

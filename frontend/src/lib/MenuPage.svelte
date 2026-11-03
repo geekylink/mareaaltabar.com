@@ -1,6 +1,7 @@
 <script>
   import { onDestroy } from 'svelte';
   import Menu from './Menu.svelte';
+  import NoticeBanner from './NoticeBanner.svelte';
   import { t, locale, LANGS } from './i18n.js';
   import { BAR } from './data.js';
   import { load } from './api.js';
@@ -9,6 +10,7 @@
   // section on the homepage, on a document of its own so the URL can be shared
   // and indexed separately — this is the page to post on Instagram or WhatsApp.
   let categories = [];
+  let notices = [];
   let loading = true;
   let error = null;
 
@@ -24,6 +26,7 @@
     try {
       const result = await load();
       categories = result.menu;
+      notices = result.notices || [];
     } catch (err) {
       error = err.message;
     } finally {
@@ -35,6 +38,8 @@
   const refreshTimer = setInterval(loadData, 60 * 60 * 1000);
   onDestroy(() => clearInterval(refreshTimer));
 </script>
+
+<NoticeBanner {notices} {lang} />
 
 <header>
   <nav aria-label={$t.ui.mainNav}>

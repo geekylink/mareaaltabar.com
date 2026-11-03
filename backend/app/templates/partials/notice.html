@@ -1,0 +1,15 @@
+{#- Server-rendered emergency notices, injected before the schedule (homepage)
+    and before the menu (/menu) so a closure reaches crawlers and visitors
+    without JavaScript. Replaced by the SPA on mount.
+
+    Context: ssr.build_payload(). Messages are admin-entered content and are
+    auto-escaped here, which is what keeps them from becoming markup. -#}
+{% if notices %}
+<div id="marea-notices">
+  {% for notice in notices %}
+  <div class="mn-notice mn-{{ notice.severity }}" role="{{ 'alert' if notice.severity == 'critical' else 'status' }}">
+    <p>{{ notice.message }}</p>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
