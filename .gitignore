@@ -35,6 +35,8 @@ backend/data/
 # Build / Output
 repomix-output.xml
 *.log
+# Local backups (the script writes to /var/backups by default)
+backups/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/

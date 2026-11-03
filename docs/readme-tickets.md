@@ -32,7 +32,6 @@ Project manager note:
 - [Tier 0 — Ship It](#tier-0--ship-it)
   - [41. Deploy the backend to production (VPS)](#41-deploy-the-backend-to-production-vps)
   - [36. CI/CD rebuild](#36-cicd-rebuild)
-  - [38. Automated database backups & restore drill](#38-automated-database-backups--restore-drill)
   - [45. Security headers: HSTS & CSP](#45-security-headers-hsts--csp)
 - [Tier 1 — Get Found](#tier-1--get-found)
   - [5. Add structured data (Schema.org LocalBusiness)](#5-add-structured-data-schemaorg-localbusiness)
@@ -111,15 +110,6 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 The current workflow is broken rather than merely basic. It runs `npm ci` and `npm run build` at the repository root, where there is no `package.json`, then uploads `./dist` — a path that stopped existing when the project moved into `frontend/`. It also targets GitHub Pages, which can never host the API. Replace it with a pipeline that matches the architecture chosen in #41: build the frontend in `frontend/`, run both test suites (see #35), then deploy to the VPS over SSH. Add lint and type-check gates — `svelte-check` on the frontend, `ruff` on the backend — so a broken build cannot reach the server. Add `.github/workflows/ci.yml` for pull requests that runs checks without deploying.
 
 **Files:** `.github/workflows/deploy.yml` (rewrite), new `.github/workflows/ci.yml`, `frontend/package.json` (add `lint`, `check` scripts), `backend/requirements.txt` (add `ruff`)
-
----
-
-### 38. Automated database backups & restore drill
-**Impact:** 🔴 · **Effort:** 🟢 · **Category:** DevOps
-
-This ticket used to be conditional — "if using a CMS or database, implement automated backups" — because a static site had nothing to lose. That condition is now always true, and the risk is live: `backend/.gitignore` excludes `backend/data/`, so the SQLite file containing the schedule, hours, and closures exists on exactly one disk with no copy. Use `sqlite3 .backup` (not `cp`, which can capture a torn write) on a nightly cron, retain 14–30 days, and ship copies off the VPS. Then **actually restore from a backup into a scratch directory and confirm the schedule comes back** — an untested backup is not a backup. Document both halves in the runbook from #44.
-
-**Files:** new `scripts/backup.sh`, new `docs/deployment.md` (restore section), `.gitignore`
 
 ---
 
@@ -560,7 +550,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
 | ✅ | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
 | | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
-| | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
+| ✅ | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
 | ✅ | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
 | | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
 | ✅ | 46 | Server-render schedule & hours for crawlers | 🔴 | 🟡 | SEO |
@@ -619,7 +609,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 **The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
-Tickets 41, ~~42~~, ~~43~~, ~~44~~, 38, 45.
+Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, 45.
 *Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42–#44 are done — the closed-day bugs are fixed, SQLite is hardened, and the production environment is documented. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
@@ -651,6 +641,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Automated database backups and restore drill (#38)
+**Shipped** — `scripts/backup.py` copies the SQLite database through `sqlite3.Connection.backup()`, the same consistent-snapshot mechanism as `sqlite3 .backup`, so a write in progress cannot tear the copy. `scripts/backup.sh` is the cron-friendly wrapper. Each run writes `marea_alta-YYYY-MM-DD.db` and a monthly `marea_alta-YYYY-MM.db`, verifies every file with `PRAGMA integrity_check` before atomically replacing the destination, and prunes only files matching those patterns — a stray file in the backup directory is left alone. Retention defaults to 14 daily and 12 monthly copies, adjustable with `--retain-days` and `--retain-months`; `--verify` re-checks one file or every backup in the directory. `docs/deployment.md` replaces the manual `sqlite3` recipe with the script, a nightly cron line, the off-box copy step and a restore drill that restores into a scratch database and confirms the schedule before touching the live file. `backend/tests/test_backup.py` covers the copy, a full restore, same-day replacement, retention bounds, unrelated files and corrupt-backup rejection.
 
 ## SQLite concurrency hardening (#43)
 **Shipped** — `app/database.py` now builds the engine through `create_db_engine()`, which applies `journal_mode=WAL`, a 30-second `busy_timeout` and `foreign_keys=ON` on every connection. A second writer waits for the lock instead of raising `database is locked`, and readers keep working while a writer commits. The app still runs **one worker**; WAL improves the failure mode, it does not make SQLite multi-writer. `backend/README.md` no longer advertises `--workers 4`, and `backend/tests/test_concurrency.py` asserts the pragmas and drives four separate sessions writing at once.

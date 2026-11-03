@@ -159,32 +159,68 @@ curl -fsS https://mareaaltabar.com/healthz
 
 ## Backups and restore
 
-Back up the SQLite file, not the directory tree, and do it while the app is
-running with SQLite's own backup command so a write cannot tear the copy:
+The SQLite file is the bar's only copy of the schedule, hours, closures and
+menu. [`scripts/backup.sh`](../scripts/backup.py) copies it with SQLite's own
+backup API — not `cp`, which can capture a torn write — verifies every copy with
+`PRAGMA integrity_check`, and prunes old files by date.
 
 ```bash
 sudo install -d -o mareaalta -g mareaalta -m 750 /var/backups/marea-alta
-sudo -u mareaalta sqlite3 /var/lib/marea-alta/marea_alta.db \
-  ".backup '/var/backups/marea-alta/marea_alta-$(date +%F).db'"
+
+sudo -u mareaalta /opt/marea-alta/scripts/backup.sh \
+  --database /var/lib/marea-alta/marea_alta.db \
+  --backup-dir /var/backups/marea-alta \
+  --retain-days 30 --retain-months 12
+```
+
+It writes two files per run:
+
+```
+marea_alta-2026-11-03.db   # daily, kept for --retain-days
+marea_alta-2026-11.db      # monthly, kept for --retain-months
+```
+
+The daily file is overwritten on each run that day, so the last run wins. The
+monthly file is refreshed too, so it always holds the latest backup of its month.
+Both live on the same disk until you copy them off the box, which is the point —
+a backup on the disk that failed is not a backup:
+
+```bash
+rsync -a --delete /var/backups/marea-alta/ backup@other-host:/srv/marea-alta/
 ```
 
 A nightly cron entry is enough:
 
 ```cron
-15 4 * * * mareaalta sqlite3 /var/lib/marea-alta/marea_alta.db ".backup '/var/backups/marea-alta/marea_alta-$(date +\%F).db'"
+15 4 * * * mareaalta /opt/marea-alta/scripts/backup.sh --database /var/lib/marea-alta/marea_alta.db --backup-dir /var/backups/marea-alta >> /var/log/marea-backup.log 2>&1
 ```
 
-Keep more than one day. A copy from yesterday does not help if the database was
-already broken then; keep at least 14 daily files and one monthly file off the
-box. `sqlite3 .backup` is safe while uvicorn is writing.
-
-Restore drill — run this before you need it:
+Check that the most recent run is good at any time — this reads every backup in
+the directory and fails loudly on a truncated or corrupt one:
 
 ```bash
-# Stop the app so nothing writes during the swap.
+scripts/backup.sh --database /var/lib/marea-alta/marea_alta.db \
+  --backup-dir /var/backups/marea-alta --verify
+```
+
+Restore drill — run this before you need it, into a scratch directory, and
+confirm the schedule comes back:
+
+```bash
+# 1. Restore the candidate into a scratch copy, not over the live file.
+sudo -u mareaalta cp /var/backups/marea-alta/marea_alta-2026-11-03.db \
+  /tmp/marea-restore-check.db
+sudo -u mareaalta sqlite3 /tmp/marea-restore-check.db \
+  "SELECT day, title_en FROM events ORDER BY day;"
+```
+
+If the rows look right, do the real swap with the app stopped so nothing writes
+during it:
+
+```bash
 sudo systemctl stop marea-alta
 
-sudo -u mareaalta cp /var/backups/marea-alta/marea_alta-2026-01-01.db \
+sudo -u mareaalta cp /var/backups/marea-alta/marea_alta-2026-11-03.db \
   /var/lib/marea-alta/marea_alta.db
 sudo -u mareaalta chmod 640 /var/lib/marea-alta/marea_alta.db
 
@@ -195,7 +231,8 @@ curl -fsS https://mareaaltabar.com/healthz
 After restoring, check the site and the admin panel, and confirm the
 `-wal`/`-shm` files are gone or regenerated rather than a stale pair being left
 from the old database. Copying a database file while the service is running is
-the one thing to avoid; `.backup` exists precisely to make that unnecessary.
+the one thing to avoid; the backup script exists precisely to make that
+unnecessary.
 
 ## Deploy checklist
 
