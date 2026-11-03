@@ -514,15 +514,16 @@ def menu_json_ld(payload: dict) -> dict:
     }
 
 
-def render_menu_json_ld(payload: dict) -> str:
+def render_menu_json_ld(payload: dict, nonce: str) -> str:
     """The ``<script type="application/ld+json">`` block for ``/menu``.
 
     Escaping goes through the same helper as the data seed: every ``<`` becomes
     ``\\u003c``, which is still valid JSON, so an admin-entered item name cannot
-    close the script element early.
+    close the script element early. The nonce is there for the same CSP rule that
+    covers every other inline script in the document.
     """
     return (
-        '<script type="application/ld+json">'
+        f'<script type="application/ld+json" nonce="{nonce}">'
         f"{_json_for_script(menu_json_ld(payload))}"
         "</script>"
     )
@@ -580,6 +581,7 @@ def _inject(
     blocks: list[str],
     styles: str,
     name: str,
+    nonce: str,
     head_extra: str = "",
 ) -> str:
     """Put rendered blocks and the data seed inside ``<div id="app">``.
@@ -587,7 +589,9 @@ def _inject(
     Shared by the homepage and ``/menu`` so both documents are assembled the same
     way: find the mount point, drop the blocks in ahead of the seed script, and
     put their styles in the head. ``head_extra`` carries document-level metadata
-    that has to sit in the head, currently the menu's JSON-LD.
+    that has to sit in the head, currently the menu's JSON-LD. ``nonce`` is the
+    request's CSP nonce: every inline ``<script>`` this function emits must carry
+    it or the browser refuses to run the seed.
     """
     head = html.find(HEAD_CLOSE)
     start = html.find(APP_MOUNT)
@@ -598,7 +602,10 @@ def _inject(
             "cannot be injected, so it must not be served."
         )
 
-    seed = f'<script>window.__MAREA_ALTA_DATA__={_json_seed(payload["seed"])}</script>'
+    seed = (
+        f'<script nonce="{nonce}">'
+        f"window.__MAREA_ALTA_DATA__={_json_seed(payload['seed'])}</script>"
+    )
     filled = f'<div id="app">{"".join(blocks)}{seed}</div>'
 
     html = html[:start] + filled + html[start + len(APP_MOUNT) :]
@@ -606,7 +613,7 @@ def _inject(
     return html[:head] + styles + head_extra + html[head:]
 
 
-def render_index_html(index_html: str, payload: dict) -> str:
+def render_index_html(index_html: str, payload: dict, nonce: str) -> str:
     """Inject the notice, schedule and menu blocks, styles and data seed."""
     return _inject(
         index_html,
@@ -618,10 +625,11 @@ def render_index_html(index_html: str, payload: dict) -> str:
         ],
         render_notice_styles() + render_schedule_styles() + render_menu_styles(),
         "index.html",
+        nonce,
     )
 
 
-def render_menu_html(menu_html: str, payload: dict) -> str:
+def render_menu_html(menu_html: str, payload: dict, nonce: str) -> str:
     """The same treatment for the standalone menu document, minus the schedule.
 
     This is the page that carries the ``Menu`` JSON-LD: it is the dedicated,
@@ -634,15 +642,20 @@ def render_menu_html(menu_html: str, payload: dict) -> str:
         [render_notice_block(payload), render_menu_block(payload)],
         render_notice_styles() + render_menu_styles(),
         "menu.html",
-        render_menu_json_ld(payload),
+        nonce,
+        render_menu_json_ld(payload, nonce),
     )
 
 
-def render_index(db: DBSession, lang: str) -> str:
+def render_index(db: DBSession, lang: str, nonce: str) -> str:
     """Read the built index.html and return it with the schedule and menu rendered in."""
-    return render_index_html(INDEX_HTML.read_text(encoding="utf-8"), build_payload(db, lang))
+    return render_index_html(
+        INDEX_HTML.read_text(encoding="utf-8"), build_payload(db, lang), nonce
+    )
 
 
-def render_menu(db: DBSession, lang: str) -> str:
+def render_menu(db: DBSession, lang: str, nonce: str) -> str:
     """Read the built menu.html and return it with the menu rendered in."""
-    return render_menu_html(MENU_HTML.read_text(encoding="utf-8"), build_payload(db, lang))
+    return render_menu_html(
+        MENU_HTML.read_text(encoding="utf-8"), build_payload(db, lang), nonce
+    )

@@ -371,9 +371,9 @@ covered by the migration tests, which build their schema from the models.
 - **CSRF protection**: Double-submit cookie pattern on all state-changing requests
 - **Rate limiting**: 5 *failed* login attempts per 10 minutes per IP (successes don't count, so regular use never locks anyone out)
 - **Authorization**: Read endpoints are public; all writes and the entire admin panel require a session
-- **Security headers**: X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+- **Security headers**: CSP with a per-response script nonce, Permissions-Policy, X-Content-Type-Options, X-Frame-Options and Referrer-Policy; HSTS in production
 - **SQL injection**: SQLAlchemy 2.0 parameterized queries
-- **XSS**: Jinja2 auto-escaping, no inline scripts
+- **XSS**: Jinja2 auto-escaping, and `script-src` allows no `'unsafe-inline'` — every inline `<script>` must carry `request.state.csp_nonce` (templates) or the `nonce` passed to `app.ssr` (server-rendered blocks)
 - **Logs are append-only and read-only over HTTP**: no route writes to
   `login_attempts` or `audit_log` except the retention purge, the log reads are
   session-guarded, and **no password is ever passed to the logger** — so it

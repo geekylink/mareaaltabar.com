@@ -32,7 +32,7 @@ DAILY_LOG_PURGE=true
 
 | Variable | Production value | Why |
 |---|---|---|
-| `ENVIRONMENT` | `production` | Disables `/docs` and `/openapi.json` |
+| `ENVIRONMENT` | `production` | Disables `/docs` and `/openapi.json`, and turns on HSTS |
 | `DATABASE_PATH` | Absolute path outside the repo | Survives deploys and is easy to back up |
 | `COOKIE_SECURE` | `true` | Session cookies are only sent over HTTPS |
 | `SESSION_TTL_HOURS` | `8` | A shift-length session; lower it if the panel is shared |
@@ -120,6 +120,49 @@ The session cookie is `HttpOnly`, `SameSite=Lax` and (with the flag above)
 `Secure`. The CSRF cookie is readable by JavaScript on purpose; the API requires
 its value in the `X-CSRF-Token` header and the HTML forms carry it in a hidden
 field.
+
+## Security headers
+
+FastAPI sets these on every response in `backend/app/main.py`; nginx should pass
+them through rather than adding a second copy of any of them:
+
+| Header | What it does |
+|---|---|
+| `Content-Security-Policy` | `default-src 'self'`; scripts only from this origin or with the response's nonce; Google Fonts and the two Open-Meteo hosts are the only external origins |
+| `Permissions-Policy` | Turns off camera, microphone, geolocation, payment and the other device APIs the site does not use |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` — the admin panel cannot be framed |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Strict-Transport-Security` | Production only: one year, `includeSubDomains` |
+
+**HSTS is production-only for a reason.** Once a browser sees it, it refuses
+plain HTTP for the host for a year, so serve it only after nginx terminates TLS
+and redirects HTTP correctly. The app checks `ENVIRONMENT=production`. If any
+subdomain is not HTTPS, drop `includeSubDomains` before enabling it.
+
+**The CSP is nonce-based for scripts.** Each response gets a fresh
+`secrets.token_urlsafe(16)` nonce, the header advertises it, and every inline
+`<script>` carries the same value. In Jinja templates that is:
+
+```html
+<script nonce="{{ request.state.csp_nonce }}">
+```
+
+and in `app/ssr.py` the nonce is passed into `render_index` / `render_menu`.
+`script-src` has no `'unsafe-inline'` and no `'unsafe-eval'`, so a script added
+without the nonce will silently never run — check the browser console after
+touching a template. `style-src` does allow `'unsafe-inline'` because the admin
+templates use inline `style=` attributes, which cannot carry a nonce.
+
+The FastAPI `/docs` page is exempt in development only: it loads Swagger UI from
+a CDN and bootstraps it with an inline script. It is disabled in production.
+
+Check the headers after a deploy:
+
+```bash
+curl -sI https://mareaaltabar.com/ \
+  | grep -iE 'content-security-policy|strict-transport-security|permissions-policy'
+```
 
 ## Run one worker
 

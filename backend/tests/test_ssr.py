@@ -44,6 +44,10 @@ BUILT_MENU = (
     "  </body>\n</html>\n"
 )
 
+# A fixed CSP nonce for the direct-render tests. The route tests get a fresh one
+# from the middleware; these call `render_*_html` without a request.
+NONCE = "test-nonce"
+
 
 @pytest.fixture()
 def site(client, monkeypatch, tmp_path):
@@ -222,7 +226,7 @@ def test_payload_carries_todays_closure_in_the_seed(db_session):
 
 
 def test_render_index_injects_inside_the_mount_point(db_session):
-    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"))
+    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"), NONCE)
     assert '<div id="app"><div id="marea-schedule">' in html
     assert html.count('<div id="app">') == 1
     assert html.index("marea-schedule") < html.index("index-abc.js")
@@ -234,7 +238,7 @@ def test_rendered_html_is_balanced(db_session):
     A stray closing tag does not fail a test, a browser or a crawler — it just
     quietly changes what the rest of the document means.
     """
-    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"))
+    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"), NONCE)
     assert tags_are_balanced(html)
 
 
@@ -255,7 +259,7 @@ def tags_are_balanced(html: str) -> bool:
 
 
 def test_render_index_puts_the_styles_in_the_head(db_session):
-    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"))
+    html = render_index_html(BUILT_INDEX, build_payload(db_session, "en"), NONCE)
     assert html.index("#marea-schedule") < html.index("</head>")
 
 
@@ -263,9 +267,9 @@ def test_render_index_refuses_a_shell_it_cannot_find(db_session):
     """A silently empty schedule is worse than a loud failure."""
     with pytest.raises(RuntimeError):
         render_index_html("<html><body><div id=app></div></body></html>",
-                          build_payload(db_session, "en"))
+                          build_payload(db_session, "en"), NONCE)
     with pytest.raises(RuntimeError):
-        render_index_html('<div id="app"></div>', build_payload(db_session, "en"))
+        render_index_html('<div id="app"></div>', build_payload(db_session, "en"), NONCE)
 
 
 def test_seed_json_cannot_close_its_own_script_tag(db_session):
@@ -273,7 +277,7 @@ def test_seed_json_cannot_close_its_own_script_tag(db_session):
     payload = build_payload(db_session, "en")
     payload["seed"] = {"title": "</script><script>alert(1)</script>"}
 
-    html = render_index_html(BUILT_INDEX, payload)
+    html = render_index_html(BUILT_INDEX, payload, NONCE)
     # Non-greedy: stops at the real closing tag, so this only matches if the
     # payload cannot smuggle one in.
     seed = re.search(r"__MAREA_ALTA_DATA__=(.*?)</script>", html, re.DOTALL)
@@ -290,7 +294,7 @@ def test_seed_json_stays_parseable_with_markup_in_it(db_session):
     payload = build_payload(db_session, "en")
     payload["seed"] = {"note": nasty}
 
-    html = render_index_html(BUILT_INDEX, payload)
+    html = render_index_html(BUILT_INDEX, payload, NONCE)
     seed = re.search(r"__MAREA_ALTA_DATA__=(.*?)</script>", html, re.DOTALL)
     assert "<!--" not in seed.group(1)
     assert json.loads(seed.group(1))["note"] == nasty
@@ -307,7 +311,7 @@ def schedule_block(html: str) -> str:
     without a request), so language assertions have to look at the block alone.
     """
     start = html.index('<div id="marea-schedule">')
-    for marker in ('<div id="marea-menu">', "<script>window.__MAREA_ALTA_DATA__"):
+    for marker in ('<div id="marea-menu">', "window.__MAREA_ALTA_DATA__"):
         end = html.find(marker, start)
         if end != -1:
             return html[start:end]
@@ -495,7 +499,7 @@ def test_the_api_and_the_rendered_html_agree(site):
 def menu_block(html: str) -> str:
     """The rendered menu only, without the seed that carries both languages."""
     start = html.index('<div id="marea-menu">')
-    end = html.find("<script>window.__MAREA_ALTA_DATA__", start)
+    end = html.find("window.__MAREA_ALTA_DATA__", start)
     return html[start:end] if end != -1 else html[start:]
 
 
@@ -674,11 +678,11 @@ def test_the_menu_route_reports_a_missing_build(client, monkeypatch, tmp_path):
 def test_render_menu_refuses_a_shell_it_cannot_find(db_session):
     """A silently empty menu is worse than a loud failure."""
     with pytest.raises(RuntimeError):
-        render_menu_html("<html><body></body></html>", build_payload(db_session, "en"))
+        render_menu_html("<html><body></body></html>", build_payload(db_session, "en"), NONCE)
 
 
 def test_render_menu_injects_inside_the_mount_point(db_session):
-    html = render_menu_html(BUILT_MENU, build_payload(db_session, "en"))
+    html = render_menu_html(BUILT_MENU, build_payload(db_session, "en"), NONCE)
     assert '<div id="app"><div id="marea-menu">' in html
     assert html.count('<div id="app">') == 1
     assert tags_are_balanced(html)
@@ -700,7 +704,7 @@ def test_load_menu_hides_what_the_public_may_not_see(db_session):
 def json_ld_block(html: str) -> dict:
     """The ``Menu`` graph, decoded from the document Google will read."""
     match = re.search(
-        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+        r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, re.DOTALL
     )
     assert match is not None, "the menu route emitted no JSON-LD"
     return json.loads(match.group(1))

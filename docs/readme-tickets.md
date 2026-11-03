@@ -32,7 +32,6 @@ Project manager note:
 - [Tier 0 — Ship It](#tier-0--ship-it)
   - [41. Deploy the backend to production (VPS)](#41-deploy-the-backend-to-production-vps)
   - [36. CI/CD rebuild](#36-cicd-rebuild)
-  - [45. Security headers: HSTS & CSP](#45-security-headers-hsts--csp)
 - [Tier 1 — Get Found](#tier-1--get-found)
   - [5. Add structured data (Schema.org LocalBusiness)](#5-add-structured-data-schemaorg-localbusiness)
   - [6. Display phone number and address prominently](#6-display-phone-number-and-address-prominently)
@@ -109,15 +108,6 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 The current workflow is broken rather than merely basic. It runs `npm ci` and `npm run build` at the repository root, where there is no `package.json`, then uploads `./dist` — a path that stopped existing when the project moved into `frontend/`. It also targets GitHub Pages, which can never host the API. Replace it with a pipeline that matches the architecture chosen in #41: build the frontend in `frontend/`, run both test suites (see #35), then deploy to the VPS over SSH. Add lint and type-check gates — `svelte-check` on the frontend, `ruff` on the backend — so a broken build cannot reach the server. Add `.github/workflows/ci.yml` for pull requests that runs checks without deploying.
 
 **Files:** `.github/workflows/deploy.yml` (rewrite), new `.github/workflows/ci.yml`, `frontend/package.json` (add `lint`, `check` scripts), `backend/requirements.txt` (add `ruff`)
-
----
-
-### 45. Security headers: HSTS & CSP
-**Impact:** 🟠 · **Effort:** 🟢 · **Category:** Security
-
-`app/main.py` sets three headers — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` — which is a good start. Two are now missing that matter more than they used to. **HSTS** should be added once #41's TLS is live, so browsers stop offering to load the admin panel over plaintext. **Content-Security-Policy** was optional for a static site but is worth real attention now: the admin panel holds a session cookie and posts CSRF-protected forms, so a CSP blocks a whole class of injection. Build it incrementally with `default-src 'self'` and add exceptions for the Google Fonts stylesheet and the Open-Meteo endpoints that `Surf.svelte` calls. Add `Permissions-Policy` while in there.
-
-**Files:** `backend/app/main.py` (middleware), `backend/tests/` (header assertions)
 
 ---
 
@@ -542,7 +532,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
 | ✅ | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
 | ✅ | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
-| | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
+| ✅ | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
 | ✅ | 46 | Server-render schedule & hours for crawlers | 🔴 | 🟡 | SEO |
 | | 5 | Add structured data (Schema.org) | 🟠 | 🟢 | SEO |
 | | 6 | Display phone number and address | 🔴 | 🟢 | UX |
@@ -599,8 +589,8 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 **The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
-Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, 45.
-*Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42–#44 are done — the closed-day bugs are fixed, SQLite is hardened, and the production environment is documented. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
+Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, ~~45~~.
+*Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42–#45 are done — the closed-day bugs are fixed, SQLite is hardened, the production environment is documented and the security headers ship. Only #41 remains, and none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
 Tickets 36, ~~39~~, 35.
@@ -631,6 +621,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Security headers: HSTS and CSP (#45)
+**Shipped** — `app/main.py` generates a fresh `secrets.token_urlsafe(16)` nonce for every response, stores it on `request.state.csp_nonce`, and sends a CSP with `default-src 'self'`, no `'unsafe-inline'` or `'unsafe-eval'` in `script-src`, and explicit allowlists for Google Fonts (`style-src`, `font-src`) and both Open-Meteo hosts (`connect-src`). Every inline `<script>` in the login and admin templates, plus the server-rendered data seed and menu JSON-LD, carries that nonce; `ssr.render_index` and `ssr.render_menu` take it as an argument. `Permissions-Policy` turns off camera, microphone, geolocation, payment, USB and the other device APIs the site does not use. HSTS (`max-age=31536000; includeSubDomains`) is sent only when `ENVIRONMENT=production`, so a plain-HTTP development server cannot poison localhost. Swagger UI is exempt from the CSP in development because it loads from a CDN, and is disabled in production anyway. `backend/tests/test_security_headers.py` asserts the header set, the script policy, the external allowlists, a fresh nonce per response, matching nonces on the homepage, menu JSON-LD and every admin page, the production-only HSTS, and the docs exemption.
 
 ## Automated database backups and restore drill (#38)
 **Shipped** — `scripts/backup.py` copies the SQLite database through `sqlite3.Connection.backup()`, the same consistent-snapshot mechanism as `sqlite3 .backup`, so a write in progress cannot tear the copy. `scripts/backup.sh` is the cron-friendly wrapper. Each run writes `marea_alta-YYYY-MM-DD.db` and a monthly `marea_alta-YYYY-MM.db`, verifies every file with `PRAGMA integrity_check` before atomically replacing the destination, and prunes only files matching those patterns — a stray file in the backup directory is left alone. Retention defaults to 14 daily and 12 monthly copies, adjustable with `--retain-days` and `--retain-months`; `--verify` re-checks one file or every backup in the directory. `docs/deployment.md` replaces the manual `sqlite3` recipe with the script, a nightly cron line, the off-box copy step and a restore drill that restores into a scratch database and confirms the schedule before touching the live file. `backend/tests/test_backup.py` covers the copy, a full restore, same-day replacement, retention bounds, unrelated files and corrupt-backup rejection.

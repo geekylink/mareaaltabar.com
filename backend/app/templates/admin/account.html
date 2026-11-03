@@ -180,12 +180,12 @@
         </div>
     </main>
 
-    <script>
+    <script nonce="{{ request.state.csp_nonce }}">
         window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
         window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
     </script>
     <script src="/admin/static/admin_i18n.js"></script>
-    <script>
+    <script nonce="{{ request.state.csp_nonce }}">
         function syncLangButtons() {
             document.querySelectorAll('.lang-switch button').forEach(function (b) {
                 b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
