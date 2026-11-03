@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DATABASE_PATH: str = str(BACKEND_DIR / "data" / "marea_alta.db")
 
-    # Security
-    SECRET_KEY: str = ""
+    # Security. There is deliberately no application secret: sessions are
+    # cryptographically random tokens stored in the `sessions` table, so there
+    # is nothing for a SECRET_KEY to sign and nothing to rotate.
     SESSION_TTL_HOURS: int = 8
     COOKIE_SECURE: bool = True
 

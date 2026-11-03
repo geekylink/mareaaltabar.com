@@ -10,9 +10,32 @@ from sqlalchemy.orm import Session as DBSession
 from app.config import settings
 from app.models import Admin, Session
 
+# The account page asks for at least this much. bcrypt also refuses inputs longer
+# than 72 bytes, so the upper bound is enforced here rather than turning into a
+# 500 when someone pastes a passphrase.
+MIN_PASSWORD_LENGTH = 8
+MAX_PASSWORD_BYTES = 72
+
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def password_problem(password: str) -> str | None:
+    """The first rule ``password`` breaks, or ``None`` when it is acceptable.
+
+    Returning a code rather than a sentence lets the account page translate the
+    message, and keeps the rule in one place instead of repeated in the router.
+    """
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return "too_short"
+    if len(password.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        return "too_long"
+    if not any(character.isalpha() for character in password):
+        return "needs_letter"
+    if not any(character.isdigit() for character in password):
+        return "needs_digit"
+    return None
 
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -65,6 +88,24 @@ def get_session(db: DBSession, token: str) -> Session | None:
 def delete_session(db: DBSession, token: str) -> None:
     db.execute(delete(Session).where(Session.token == token))
     db.commit()
+
+
+def delete_other_sessions(db: DBSession, admin_id: int, keep_token: str) -> int:
+    """Sign an admin out everywhere except the session making the change.
+
+    Called after a password change. The current session is kept so the admin is
+    not thrown out of the page they just used, but every other browser — or a
+    stolen cookie — stops working. The delete shares the caller's transaction,
+    so the new password hash and the revocation commit together.
+    """
+    result = db.execute(
+        delete(Session).where(
+            Session.admin_id == admin_id,
+            Session.token != keep_token,
+        )
+    )
+    db.commit()
+    return result.rowcount or 0
 
 
 def cleanup_expired_sessions(db: DBSession) -> int:

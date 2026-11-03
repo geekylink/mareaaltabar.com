@@ -31,7 +31,6 @@ Project manager note:
 
 - [Tier 0 — Ship It](#tier-0--ship-it)
   - [41. Deploy the backend to production (VPS)](#41-deploy-the-backend-to-production-vps)
-  - [44. Production environment & secrets runbook](#44-production-environment--secrets-runbook)
   - [36. CI/CD rebuild](#36-cicd-rebuild)
   - [38. Automated database backups & restore drill](#38-automated-database-backups--restore-drill)
   - [45. Security headers: HSTS & CSP](#45-security-headers-hsts--csp)
@@ -46,7 +45,6 @@ Project manager note:
 - [Tier 2 — Sell the Drinks](#tier-2--sell-the-drinks)
   - [17. Content tables for promos, packages & gallery](#17-content-tables-for-promos-packages--gallery)
   - [16. Create separate menu page (multi-page structure)](#16-create-separate-menu-page-multi-page-structure)
-  - [49. Menu SEO (Menu schema & indexable menu route)](#49-menu-seo-menu-schema--indexable-menu-route)
   - [7. Add happy hour / daily promos section](#7-add-happy-hour--daily-promos-section)
   - [18. Add drink pricing and descriptions](#18-add-drink-pricing-and-descriptions)
   - [11. Add food menu section](#11-add-food-menu-section)
@@ -77,7 +75,6 @@ Project manager note:
 - [Tier 5 — Operate & Polish](#tier-5--operate--polish)
   - [35. Expand automated testing](#35-expand-automated-testing)
   - [37. Add error tracking (Sentry)](#37-add-error-tracking-sentry)
-  - [54. Admin password change & second admin](#54-admin-password-change--second-admin)
   - [55. Audit log of admin edits](#55-audit-log-of-admin-edits)
   - [33. Accessibility pass](#33-accessibility-pass)
   - [34. Performance optimizations](#34-performance-optimizations)
@@ -105,15 +102,6 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 **Since #46:** nginx must proxy `/` to uvicorn rather than serving `dist/index.html` itself — serving the file directly bypasses the server-rendered schedule and puts the hours back out of reach of crawlers. **Since #1 the same applies to `/menu`**, or the drinks disappear from the crawler's view too. `/assets/` can still be served from disk with a long cache lifetime.
 
 **Files:** new `deploy/marea-alta.service`, new `deploy/nginx.conf`, `backend/README.md` (deploy section), `backend/.env`
-
----
-
-### 44. Production environment & secrets runbook
-**Impact:** 🟠 · **Effort:** 🟢 · **Category:** Operations
-
-There is no documented production environment, and the config is actively misleading. `SECRET_KEY` is declared in `backend/app/config.py` and documented in `backend/README.md` as "random secret for session signing", but **nothing reads it** — `app/auth.py` stores cryptographically random tokens in the `sessions` table instead. It is dead config that will make whoever does the deploy hunt for a setting that does nothing. Remove it and correct the README. Then write down the real production `.env`: `ENVIRONMENT`, `DATABASE_PATH` (an absolute path outside the repo), `COOKIE_SECURE=true`, `SESSION_TTL_HOURS`, and the rate-limit values. Note that `.env` and `backend/data/` are gitignored, so nothing sensitive or durable is in version control.
-
-**Files:** `backend/app/config.py` (remove `SECRET_KEY`), `backend/README.md` (config table), new `docs/deployment.md`
 
 ---
 
@@ -236,15 +224,6 @@ Note that #1 has already established the half of this that matters most — the 
 What is left: the site is still a single page with anchor targets everywhere else (surf, party, visit), and nothing routes between documents yet. There is no client-side navigation, so moving to a gallery or a contact form still means either a hard link or a router.
 
 **Files:** `frontend/vite.config.js` (entry points), `frontend/menu.html` + `frontend/src/menu-main.js` (landed), `frontend/src/App.svelte`
-
----
-
-### 49. Menu SEO (Menu schema & indexable menu route)
-**Impact:** 🟠 · **Effort:** 🟢 · **Category:** SEO
-
-Both preconditions are now met: the menu is on its own indexable route (`/menu`, from #1) and that route is **server-rendered**, so the item names and prices are in the HTML Google reads — which is most of the work this ticket used to be about. What remains is the JSON-LD: emit `Menu` with each item's name, description and `offers.price` in USD. Note that `menu_items.price` is stored as text (`"2.50"`), deliberately, so this ticket also wants to decide whether to add a numeric column or parse at render time — parsing is fine, the value is always a plain amount. Verify with Google's Rich Results Test before calling it done.
-
-**Files:** `frontend/menu.html` (JSON-LD block), `backend/app/templates/partials/menu.html`, `backend/app/models.py` (optional numeric price), `frontend/src/content/en.js` + `es.js`
 
 ---
 
@@ -503,15 +482,6 @@ When something breaks you need to know immediately. Sentry's free tier covers bo
 
 ---
 
-### 54. Admin password change & second admin
-**Impact:** 🟠 · **Effort:** 🟢 · **Category:** Security
-
-Right now the only way to change a password or add a user is the `manage_admin.py` CLI, which means SSH access to the box. If the bar owner loses that access they are locked out of their own site entirely, and if they want a second person managing the schedule they cannot grant it. Add a change-password page and a create-admin page behind the existing session guard, with password strength rules and invalidating the user's other sessions on change. Session revocation is worth including — `sessions` rows are already keyed by `admin_id`, so it is a delete.
-
-**Files:** new routes in `backend/app/routers/admin.py` or `auth.py`, new `backend/app/templates/admin/account.html`, `backend/app/auth.py`, `backend/app/admin_i18n.py`, `backend/tests/test_auth.py`
-
----
-
 ### 55. Audit log of admin edits
 **Impact:** 🟡 · **Effort:** 🟡 · **Category:** Operations · **Status:** ✅ Shipped
 
@@ -588,7 +558,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 41 | Deploy the backend to production | 🔴 | 🟡 | DevOps |
 | ✅ | 42 | Fix closed-day handling on the public site | 🔴 | 🟢 | Functionality |
 | ✅ | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
-| | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
+| ✅ | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
 | | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
 | | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
 | ✅ | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
@@ -605,7 +575,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 1 | Add a drinks menu page | 🔴 | 🟡 | Functionality |
 | | 17 | Content tables for promos, packages & gallery | 🔴 | 🟡 | Operations |
 | | 16 | Create separate menu page (multi-page) | 🟠 | 🟢 | Architecture |
-| | 49 | Menu SEO (Menu schema & indexable route) | 🟠 | 🟢 | SEO |
+| ✅ | 49 | Menu SEO (Menu schema & indexable route) | 🟠 | 🟢 | SEO |
 | | 7 | Add happy hour / daily promos | 🟠 | 🟢 | Functionality |
 | | 18 | Add drink pricing and descriptions | 🟠 | 🟢 | Content |
 | | 11 | Add food menu section | 🟡 | 🟢 | Functionality |
@@ -633,7 +603,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 23 | Add merch / store section | 🟡 | 🟡 | Revenue |
 | | 35 | Expand automated testing | 🟠 | 🟡 | Quality |
 | | 37 | Add error tracking (Sentry) | 🟠 | 🟡 | DevOps |
-| | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
+| ✅ | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
 | ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
 | | 33 | Accessibility pass | ⚪ | 🟡 | Design |
 | | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
@@ -649,8 +619,8 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 **The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
-Tickets 41, ~~42~~, ~~43~~, 44, 38, 45.
-*Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42 is done — the two closed-day bugs are fixed. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
+Tickets 41, ~~42~~, ~~43~~, ~~44~~, 38, 45.
+*Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42–#44 are done — the closed-day bugs are fixed, SQLite is hardened, and the production environment is documented. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
 Tickets 36, ~~39~~, 35.
@@ -661,8 +631,8 @@ Tickets ~~46~~, 5, 6, 2, 47, 3, 4, ~~48~~, 9.
 *Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #5 and #6 build on it.*
 
 **Sprint 3 — "Sell the drinks" (1 week)**
-Tickets ~~1~~, 18, 11, 49, 7, 17.
-*Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route. What is left is content (#18, #11) and the JSON-LD (#49); #16 largely landed with it.*
+Tickets ~~1~~, 18, 11, ~~49~~, 7, 17.
+*Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route — and ~~#49~~ added the `Menu` JSON-LD. What is left is content (#18, #11); #16 largely landed with #1.*
 
 **Sprint 4 — "Convert" (2 weeks)**
 Tickets 15, 12, 51, 14, 52, 50, 8, 13, 22, 19, 20.
@@ -673,8 +643,8 @@ Tickets 53, 25, 26, 21, 24, 28, 29, 27, 23.
 *Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
-Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
-*Goal: Reliable, accessible, fast. Do this before high season, not during.*
+Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
+*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. Do the rest before high season, not during.*
 
 ---
 
@@ -691,6 +661,15 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 ## robots.txt, sitemap and canonical URLs (#48)
 **Shipped** — `frontend/public/robots.txt` disallows the admin panel and advertises the sitemap; `frontend/public/sitemap.xml` lists `/` and `/menu`. Both are copied into `dist/` by Vite and served by the existing static mount, so no backend route was needed. `index.html` and `menu.html` each carry one canonical URL on `https://mareaaltabar.com`, and `frontend/src/seo.test.js` validates the robots directives, the sitemap XML and both canonical tags. The assets remain available under Vite dev as well.
 
+## Production environment and secrets runbook (#44)
+**Shipped** — Removed the dead `SECRET_KEY` from `app/config.py` and the local `.env`: sessions are random tokens in the `sessions` table, so there is nothing to sign and nothing to rotate. `backend/README.md` now documents only the variables that exist, including the absolute `DATABASE_PATH`, `COOKIE_SECURE`, session lifetime and rate limits, and points at the new `docs/deployment.md`. The runbook covers the production `.env` template, file and directory permissions, TLS and cookie flags, the one-worker rule, admin bootstrap, `/healthz` monitoring, a nightly `sqlite3 .backup` cron entry and a restore drill. It also records that `.env` and `backend/data/` are gitignored, so no deployment secret or durable data lives in version control.
+
+## Menu structured data (#49)
+**Shipped** — `/menu` now emits a schema.org `Menu` graph built from the same `load_menu()` rows the visible menu uses: one `MenuSection` per category, one `MenuItem` per drink, the page's language in `inLanguage`, the description when one exists, and an `Offer` in USD when the stored price parses. Prices stay text in the database; `json_ld_price()` parses a plain amount at render time and returns `None` for anything else, so an unpriced drink gets no `offers` instead of a false `$0.00`. The JSON-LD is escaped with the same `<` → `\u003c` rule as the data seed, so an admin-entered item name cannot close the script element. `backend/tests/test_ssr.py` checks the graph, both languages, the offer shape, the unpriced case and the escaping.
+
+## Admin password change and second admin (#54)
+**Shipped** — `/admin/account` gives a signed-in admin two forms: change their own password (current password required, at least 8 characters with a letter and a number, and different from the old one) and create a second admin. Both POSTs require the session and the form's CSRF token, compared to the token stored on the session row rather than only to the readable cookie. A successful password change updates the hash and deletes every other session for that admin in the same transaction, keeping the current one signed in; a failed change leaves the old password working. Usernames are restricted to a safe character set, duplicates are caught by a pre-check and by the unique constraint, and the page is reachable from a dashboard card and the header of every admin page. Bilingual strings live in `admin_i18n.py`, and `backend/tests/test_account.py` covers the guards, the rules and the session revocation.
+
 ## The drinks menu (#1)
 **Shipped** — The menu is now database content, built on the same pattern as `events`/`hours` rather than a hardcoded array. Three tables: `menu_categories` (bilingual name, unique `slug` for the anchor, sort order, `is_available`), `menu_items` (bilingual name/description/**ingredients**, price, sort order, `is_available`) and `menu_item_promos` (several multi-buy offers per drink, each bilingual). `/admin/menu` manages all three — add, rename, reorder and remove categories; add, edit, reorder and remove drinks; add and remove promo rows — with the same "filled EN / filled ES" colour bar the schedule page uses, and the same save-then-refetch discipline so the page always shows what the database holds. Public read is `GET /api/menu`; writes sit behind the existing `write_guard`.
 
@@ -700,7 +679,7 @@ Two calls worth recording. **A price is the headline figure only**: `docs/bar_me
 
 The menu renders in both the places it should: as a section on the homepage, and at **`/menu`** as its own document. That is ticket #16's preferred option arriving early — a second Vite entry point, a FastAPI route, and server-rendered HTML, so the drinks are in the page a crawler reads and the URL is something you can post on WhatsApp. Both places render the same `Menu.svelte` from the same `load()`, so they cannot drift, and the crawler-visible block comes from the same `load_menu()` the API does.
 
-**What is still open:** #18 (descriptions for every drink; the cocktail list beyond the Cuba Libre), #11 (food, which is now pure data entry), #49 (the `Menu` JSON-LD, plus a decision on a numeric price column), #30 and #10 (`is_featured`, which does not exist yet).
+**What is still open:** #18 (descriptions for every drink; the cocktail list beyond the Cuba Libre), #11 (food, which is now pure data entry), #30 and #10 (`is_featured`, which does not exist yet). **Since then:** #49 added the `Menu` JSON-LD, and the price stayed text — parsing at render time was enough.
 
 ## Closed-day handling on the public site (#42)
 **Shipped** — `GET /api/closed-days` now returns today and later only, filtered in `load_closed_days()` — the loader the JSON API and the server-rendered homepage share — against the bar's own clock rather than the server's, so a closure stops being published the day after it happens and the two can never disagree about which days are shut. `ClosedDayCreate` refuses the same dates using that same clock, so the bar's own today is accepted even in the five-hour window where the server's date is already tomorrow. Past rows stay in the table but are never returned, which also means they no longer appear in the admin panel's closed-days list. On the site, a day can be shut three ways and all three now agree: the weekday's `is_closed` flag, a title of "Closed"/"Cerrado", and a closure dated today — merged into one `closedToday` flag that hides the Tonight card, replaces tonight's party in the week list with the closed label, and stops the Visit section claiming the bar is open until late. The crawler-visible HTML was fixed the same way, so the first paint and the live app agree instead of the page visibly changing on mount, and the client filters past dates too, because the `localStorage` cache and the embedded payload outlive the date they were fetched on.
@@ -712,14 +691,14 @@ The menu renders in both the places it should: as a section on the homepage, and
 **Shipped** — Weekly party schedule, opening hours, one-off closed days and the drinks menu are managed in the SQLite database and edited from a bilingual admin panel at `/admin`. Public read endpoints (`GET /api/schedule`, `GET /api/closed-days`, `GET /api/menu`) return every string in both languages, so the frontend switches language without a second request. `pick()` falls back to English when a translation is blank. Non-destructive migrations in `app/migrate.py` upgrade legacy single-language content and normalise legacy `4:00 PM` times to `HH:MM`.
 
 ## Admin authentication & security
-**Shipped** — bcrypt password hashing, server-side sessions in SQLite with random 64-char tokens and 8-hour expiry, HttpOnly + SameSite=Lax cookies (Secure in production), double-submit CSRF protection on all writes, login rate limiting, and a bilingual admin panel that is not linked from the public site.
+**Shipped** — bcrypt password hashing, server-side sessions in SQLite with random 64-char tokens and 8-hour expiry, HttpOnly + SameSite=Lax cookies (Secure in production), double-submit CSRF protection on all writes, login rate limiting, and a bilingual admin panel that is not linked from the public site. Since #54, password changes and second admins are managed at `/admin/account` rather than only through the CLI.
 
 ## Audit log of admin edits (#55)
 **Shipped** — Two append-only tables, `login_attempts` and `audit_log`, written by `app/audit.py` and added to every write handler in `app/routers/api.py`. `/admin/logs` is a read-only page with three logs behind a menu bar: every login attempt (successes, wrong passwords, unknown usernames and rate-limited attempts alike, each with the username typed, the IP and the browser), every menu change, and every schedule change including closed days. A change and its log row are written in **one transaction**, so a change can never exist unrecorded, and the entry carries only the fields that actually moved — `price: 4.00 → 4.50` — so a week of "Save all days" presses on an untouched schedule cannot bury the one save that mattered. **The password is never passed to the logger**, and there is no column it could go in. Reads are GET-only and session-guarded: a `POST`, `PUT` or `DELETE` against `/api/logs/*` is a 405 rather than a rejected payload, which is what makes the page strictly read-only rather than read-only by convention.
 
 Entries are kept for 90 days (`LOG_RETENTION_DAYS`), purged every day at 07:00 at the bar by a sleeping task in the app's `lifespan`, or by hand with `manage_admin.py purge-logs --days 90`. The purge is idempotent, so running it against a live multi-worker server — where every worker fires it at the same minute — costs a redundant `DELETE` that matches nothing and never an error.
 
-**What is still open:** #54 (a second admin), which is what makes attribution worth more than a single name on a row.
+**Since then:** #54 shipped the account page and a second-admin flow, so a row's username can now be one of several people — which is what makes attribution worth more than a single name on a row.
 
 ## Automated testing foundations
 **Shipped** — ~1,400 lines. `backend/tests/` covers auth and sessions, CSRF enforcement, the schedule, closed-days and drinks-menu CRUD (including promo replacement, the availability split between the public and admin reads, and cascade deletes), the bilingual admin strings, migrations, the server-rendered homepage and `/menu` (including HTML escaping and admin-edit propagation), and end-to-end propagation of admin edits to the public read endpoints, running against an in-memory database so the real one is never touched. `frontend/src/` has Vitest coverage of the language fallback, time and price formatting, the menu component, the server-rendered payload handover, a regression guard proving the app replaces the server-rendered block rather than stacking on it, and a guard keeping the server-rendered labels identical to the site's own wording. Expanded further by ticket #35.

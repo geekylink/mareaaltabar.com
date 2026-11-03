@@ -17,15 +17,21 @@ Copy `.env` and adjust values as needed:
 
 | Variable | Default | Description |
 |---|---|---|
-| `ENVIRONMENT` | `development` | Set to `production` to disable docs and enable secure cookies |
-| `SECRET_KEY` | _(auto)_ | Random secret for session signing |
-| `DATABASE_PATH` | `./data/marea_alta.db` | Path to SQLite database file |
+| `ENVIRONMENT` | `development` | Set to `production` to disable `/docs` and `/openapi.json` |
+| `DATABASE_PATH` | `./data/marea_alta.db` | SQLite file. Use an **absolute path outside the repo** in production |
 | `SESSION_TTL_HOURS` | `8` | Session lifetime in hours |
-| `COOKIE_SECURE` | `true` (prod) | Set `true` to require HTTPS for cookies |
-| `RATE_LIMIT_ATTEMPTS` | `5` | Max login attempts per window |
-| `RATE_LIMIT_WINDOW_MINUTES` | `10` | Rate limit window duration |
+| `COOKIE_SECURE` | `true` | Require HTTPS for the session cookies. Keep `false` only for local HTTP |
+| `RATE_LIMIT_ATTEMPTS` | `5` | Max failed logins per window before an IP is blocked |
+| `RATE_LIMIT_WINDOW_MINUTES` | `10` | Sliding window for the login rate limit |
 | `LOG_RETENTION_DAYS` | `90` | How long a login or change-log entry survives the purge |
 | `DAILY_LOG_PURGE` | `true` | Set `false` to purge from cron instead of in the server |
+
+There is **no `SECRET_KEY`**. Session tokens are random values stored in the
+`sessions` table, so there is no signing secret to set or leak.
+
+The full production runbook — env file template, file permissions, TLS, the
+absolute database path, backups, admin bootstrap and monitoring — is in
+[`docs/deployment.md`](../docs/deployment.md).
 
 ## Running
 
@@ -124,8 +130,13 @@ Once logged in at `/admin`, you can:
   - **Menu changes** and **Schedule changes** show who changed what, from which
     IP, and the exact fields that moved: `price: 4.00 → 4.50`. Closed days are
     in the schedule log, since they are schedule content edited on the same page.
+- **Account** (`/admin/account`): change your own password, or create a second
+  admin. Changing a password requires the current one and signs out every other
+  session for that admin. New passwords need at least 8 characters, including a
+  letter and a number. Creating another admin does not sign you out.
 
-The admin panel is not linked from the public website. It is only accessible by navigating directly to `/admin`.
+The admin panel is not linked from the public website. It is only accessible by
+navigating directly to `/admin`.
 
 ## Logs
 

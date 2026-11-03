@@ -43,10 +43,10 @@ async def _daily_log_purge() -> None:
     it is idempotent, and a failure is logged and retried at tomorrow's run. The
     server must never go down because housekeeping did.
 
-    With `--workers 4` every worker runs this, so four identical DELETEs land at
-    the same minute. That is harmless — the second one matches no rows — and it is
-    why the purge is written to be idempotent rather than guarded by a lock that
-    would need its own table.
+    The app runs one worker, but if a future deployment ran more than one
+    process, every process would run this at the same minute. That is harmless —
+    the second DELETE matches no rows — and it is why the purge is written to be
+    idempotent rather than guarded by a lock that would need its own table.
     """
     while True:
         await asyncio.sleep(audit.seconds_until_next_purge())

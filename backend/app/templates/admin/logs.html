@@ -165,6 +165,7 @@
                 <button type="button" data-lang="es" aria-pressed="false">ES</button>
             </div>
             <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
             <form method="POST" action="/admin/logout" style="display:inline;">
                 <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
             </form>

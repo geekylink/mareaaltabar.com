@@ -30,6 +30,7 @@ loaders.
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -359,15 +360,112 @@ def menu_display(menu: list[dict], lang: str, labels: dict | None = None) -> lis
     return displayed
 
 
+# --- Structured data (ticket #49) -----------------------------------------
+
+# The canonical menu URL and bar name used by the schema.org graph.
+MENU_URL = "https://mareaaltabar.com/menu"
+SITE_NAME = "Marea Alta Surf Bar"
+
+# A stored price is a displayed amount, not a number: `menu_items.price` is text
+# on purpose (no float rounding in the database). JSON-LD is the one consumer
+# that needs a machine-readable value, so it is parsed here, once, and anything
+# that is not a plain amount is left out rather than advertised as a wrong price.
+_PRICE_RE = re.compile(r"^\$?\s*(\d+(?:\.\d{1,2})?)\s*$")
+
+
+def json_ld_price(price: str | None) -> str | None:
+    """Return a two-decimal amount for schema.org, or ``None`` when unparseable.
+
+    ``"2.5"`` becomes ``"2.50"``; ``"ask"`` and ``""`` return ``None``, so the
+    item gets no ``offers`` instead of a price of zero.
+    """
+    match = _PRICE_RE.match(str(price or ""))
+    if match is None:
+        return None
+    try:
+        amount = Decimal(match.group(1))
+    except InvalidOperation:  # pragma: no cover - the regex already guarantees this
+        return None
+    return f"{amount:.2f}"
+
+
+def menu_json_ld(payload: dict) -> dict:
+    """A schema.org ``Menu`` built from the same rows the page renders.
+
+    Google reads this to connect a drink name to its price without guessing at
+    the markup. It comes from ``payload["seed"]["menu"]`` so the structured data
+    and the visible menu cannot disagree — the seed is the loader's output before
+    either renderer touches it, and every field is resolved for the page's
+    language through :func:`pick`.
+    """
+    lang = payload["lang"]
+    sections = []
+    for category in payload["seed"]["menu"]:
+        items = []
+        for item in category["items"]:
+            entry = {
+                "@type": "MenuItem",
+                "name": pick(item, lang, "name"),
+            }
+            description = pick(item, lang, "description")
+            if description:
+                entry["description"] = description
+
+            price = json_ld_price(item.get("price"))
+            if price is not None:
+                entry["offers"] = {
+                    "@type": "Offer",
+                    "price": price,
+                    "priceCurrency": "USD",
+                }
+            items.append(entry)
+
+        sections.append(
+            {
+                "@type": "MenuSection",
+                "name": pick(category, lang, "name"),
+                "hasMenuItem": items,
+            }
+        )
+
+    return {
+        "@context": "https://schema.org",
+        "@type": "Menu",
+        "name": SITE_NAME,
+        "url": MENU_URL,
+        "inLanguage": lang,
+        "hasMenuSection": sections,
+    }
+
+
+def render_menu_json_ld(payload: dict) -> str:
+    """The ``<script type="application/ld+json">`` block for ``/menu``.
+
+    Escaping goes through the same helper as the data seed: every ``<`` becomes
+    ``\\u003c``, which is still valid JSON, so an admin-entered item name cannot
+    close the script element early.
+    """
+    return (
+        '<script type="application/ld+json">'
+        f"{_json_for_script(menu_json_ld(payload))}"
+        "</script>"
+    )
+
+
 # --- HTML injection --------------------------------------------------------
 
 
-def _json_seed(seed: dict) -> str:
+def _json_for_script(value) -> str:
     """JSON safe to place inside a ``<script>`` element."""
     return (
-        json.dumps(seed, separators=(",", ":"), ensure_ascii=False)
+        json.dumps(value, separators=(",", ":"), ensure_ascii=False)
         .replace(JSON_LT, JSON_LT_ESCAPED)
     )
+
+
+def _json_seed(seed: dict) -> str:
+    """The page's data seed, escaped for its ``<script>`` element."""
+    return _json_for_script(seed)
 
 
 def render_schedule_block(payload: dict) -> str:
@@ -390,12 +488,20 @@ def render_menu_styles() -> str:
     return templates.get_template("partials/menu_style.html").render()
 
 
-def _inject(html: str, payload: dict, blocks: list[str], styles: str, name: str) -> str:
+def _inject(
+    html: str,
+    payload: dict,
+    blocks: list[str],
+    styles: str,
+    name: str,
+    head_extra: str = "",
+) -> str:
     """Put rendered blocks and the data seed inside ``<div id="app">``.
 
     Shared by the homepage and ``/menu`` so both documents are assembled the same
     way: find the mount point, drop the blocks in ahead of the seed script, and
-    put their styles in the head.
+    put their styles in the head. ``head_extra`` carries document-level metadata
+    that has to sit in the head, currently the menu's JSON-LD.
     """
     head = html.find(HEAD_CLOSE)
     start = html.find(APP_MOUNT)
@@ -411,7 +517,7 @@ def _inject(html: str, payload: dict, blocks: list[str], styles: str, name: str)
 
     html = html[:start] + filled + html[start + len(APP_MOUNT) :]
     # head < start, so inserting into the head cannot invalidate the offset.
-    return html[:head] + styles + html[head:]
+    return html[:head] + styles + head_extra + html[head:]
 
 
 def render_index_html(index_html: str, payload: dict) -> str:
@@ -426,13 +532,19 @@ def render_index_html(index_html: str, payload: dict) -> str:
 
 
 def render_menu_html(menu_html: str, payload: dict) -> str:
-    """The same treatment for the standalone menu document, minus the schedule."""
+    """The same treatment for the standalone menu document, minus the schedule.
+
+    This is the page that carries the ``Menu`` JSON-LD: it is the dedicated,
+    canonical URL for the drinks list, so the structured data describes exactly
+    the menu a visitor sees there.
+    """
     return _inject(
         menu_html,
         payload,
         [render_menu_block(payload)],
         render_menu_styles(),
         "menu.html",
+        render_menu_json_ld(payload),
     )
 
 

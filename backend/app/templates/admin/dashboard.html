@@ -106,6 +106,7 @@
                 <button type="button" data-lang="es" aria-pressed="false">ES</button>
             </div>
             <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
             <form method="POST" action="/admin/logout" style="display:inline;">
                 <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
             </form>
@@ -132,6 +133,11 @@
                 <div class="icon">🧾</div>
                 <h3 data-i18n="card_logs_title">Logs</h3>
                 <p data-i18n="card_logs_body">Read-only history of admin logins, and of every menu and schedule change.</p>
+            </a>
+            <a href="/admin/account" class="card">
+                <div class="icon">🔐</div>
+                <h3 data-i18n="card_account_title">Account</h3>
+                <p data-i18n="card_account_body">Change your password or create a second admin.</p>
             </a>
         </div>
     </main>

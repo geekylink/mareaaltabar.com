@@ -20,6 +20,7 @@ from app.ssr import (
     format_hours,
     format_price,
     format_time,
+    json_ld_price,
     load_closed_days,
     load_menu,
     pick,
@@ -691,3 +692,118 @@ def test_load_menu_hides_what_the_public_may_not_see(db_session):
 
     assert "cocteles" not in [c["slug"] for c in load_menu(db_session)]
     assert "cocteles" in [c["slug"] for c in load_menu(db_session, include_unavailable=True)]
+
+
+# --- Menu structured data (ticket #49) -------------------------------------
+
+
+def json_ld_block(html: str) -> dict:
+    """The ``Menu`` graph, decoded from the document Google will read."""
+    match = re.search(
+        r'<script type="application/ld\+json">(.*?)</script>', html, re.DOTALL
+    )
+    assert match is not None, "the menu route emitted no JSON-LD"
+    return json.loads(match.group(1))
+
+
+def menu_item(data: dict, section_name: str, item_name: str) -> dict:
+    section = next(s for s in data["hasMenuSection"] if s["name"] == section_name)
+    return next(i for i in section["hasMenuItem"] if i["name"] == item_name)
+
+
+def test_json_ld_price_only_accepts_a_plain_amount():
+    """A price Google cannot trust is worse than no price at all."""
+    assert json_ld_price("2.50") == "2.50"
+    assert json_ld_price("2.5") == "2.50"
+    assert json_ld_price("$5") == "5.00"
+    assert json_ld_price(" 3.00 ") == "3.00"
+
+    assert json_ld_price("") is None
+    assert json_ld_price(None) is None
+    assert json_ld_price("ask") is None
+    assert json_ld_price("2.505") is None
+    assert json_ld_price("2,50") is None
+
+
+def test_the_menu_route_emits_a_complete_menu_graph(site):
+    data = json_ld_block(site.get("/menu").text)
+
+    assert data["@context"] == "https://schema.org"
+    assert data["@type"] == "Menu"
+    assert data["inLanguage"] == "en"
+    assert data["url"] == "https://mareaaltabar.com/menu"
+
+    sections = {s["name"]: s for s in data["hasMenuSection"]}
+    assert "Beer" in sections
+    assert "Cocktails" in sections
+
+    beer = {i["name"]: i for i in sections["Beer"]["hasMenuItem"]}
+    assert beer["Club Personal"]["offers"] == {
+        "@type": "Offer",
+        "price": "2.50",
+        "priceCurrency": "USD",
+    }
+
+    cuba = next(i for i in sections["Cocktails"]["hasMenuItem"] if i["name"] == "Cuba Libre")
+    assert cuba["offers"]["price"] == "4.00"
+    assert cuba["offers"]["priceCurrency"] == "USD"
+
+
+def test_menu_graph_follows_the_page_language(site, auth_cookies, csrf_token):
+    cocktails = site.get("/api/menu").json()["categories"][-1]
+    site.post(
+        "/api/menu/items",
+        json={
+            "category_id": cocktails["id"],
+            "name_en": "Mojito",
+            "name_es": "Mojito",
+            "description_en": "Rum, mint and lime.",
+            "description_es": "Ron, menta y limón.",
+            "price": "5.5",
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    english = json_ld_block(site.get("/menu").text)
+    mojito = menu_item(english, "Cocktails", "Mojito")
+    assert mojito["description"] == "Rum, mint and lime."
+    assert mojito["offers"]["price"] == "5.50"
+
+    spanish = json_ld_block(site.get("/menu?lang=es").text)
+    assert spanish["inLanguage"] == "es"
+    mojito_es = menu_item(spanish, "Cócteles", "Mojito")
+    assert mojito_es["description"] == "Ron, menta y limón."
+    assert mojito_es["offers"]["price"] == "5.50"
+
+
+def test_menu_graph_omits_an_unparseable_price(site, db_session):
+    cocktails = next(c for c in load_menu(db_session) if c["slug"] == "cocteles")
+    db_session.add(
+        MenuItem(category_id=cocktails["id"], name_en="Catch of the day", price="ask")
+    )
+    db_session.commit()
+
+    data = json_ld_block(site.get("/menu").text)
+    item = menu_item(data, "Cocktails", "Catch of the day")
+    assert "offers" not in item
+
+
+def test_menu_graph_cannot_close_its_own_script_tag(site, auth_cookies, csrf_token):
+    """Item names are admin-entered, so the JSON-LD is another escaping boundary."""
+    nasty = "</script><script>alert(1)</script>"
+    cocktails = site.get("/api/menu").json()["categories"][-1]
+    site.post(
+        "/api/menu/items",
+        json={"category_id": cocktails["id"], "name_en": nasty, "price": "4.00"},
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    html = site.get("/menu").text
+    assert nasty not in html
+    assert menu_item(json_ld_block(html), "Cocktails", nasty)["name"] == nasty
+
+
+def test_the_homepage_does_not_duplicate_the_menu_graph(site):
+    """The dedicated menu URL owns the Menu entity; the homepage has the markup."""
+    html = site.get("/").text
+    assert 'type="application/ld+json"' not in html
