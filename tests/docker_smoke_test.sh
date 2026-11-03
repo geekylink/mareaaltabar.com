@@ -9,6 +9,7 @@
 #   * exactly one container runs, with exactly one published port
 #   * the database lives on the named volume
 #   * the API responds (/api/schedule)
+#   * /healthz reports the database is connected
 #   * / and /menu are server-rendered (DB rows are in the HTML, not just the shell)
 #   * static assets are served
 #   * the admin can be created, log in, and save a change
@@ -227,6 +228,12 @@ if get "$BASE_URL/api/schedule" | jq -e 'type == "array" and length == 7' >/dev/
   ok "GET /api/schedule -> 7-day JSON array"
 else
   bad "GET /api/schedule -> 7-day JSON array"
+fi
+
+if get "$BASE_URL/healthz" | jq -e '.status == "ok"' >/dev/null 2>&1; then
+  ok "GET /healthz -> database connected"
+else
+  bad "GET /healthz -> database connected"
 fi
 
 # ---------------------------------------------------------------------------

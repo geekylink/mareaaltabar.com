@@ -57,10 +57,10 @@ VOLUME ["/data"]
 
 EXPOSE 8000
 
-# Public read endpoint: 200 once the app is serving. /api/schedule avoids the
-# server-rendered HTML routes so the check stays cheap.
+# Health endpoint: 200 once the app is serving and the database answers. The
+# endpoint is public and uncached, so it is safe for a monitor to poll.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/schedule')" || exit 1
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')" || exit 1
 
 # One worker on purpose: SQLite does not tolerate concurrent writers, and this
 # is a single small site. Do not add --workers N.

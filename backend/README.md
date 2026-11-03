@@ -35,11 +35,22 @@ uvicorn app.main:app --reload --port 8000
 
 # Production: build the frontend first, then the backend serves it
 cd ../frontend && npm run build && cd ../backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 When `frontend/dist` exists, the backend serves the site from the same origin at
 `/`, so the site and the API that feeds it share a domain (no CORS needed).
+
+### SQLite concurrency
+
+The app runs **one worker on purpose**. SQLite allows one writer at a time, so
+four uvicorn workers would intermittently turn an admin save into
+`database is locked` — exactly during a busy Friday.
+
+`app/database.py` still hardens each connection: WAL mode lets readers continue
+while a writer commits, a 30-second `busy_timeout` makes a second writer wait
+for the lock, and foreign keys are enforced. That improves the failure mode; it
+does not make SQLite a multi-writer database, so do not add `--workers N`.
 
 ## Testing
 
@@ -151,10 +162,9 @@ logged and retried the next day; housekeeping never takes the server down.
 python manage_admin.py purge-logs --days 90
 ```
 
-With `--workers 4` every worker runs the purge at the same minute. That is
-harmless — the loser's `DELETE` matches no rows — and it is why the purge is
-written to be idempotent rather than guarded by a lock table. Set
-`DAILY_LOG_PURGE=false` to switch the job off entirely when a cron entry runs
+The purge is idempotent, so if a future deployment runs it in more than one
+worker, the loser's `DELETE` simply matches no rows — no lock table is needed.
+Set `DAILY_LOG_PURGE=false` to switch the job off entirely when a cron entry runs
 `manage_admin.py purge-logs` instead.
 
 ## API Endpoints
@@ -173,12 +183,25 @@ back to English when a translation is blank.
 | `GET` | `/api/logs/logins` | Admin | Every login attempt, newest first (`?limit=`&middot;`?offset=`) |
 | `GET` | `/api/logs/menu` | Admin | Every change to the drinks menu |
 | `GET` | `/api/logs/schedule` | Admin | Every change to the week, closures included |
+| `GET` | `/healthz` | Public | `200 {"status":"ok"}` when the database answers, `503` otherwise |
 | `GET` | `/` | Public | The site, with the schedule **and the menu** rendered into the HTML |
 | `GET` | `/menu` | Public | The drinks menu on its own page, rendered into the HTML |
 
 The three log reads are the only endpoints with no write counterpart anywhere in
 the application. `limit` defaults to 200 and is clamped to 500; each returns
 `{"entries": [...], "total": n}` newest first.
+
+### Health
+
+`GET /healthz` is the endpoint to point a monitor and the container healthcheck
+at. It runs `SELECT 1` through the normal database session and returns `200` with
+`Cache-Control: no-store` when that works, or `503 {"status":"unavailable"}` when
+it does not. Every response is uncached, because a stale `200` is worse than no
+monitor at all.
+
+Point the monitor here rather than at `/`: the static page can render perfectly
+while the API is failing and the schedule is silently blank. The endpoint is
+cheap, public, and deliberately does not expose the database error.
 
 **Write endpoints require an admin session and a CSRF token.**
 

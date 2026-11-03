@@ -14,8 +14,11 @@ transaction as the change itself. That is why each handler below takes a
 if it says what actually changed, and only trustworthy if it cannot be skipped.
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import select
+from fastapi.responses import JSONResponse
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session as DBSession
 
 from app import audit
@@ -37,12 +40,40 @@ from app.schemas import (
 )
 from app.ssr import day_payload, load_closed_days, load_menu, load_schedule
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 write_guard = [Depends(get_current_admin), Depends(csrf_protect)]
 
 # Revalidate so admin edits appear without visitors hard-refreshing.
 READ_CACHE_CONTROL = {"Cache-Control": "no-cache"}
+
+# A health read must never be cached: a monitor that receives a stale 200 is
+# worse than no monitor at all.
+HEALTH_CACHE_CONTROL = {"Cache-Control": "no-store"}
+
+
+@router.get("/healthz", include_in_schema=False)
+async def healthz(db: DBSession = Depends(get_db)):
+    """Public: 200 when the database answers, 503 when it does not.
+
+    The container healthcheck and an external uptime monitor both point here
+    rather than at `/`, because the static page can render perfectly while the
+    API is failing and the schedule is silently blank.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:  # noqa: BLE001 - a health check reports, it does not crash
+        logger.exception("Health check failed: database is unavailable")
+        return JSONResponse(
+            {"status": "unavailable"},
+            status_code=503,
+            headers=HEALTH_CACHE_CONTROL,
+        )
+
+    return JSONResponse({"status": "ok"}, headers=HEALTH_CACHE_CONTROL)
+
 
 # The fields each write logs a diff of. A field left out of these tuples is a
 # field nobody can find out about later.

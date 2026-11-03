@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /admin
+Disallow: /admin/login
+Disallow: /admin/schedule
+Disallow: /admin/menu
+Disallow: /admin/logs
+
+Sitemap: https://mareaaltabar.com/sitemap.xml

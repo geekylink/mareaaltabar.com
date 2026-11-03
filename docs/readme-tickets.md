@@ -31,11 +31,9 @@ Project manager note:
 
 - [Tier 0 — Ship It](#tier-0--ship-it)
   - [41. Deploy the backend to production (VPS)](#41-deploy-the-backend-to-production-vps)
-  - [43. Harden SQLite for concurrent production writes](#43-harden-sqlite-for-concurrent-production-writes)
   - [44. Production environment & secrets runbook](#44-production-environment--secrets-runbook)
   - [36. CI/CD rebuild](#36-cicd-rebuild)
   - [38. Automated database backups & restore drill](#38-automated-database-backups--restore-drill)
-  - [39. Uptime monitoring & health endpoint](#39-uptime-monitoring--health-endpoint)
   - [45. Security headers: HSTS & CSP](#45-security-headers-hsts--csp)
 - [Tier 1 — Get Found](#tier-1--get-found)
   - [5. Add structured data (Schema.org LocalBusiness)](#5-add-structured-data-schemaorg-localbusiness)
@@ -44,7 +42,6 @@ Project manager note:
   - [47. Set up a Google Business Profile](#47-set-up-a-google-business-profile)
   - [3. Add Open Graph / social preview tags](#3-add-open-graph--social-preview-tags)
   - [4. Add analytics](#4-add-analytics)
-  - [48. robots.txt, sitemap.xml & canonical URLs](#48-robotstxt-sitemapxml--canonical-urls)
   - [9. Add proper favicon and app icons](#9-add-proper-favicon-and-app-icons)
 - [Tier 2 — Sell the Drinks](#tier-2--sell-the-drinks)
   - [17. Content tables for promos, packages & gallery](#17-content-tables-for-promos-packages--gallery)
@@ -111,15 +108,6 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 
 ---
 
-### 43. Harden SQLite for concurrent production writes
-**Impact:** 🔴 · **Effort:** 🟢 · **Category:** DevOps
-
-`backend/app/database.py` creates a plain SQLite engine with no WAL mode and no `busy_timeout`, while `backend/README.md` tells operators to run `uvicorn --workers 4`. Four worker processes writing one database file will intermittently throw `database is locked`, and admin saves during a busy Friday are exactly when that happens. Either enable WAL plus a busy timeout on connect (letting readers and a writer coexist), or accept the constraint and run a single worker behind nginx — which is genuinely fine at this traffic level and is the lower-risk choice. Whichever is picked, the README must stop advertising `--workers 4` for SQLite. Add a test that performs concurrent writes through separate sessions.
-
-**Files:** `backend/app/database.py` (connect event / `connect_args`), `backend/README.md`, new `backend/tests/test_concurrency.py`
-
----
-
 ### 44. Production environment & secrets runbook
 **Impact:** 🟠 · **Effort:** 🟢 · **Category:** Operations
 
@@ -144,15 +132,6 @@ The current workflow is broken rather than merely basic. It runs `npm ci` and `n
 This ticket used to be conditional — "if using a CMS or database, implement automated backups" — because a static site had nothing to lose. That condition is now always true, and the risk is live: `backend/.gitignore` excludes `backend/data/`, so the SQLite file containing the schedule, hours, and closures exists on exactly one disk with no copy. Use `sqlite3 .backup` (not `cp`, which can capture a torn write) on a nightly cron, retain 14–30 days, and ship copies off the VPS. Then **actually restore from a backup into a scratch directory and confirm the schedule comes back** — an untested backup is not a backup. Document both halves in the runbook from #44.
 
 **Files:** new `scripts/backup.sh`, new `docs/deployment.md` (restore section), `.gitignore`
-
----
-
-### 39. Uptime monitoring & health endpoint
-**Impact:** 🟠 · **Effort:** 🟢 · **Category:** DevOps
-
-Monitoring a two-tier app by pinging the homepage will miss most failures — the static mount can serve a perfectly good page while the API is returning 500s and the schedule is silently blank. Add `GET /healthz` that checks database connectivity and returns 200/503, and point an external monitor (UptimeRobot or Better Stack, free tier) at it rather than at `/`. A dead schedule on a Friday night costs real money. The existing GitHub Actions cron is not sufficient because it only runs while someone is committing.
-
-**Files:** new route in `backend/app/routers/api.py`, new `backend/tests/test_health.py`, `backend/README.md`
 
 ---
 
@@ -222,15 +201,6 @@ Shared links currently render as a bare URL. Add `og:title`, `og:description`, `
 Still flying blind on where visitors come from. Plausible (privacy-friendly, no cookie banner needed, and the right default for a site that must load on slow Ecuadorian mobile connections) or GA4. Track referral sources and especially outbound clicks — WhatsApp, Instagram, TikTok, the map link — because those are the conversions that matter. With the backend now able to serve from one origin, a server-side Plausible proxy is available if third-party script blocking is a concern.
 
 **Files:** `frontend/index.html`, `frontend/src/lib/analytics.js` (new, event helpers)
-
----
-
-### 48. robots.txt, sitemap.xml & canonical URLs
-**Impact:** 🟡 · **Effort:** 🟢 · **Category:** SEO
-
-There is no `robots.txt` or sitemap, and the admin panel is only unlinked — it is not excluded from crawling. `/admin`, `/admin/login`, `/admin/schedule`, `/admin/menu` and `/admin/logs` should be disallowed. The admin templates already carry `<meta name="robots" content="noindex, nofollow">`, which helps but is not a substitute. Serve a sitemap listing the site and `/menu`. Canonical URLs become relevant at the same time — today there is one page with several anchor targets, plus the `/menu` route, which has no canonical tag of its own.
-
-**Files:** new `frontend/public/robots.txt`, new sitemap route or static file, `backend/app/main.py`
 
 ---
 
@@ -617,11 +587,11 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 |:------:|---|--------|:------:|:------:|----------|
 | | 41 | Deploy the backend to production | 🔴 | 🟡 | DevOps |
 | ✅ | 42 | Fix closed-day handling on the public site | 🔴 | 🟢 | Functionality |
-| | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
+| ✅ | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
 | | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
 | | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
 | | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
-| | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
+| ✅ | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
 | | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
 | ✅ | 46 | Server-render schedule & hours for crawlers | 🔴 | 🟡 | SEO |
 | | 5 | Add structured data (Schema.org) | 🟠 | 🟢 | SEO |
@@ -630,7 +600,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 47 | Set up a Google Business Profile | 🟠 | 🟢 | SEO |
 | | 3 | Add Open Graph / social preview tags | 🟠 | 🟢 | Growth |
 | | 4 | Add analytics | 🟠 | 🟢 | Analytics |
-| | 48 | robots.txt, sitemap.xml & canonical URLs | 🟡 | 🟢 | SEO |
+| ✅ | 48 | robots.txt, sitemap.xml & canonical URLs | 🟡 | 🟢 | SEO |
 | | 9 | Add proper favicon and app icons | 🟡 | 🟢 | Design |
 | ✅ | 1 | Add a drinks menu page | 🔴 | 🟡 | Functionality |
 | | 17 | Content tables for promos, packages & gallery | 🔴 | 🟡 | Operations |
@@ -679,15 +649,15 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 **The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
-Tickets 41, ~~42~~, 43, 44, 38, 45.
+Tickets 41, ~~42~~, ~~43~~, 44, 38, 45.
 *Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42 is done — the two closed-day bugs are fixed. Everything still open here is under a day, because none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
-Tickets 36, 39, 35.
+Tickets 36, ~~39~~, 35.
 *Goal: Every change is tested and deployed automatically, and a failure pages someone. Fixes the broken CI in #36 and closes the gap #35 leaves.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
-Tickets ~~46~~, 5, 6, 2, 47, 3, 4, 48, 9.
+Tickets ~~46~~, 5, 6, 2, 47, 3, 4, ~~48~~, 9.
 *Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #5 and #6 build on it.*
 
 **Sprint 3 — "Sell the drinks" (1 week)**
@@ -711,6 +681,15 @@ Tickets 37, 54, 55, 33, 34, 31, 56, 40, 32.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## SQLite concurrency hardening (#43)
+**Shipped** — `app/database.py` now builds the engine through `create_db_engine()`, which applies `journal_mode=WAL`, a 30-second `busy_timeout` and `foreign_keys=ON` on every connection. A second writer waits for the lock instead of raising `database is locked`, and readers keep working while a writer commits. The app still runs **one worker**; WAL improves the failure mode, it does not make SQLite multi-writer. `backend/README.md` no longer advertises `--workers 4`, and `backend/tests/test_concurrency.py` asserts the pragmas and drives four separate sessions writing at once.
+
+## Uptime health endpoint (#39)
+**Shipped** — `GET /healthz` runs `SELECT 1` through the normal database session and returns `200 {"status":"ok"}` or `503 {"status":"unavailable"}`, always with `Cache-Control: no-store`. It is public, cheap and does not expose the database error. The Dockerfile, `docker-compose.yml` and the container smoke test now point at `/healthz` instead of `/api/schedule`, and `backend/README.md` documents it as the endpoint for an external monitor. Pointing a monitor at the homepage would miss the exact failure that matters: a static page rendering while the API is down and the schedule is blank.
+
+## robots.txt, sitemap and canonical URLs (#48)
+**Shipped** — `frontend/public/robots.txt` disallows the admin panel and advertises the sitemap; `frontend/public/sitemap.xml` lists `/` and `/menu`. Both are copied into `dist/` by Vite and served by the existing static mount, so no backend route was needed. `index.html` and `menu.html` each carry one canonical URL on `https://mareaaltabar.com`, and `frontend/src/seo.test.js` validates the robots directives, the sitemap XML and both canonical tags. The assets remain available under Vite dev as well.
 
 ## The drinks menu (#1)
 **Shipped** — The menu is now database content, built on the same pattern as `events`/`hours` rather than a hardcoded array. Three tables: `menu_categories` (bilingual name, unique `slug` for the anchor, sort order, `is_available`), `menu_items` (bilingual name/description/**ingredients**, price, sort order, `is_available`) and `menu_item_promos` (several multi-buy offers per drink, each bilingual). `/admin/menu` manages all three — add, rename, reorder and remove categories; add, edit, reorder and remove drinks; add and remove promo rows — with the same "filled EN / filled ES" colour bar the schedule page uses, and the same save-then-refetch discipline so the page always shows what the database holds. Public read is `GET /api/menu`; writes sit behind the existing `write_guard`.

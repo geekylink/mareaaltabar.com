@@ -157,7 +157,17 @@ rather than serving those files straight off disk.
 
 **nginx must proxy `/` and `/menu` to the backend, not serve the files itself** — serving them directly
 bypasses the rendering and the site goes back to being invisible to crawlers. Hashed assets under
-
-**nginx must proxy `/` to the backend, not serve `dist/index.html` itself** — serving the file directly
-bypasses the rendering and the site goes back to being invisible to crawlers. Hashed assets under
 `/assets/` can still be served by nginx directly.
+
+### SEO files
+
+`public/robots.txt` and `public/sitemap.xml` are copied into `dist/` by Vite and served by the
+backend's static mount. They disallow the admin panel and advertise only the two public documents.
+
+Both HTML entry points carry a canonical URL on the apex domain:
+
+- `index.html` → `https://mareaaltabar.com/`
+- `menu.html` → `https://mareaaltabar.com/menu`
+
+`src/seo.test.js` checks all four files. If production moves to `www`, update the two canonical tags
+and both files in `public/`.
