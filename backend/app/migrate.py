@@ -164,11 +164,31 @@ def migrate_menu_schema(engine: Engine) -> None:
     log.debug("Menu schema ready")
 
 
+def migrate_menu_promos_to_scheduled(engine: Engine) -> None:
+    """Add the happy-hour window columns to an existing ``menu_item_promos``.
+
+    Every column defaults to blank (or active), so promos created before the
+    schedule existed remain always-live rather than disappearing from the menu.
+    """
+    if not _table_exists(engine, "menu_item_promos"):
+        return
+
+    _add_column(engine, "menu_item_promos", "days", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_item_promos", "start_time", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_item_promos", "end_time", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_item_promos", "starts_on", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_item_promos", "ends_on", "TEXT NOT NULL DEFAULT ''")
+    _add_column(engine, "menu_item_promos", "is_active", "BOOLEAN NOT NULL DEFAULT 1")
+
+    log.debug("Menu promo schedule ready")
+
+
 MIGRATIONS = (
     migrate_events_to_bilingual,
     migrate_closed_days_to_bilingual,
     migrate_hours_to_24h,
     migrate_menu_schema,
+    migrate_menu_promos_to_scheduled,
 )
 
 

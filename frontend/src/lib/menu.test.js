@@ -59,6 +59,31 @@ describe('Menu.svelte', () => {
     expect(screen.getByText('Promo: Bucket $18.00')).toBeTruthy();
   });
 
+  it('hides a promo that is outside its live window', () => {
+    renderMenu({
+      categories: [CATEGORY({ items: [{
+        ...CUBA,
+        promos: [
+          { id: 1, label_en: 'Happy hour', label_es: 'Hora feliz', is_live: true },
+          { id: 2, label_en: 'New Year offer', label_es: 'Oferta de Año Nuevo', is_live: false },
+        ],
+      }] })],
+    });
+    expect(screen.getByText('Promo: Happy hour')).toBeTruthy();
+    expect(screen.queryByText('Promo: New Year offer')).toBeNull();
+  });
+
+  it('treats a promo without is_live as live', () => {
+    // A payload cached before happy hours existed must not lose its offers.
+    renderMenu({
+      categories: [CATEGORY({ items: [{
+        ...CUBA,
+        promos: [{ id: 1, label_en: '6x $7.00', label_es: '6 por $7.00' }],
+      }] })],
+    });
+    expect(screen.getByText('Promo: 6x $7.00')).toBeTruthy();
+  });
+
   it('switches language without a remount', async () => {
     // `lang` is owned by the page (App / MenuPage), which is what lets one
     // fetched payload serve both languages — so the switch is a prop update.

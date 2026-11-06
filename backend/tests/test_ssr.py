@@ -538,6 +538,33 @@ def test_promos_render_under_the_price(site):
     assert "Promo: 6x $7.00" in block
 
 
+def test_a_scheduled_promo_is_not_rendered_before_its_window(
+    site, auth_cookies, csrf_token
+):
+    """The crawler must see the same live offers the SPA does, not every row."""
+    cocktails = site.get("/api/menu").json()["categories"][-1]
+    site.post(
+        "/api/menu/items",
+        json={
+            "category_id": cocktails["id"],
+            "name_en": "Mojito",
+            "name_es": "Mojito",
+            "price": "5.00",
+            "promos": [{
+                "label_en": "New Year offer",
+                "label_es": "Oferta de Año Nuevo",
+                "starts_on": "2099-01-01",
+            }],
+        },
+        headers={"X-CSRF-Token": csrf_token},
+    )
+
+    block = menu_block(site.get("/menu").text)
+    assert "Mojito" in block
+    assert "New Year offer" not in block
+    assert "Oferta de Año Nuevo" not in block
+
+
 def test_ingredients_render_for_a_cocktail(site):
     block = menu_block(site.get("/").text)
     assert "Cuba Libre" in block

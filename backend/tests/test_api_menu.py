@@ -7,11 +7,13 @@ Second, promos are replaced rather than merged, because the panel edits the whol
 set in one request; a bug there would silently delete an offer.
 """
 
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from sqlalchemy import select
 
 from app.models import MenuItem, MenuItemPromo
-from app.ssr import load_menu
+from app.ssr import load_menu, promo_is_live
 
 
 @pytest.fixture()
@@ -360,3 +362,167 @@ def test_the_api_and_the_loader_agree(db_session):
     menu = load_menu(db_session)
     assert [c["slug"] for c in menu] == ["cerveza", "otras-bebidas", "cigarrillos", "cocteles"]
     assert len(menu[0]["items"]) == 7
+
+
+# --- Happy-hour windows ----------------------------------------------------
+#
+# Promos are now offers that can be scheduled. The bar clock is injectable so
+# these tests pin a Friday afternoon instead of depending on when the suite runs.
+# 2026-11-06 is a Friday.
+
+BAR_TZ = timezone(timedelta(hours=-5))
+
+
+def at(value):
+    return datetime.fromisoformat(value).replace(tzinfo=BAR_TZ)
+
+
+def promo(**over):
+    fields = {
+        "menu_item_id": 1,
+        "label_en": "Offer",
+        "label_es": "Oferta",
+        "days": "",
+        "start_time": "",
+        "end_time": "",
+        "starts_on": "",
+        "ends_on": "",
+        "is_active": True,
+    }
+    fields.update(over)
+    return MenuItemPromo(**fields)
+
+
+def find_admin_item(client, name_en):
+    for category in client.get("/api/menu/all").json()["categories"]:
+        for item in category["items"]:
+            if item["name_en"] == name_en:
+                return item
+    raise AssertionError(f"{name_en!r} is not on the admin menu")
+
+
+def test_a_promo_with_no_window_is_always_live():
+    """The pre-happy-hour shape: every blank window means "on the menu"."""
+    assert promo_is_live(promo(), at("2026-11-06T12:00"))
+
+
+def test_an_inactive_promo_is_never_live():
+    assert not promo_is_live(promo(is_active=False), at("2026-11-06T12:00"))
+
+
+def test_a_weekday_window_uses_the_bar_calendar():
+    fridays = promo(days="5")
+    assert promo_is_live(fridays, at("2026-11-06T12:00"))  # Friday
+    assert not promo_is_live(fridays, at("2026-11-07T12:00"))  # Saturday
+
+
+def test_a_happy_hour_is_live_only_inside_its_times():
+    happy_hour = promo(start_time="18:00", end_time="20:00")
+    assert not promo_is_live(happy_hour, at("2026-11-06T17:59"))
+    assert promo_is_live(happy_hour, at("2026-11-06T18:00"))
+    assert promo_is_live(happy_hour, at("2026-11-06T19:59"))
+    assert promo_is_live(happy_hour, at("2026-11-06T20:00"))
+    assert not promo_is_live(happy_hour, at("2026-11-06T20:01"))
+
+
+def test_an_overnight_window_belongs_to_the_evening_it_started():
+    """A Friday 22:00–02:00 offer is live at 01:00 on Saturday, not Saturday night."""
+    friday_night = promo(days="5", start_time="22:00", end_time="02:00")
+    assert promo_is_live(friday_night, at("2026-11-06T23:00"))
+    assert promo_is_live(friday_night, at("2026-11-07T01:00"))
+    assert not promo_is_live(friday_night, at("2026-11-07T23:00"))
+    assert not promo_is_live(friday_night, at("2026-11-06T12:00"))
+
+
+def test_date_bounds_limit_the_offer():
+    november = promo(starts_on="2026-11-01", ends_on="2026-11-30")
+    assert not promo_is_live(november, at("2026-10-31T23:59"))
+    assert promo_is_live(november, at("2026-11-01T00:00"))
+    assert promo_is_live(november, at("2026-11-30T23:59"))
+    assert not promo_is_live(november, at("2026-12-01T00:00"))
+
+
+def test_the_public_read_hides_promos_outside_their_window(db_session):
+    can = db_session.execute(
+        select(MenuItem).where(MenuItem.name_en == "Pilsener Can")
+    ).scalar_one()
+    can.promos.append(
+        MenuItemPromo(
+            label_en="New Year",
+            label_es="Año Nuevo",
+            starts_on="2099-01-01",
+            sort_order=99,
+        )
+    )
+    db_session.commit()
+
+    public = load_menu(db_session, now=at("2026-11-06T12:00"))
+    public_can = next(i for c in public for i in c["items"] if i["name_en"] == "Pilsener Can")
+    assert [p["label_en"] for p in public_can["promos"]] == ["6x $7.00"]
+
+    admin = load_menu(db_session, include_unavailable=True, now=at("2026-11-06T12:00"))
+    admin_can = next(i for c in admin for i in c["items"] if i["name_en"] == "Pilsener Can")
+    scheduled = next(p for p in admin_can["promos"] if p["label_en"] == "New Year")
+    assert scheduled["is_live"] is False
+
+
+def test_a_paused_promo_disappears_from_the_public_menu(client, edit_as_admin):
+    _, can = find_item(client, "Pilsener Can")
+    edit_as_admin(
+        "PUT",
+        f"/api/menu/items/{can['id']}",
+        json={**can, "promos": [
+            {"label_en": "Paused", "label_es": "Pausada", "is_active": False},
+        ]},
+    )
+    assert find_item(client, "Pilsener Can")[1]["promos"] == []
+
+    paused = find_admin_item(client, "Pilsener Can")["promos"][0]
+    assert paused["is_active"] is False
+    assert paused["is_live"] is False
+
+
+def test_a_happy_hour_round_trips_through_the_admin_api(client, edit_as_admin):
+    _, can = find_item(client, "Pilsener Can")
+    edit_as_admin(
+        "PUT",
+        f"/api/menu/items/{can['id']}",
+        json={**can, "promos": [{
+            "label_en": "Happy hour",
+            "label_es": "Hora feliz",
+            "days": "5,1,3,5",
+            "start_time": "18:00",
+            "end_time": "20:00",
+            "starts_on": "2026-11-01",
+            "ends_on": "2026-11-30",
+            "is_active": True,
+        }]},
+    )
+
+    saved = find_admin_item(client, "Pilsener Can")["promos"][0]
+    assert saved["days"] == "1,3,5"
+    assert saved["start_time"] == "18:00"
+    assert saved["end_time"] == "20:00"
+    assert saved["starts_on"] == "2026-11-01"
+    assert saved["ends_on"] == "2026-11-30"
+    assert saved["is_active"] is True
+
+
+@pytest.mark.parametrize("window", [
+    {"start_time": "18:00"},
+    {"end_time": "20:00"},
+    {"start_time": "25:00", "end_time": "26:00"},
+    {"start_time": "18:00", "end_time": "18:00"},
+    {"days": "7"},
+    {"days": "1,x"},
+    {"starts_on": "2026-13-01"},
+    {"starts_on": "2026-11-30", "ends_on": "2026-11-01"},
+])
+def test_an_invalid_promo_window_is_rejected(client, edit_as_admin, window):
+    _, item = find_item(client, "Corona")
+    resp = edit_as_admin(
+        "PUT",
+        f"/api/menu/items/{item['id']}",
+        json={**item, "promos": [{"label_en": "Offer", "label_es": "Oferta", **window}]},
+    )
+    assert resp.status_code == 422

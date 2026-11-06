@@ -352,7 +352,16 @@ def test_adding_a_drink_logs_its_price_and_promos(client, auth_cookies, csrf_tok
     assert entry["target"] == f"menu_item:{resp.json()['id']}"
     assert entry["target_name"] == "Pilsener Sixpack"
     assert entry["details"]["price"] == "9.00"
-    assert entry["details"]["promos"] == [{"label_en": "case $9.00", "label_es": "caja $9.00"}]
+    assert entry["details"]["promos"] == [{
+        "label_en": "case $9.00",
+        "label_es": "caja $9.00",
+        "days": "",
+        "start_time": "",
+        "end_time": "",
+        "starts_on": "",
+        "ends_on": "",
+        "is_active": True,
+    }]
 
 
 def test_editing_a_drink_logs_only_the_price_that_moved(client, auth_cookies, csrf_token):

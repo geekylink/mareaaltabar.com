@@ -13,12 +13,16 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 - **#9 Favicon and app icons** — SVG, 16/32/180/192/512 PNGs and a multi-size
   `.ico`; the emoji data-URI favicon is gone from the site and every admin page.
   Tests: `seo.test.js`, `backend/tests/test_assets.py`.
+- **#7 Happy hour / daily promos** — weekday, time (including overnight) and
+  date windows on menu promos, plus an active switch. Public menu/API/SSR only
+  publish live offers; the admin read keeps every offer with `is_live`, and the
+  panel edits the window per promo. Tests: `test_api_menu.py`,
+  `test_migrations.py`, `test_ssr.py`, `menu.test.js`.
 
 ## Remaining, ready to build here
 
 | # | Ticket | Notes |
 |---|--------|-------|
-| 7 | Happy hour / daily promos | Weekday/time/date windows on menu promos; live filtering; admin editing. |
 | 15 | Contact form + shared admin inbox | `submissions` table, IP + user agent, 1,000-char message cap, sanitization, honeypot, rate limit, `/admin/inbox` for all admins. |
 | 53 | Dated / special events | `special_events` table, public/admin API, SSR, frontend section, `/admin/events`. |
 | 10 | Drink of the Day hero banner | Featured/daily menu item plus admin control. |
@@ -69,6 +73,5 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 
 ## Next up
 
-1. **#7** Happy hour / daily promos
-2. **#15** Contact form + shared admin inbox
-3. **#53** Dated / special events
+1. **#15** Contact form + shared admin inbox
+2. **#53** Dated / special events

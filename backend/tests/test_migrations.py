@@ -104,6 +104,33 @@ def early_menu_engine():
     engine.dispose()
 
 
+@pytest.fixture()
+def legacy_promo_engine():
+    """An engine whose promos predate the happy-hour window columns."""
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE menu_item_promos ("
+                " id INTEGER PRIMARY KEY, menu_item_id INTEGER NOT NULL,"
+                " label_en TEXT, label_es TEXT, sort_order INTEGER,"
+                " created_at DATETIME, updated_at DATETIME)"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO menu_item_promos (menu_item_id, label_en, label_es, sort_order)"
+                " VALUES (1, '6x $7.00', '6 por $7.00', 0)"
+            )
+        )
+    yield engine
+    engine.dispose()
+
+
 def _columns(engine, table):
     return {c["name"] for c in inspect(engine).get_columns(table)}
 
@@ -206,3 +233,40 @@ def test_menu_migration_is_a_no_op_without_a_menu(legacy_engine):
     """A database from before the menu exists must not gain an empty table here."""
     run_migrations(legacy_engine)
     assert "menu_items" not in inspect(legacy_engine).get_table_names()
+
+
+# --- Happy-hour promos ---
+
+
+def test_promo_migration_adds_the_window_columns(legacy_promo_engine):
+    run_migrations(legacy_promo_engine)
+    assert {
+        "days", "start_time", "end_time", "starts_on", "ends_on", "is_active"
+    } <= _columns(legacy_promo_engine, "menu_item_promos")
+
+
+def test_promo_migration_leaves_existing_offers_always_live(legacy_promo_engine):
+    """Blank windows mean always-on, so an upgrade must not hide the menu's offers."""
+    run_migrations(legacy_promo_engine)
+    with legacy_promo_engine.connect() as conn:
+        row = conn.execute(
+            text(
+                "SELECT label_en, days, start_time, end_time, starts_on, ends_on, is_active"
+                " FROM menu_item_promos"
+            )
+        ).fetchone()
+    assert row[0] == "6x $7.00"
+    assert row[1:6] == ("", "", "", "", "")
+    assert row[6] == 1
+
+
+def test_promo_migration_is_idempotent(legacy_promo_engine):
+    run_migrations(legacy_promo_engine)
+    run_migrations(legacy_promo_engine)
+    with legacy_promo_engine.connect() as conn:
+        assert conn.execute(text("SELECT COUNT(*) FROM menu_item_promos")).fetchone()[0] == 1
+
+
+def test_promo_migration_is_a_no_op_without_promos(legacy_engine):
+    run_migrations(legacy_engine)
+    assert "menu_item_promos" not in inspect(legacy_engine).get_table_names()

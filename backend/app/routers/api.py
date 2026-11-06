@@ -47,6 +47,7 @@ from app.ssr import (
     load_menu,
     load_notices,
     load_schedule,
+    promo_is_live,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,7 +131,17 @@ def _item_fields(item: MenuItem) -> dict:
     """
     fields = audit.snapshot(item, ITEM_FIELDS)
     fields["promos"] = [
-        {"label_en": promo.label_en, "label_es": promo.label_es} for promo in item.promos
+        {
+            "label_en": promo.label_en,
+            "label_es": promo.label_es,
+            "days": promo.days,
+            "start_time": promo.start_time,
+            "end_time": promo.end_time,
+            "starts_on": promo.starts_on,
+            "ends_on": promo.ends_on,
+            "is_active": bool(promo.is_active),
+        }
+        for promo in item.promos
     ]
     return fields
 
@@ -532,6 +543,13 @@ def _item_response(item: MenuItem) -> MenuItemResponse:
                 "id": promo.id,
                 "label_en": promo.label_en,
                 "label_es": promo.label_es,
+                "days": promo.days,
+                "start_time": promo.start_time,
+                "end_time": promo.end_time,
+                "starts_on": promo.starts_on,
+                "ends_on": promo.ends_on,
+                "is_active": bool(promo.is_active),
+                "is_live": promo_is_live(promo),
                 "sort_order": promo.sort_order,
             }
             for promo in item.promos
@@ -739,6 +757,12 @@ def _apply_promos(item: MenuItem, promos: list) -> None:
             MenuItemPromo(
                 label_en=promo.label_en,
                 label_es=promo.label_es,
+                days=promo.days,
+                start_time=promo.start_time,
+                end_time=promo.end_time,
+                starts_on=promo.starts_on,
+                ends_on=promo.ends_on,
+                is_active=promo.is_active,
                 sort_order=order,
             )
         )

@@ -165,6 +165,15 @@ class MenuItemPromo(Base):
     Several can exist per item ("6x $7.00" and "case $12.00"), so this is a table
     rather than a column. The label is bilingual because the price formatting is
     the only part that is language-neutral — "6 por $7.00" is not "6x $7.00".
+
+    An offer can also be a daily happy hour. ``days`` is a comma-separated list
+    of weekday numbers (0 = Sunday); blank means every day. ``start_time`` and
+    ``end_time`` are bar-local ``HH:MM``; an end before the start crosses
+    midnight. ``starts_on`` and ``ends_on`` are ``YYYY-MM-DD`` bounds. Every
+    blank window means "always", which is how promos entered before these
+    columns existed keep working. ``is_active`` is the immediate off switch,
+    separate from the schedule, so an offer can be paused and brought back
+    unchanged.
     """
 
     __tablename__ = "menu_item_promos"
@@ -175,6 +184,12 @@ class MenuItemPromo(Base):
     )
     label_en: Mapped[str] = mapped_column(String(160), nullable=False, default="")
     label_es: Mapped[str] = mapped_column(String(160), nullable=False, default="")
+    days: Mapped[str] = mapped_column(String(20), nullable=False, default="")
+    start_time: Mapped[str] = mapped_column(String(5), nullable=False, default="")
+    end_time: Mapped[str] = mapped_column(String(5), nullable=False, default="")
+    starts_on: Mapped[str] = mapped_column(String(10), nullable=False, default="")
+    ends_on: Mapped[str] = mapped_column(String(10), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

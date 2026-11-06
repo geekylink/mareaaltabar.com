@@ -38,14 +38,19 @@
             {@const price = formatPrice(item.price)}
             {@const description = pick(item, lang, 'description')}
             {@const ingredients = pick(item, lang, 'ingredients')}
+            <!-- The public API already drops offers outside their window. The
+                 extra filter keeps a cached payload from showing a happy hour
+                 that has since expired, and treats a payload from before
+                 `is_live` existed as live. -->
+            {@const livePromos = (item.promos ?? []).filter((promo) => promo.is_live !== false)}
             <li class="item">
               <span class="row">
                 <b>{pick(item, lang, 'name')}</b>
                 {#if price}<span class="price">{price}</span>{/if}
               </span>
-              {#if item.promos?.length}
+              {#if livePromos.length}
                 <span class="promos">
-                  {#each item.promos as promo (promo.id)}
+                  {#each livePromos as promo (promo.id)}
                     <span class="promo">{$t.menu.promo}: {pick(promo, lang, 'label')}</span>
                   {/each}
                 </span>

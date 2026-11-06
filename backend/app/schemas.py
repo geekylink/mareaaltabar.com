@@ -152,16 +152,90 @@ def slugify(text: str, fallback: str = "menu") -> str:
     return slug or fallback
 
 
-class MenuPromoWrite(BaseModel):
-    """One multi-buy offer beneath a drink's headline price."""
+# Happy-hour windows are bar-local, so the stored strings are the same shape an
+# `<input type="time">` and `<input type="date">` emit.
+_PROMO_TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+_PROMO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def normalize_promo_days(value: str) -> str:
+    """Canonical weekday list: sorted, deduped, 0 = Sunday; blank means every day.
+
+    Stored as text because SQLite has no array type and the list is at most seven
+    two-character entries. Canonicalising here means the read filter can compare
+    integers without caring how the panel happened to order the checkboxes.
+    """
+    days = set()
+    for part in (value or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if not part.isdigit() or not 0 <= int(part) <= 6:
+            raise ValueError("days must be weekday numbers 0-6")
+        days.add(int(part))
+    return ",".join(str(day) for day in sorted(days))
+
+
+class MenuPromoBase(BaseModel):
+    """One multi-buy offer beneath a drink's headline price.
+
+    The schedule fields are all optional. A blank window means the offer is
+    always live; ``is_active`` is the separate off switch.
+    """
 
     label_en: str = Field(default="", max_length=160)
     label_es: str = Field(default="", max_length=160)
+    days: str = Field(default="", max_length=20)
+    start_time: str = Field(default="", max_length=5)
+    end_time: str = Field(default="", max_length=5)
+    starts_on: str = Field(default="", max_length=10)
+    ends_on: str = Field(default="", max_length=10)
+    is_active: bool = True
 
 
-class MenuPromoResponse(MenuPromoWrite):
+class MenuPromoWrite(MenuPromoBase):
+    """Admin write payload for one promo, including its live window."""
+
+    @model_validator(mode="after")
+    def _check_window(self):
+        self.days = normalize_promo_days(self.days)
+
+        start = self.start_time.strip()
+        end = self.end_time.strip()
+        for name, value in (("start_time", start), ("end_time", end)):
+            if value and not _PROMO_TIME_RE.fullmatch(value):
+                raise ValueError(f"{name} must be HH:MM")
+        # Half a window is ambiguous: it could mean "from 6pm" or a forgotten
+        # end. Both blank is the explicit "all day" spelling.
+        if bool(start) != bool(end):
+            raise ValueError("set both start_time and end_time, or neither")
+        if start and start == end:
+            raise ValueError("start_time and end_time must be different")
+        self.start_time, self.end_time = start, end
+
+        for name in ("starts_on", "ends_on"):
+            value = getattr(self, name).strip()
+            if value:
+                if not _PROMO_DATE_RE.fullmatch(value):
+                    raise ValueError(f"{name} must be YYYY-MM-DD")
+                try:
+                    date.fromisoformat(value)
+                except ValueError as exc:
+                    raise ValueError(f"{name} is not a valid date") from exc
+            setattr(self, name, value)
+
+        if self.starts_on and self.ends_on and self.ends_on < self.starts_on:
+            raise ValueError("ends_on must be on or after starts_on")
+
+        return self
+
+
+class MenuPromoResponse(MenuPromoBase):
+    """One promo as read back, with the schedule resolved against the bar clock."""
+
     id: int
     sort_order: int
+    is_live: bool = True
 
 
 class MenuCategoryWrite(BaseModel):

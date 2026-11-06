@@ -149,12 +149,33 @@
             font-size: 0.7rem; font-weight: 700; color: #888;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;
         }
-        .promo-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; margin-bottom: 0.5rem; }
-        .promo-row input {
+        .promo-row {
+            display: grid; gap: 0.5rem; margin-bottom: 0.75rem;
+            padding: 0.6rem; border: 1px solid #eee; border-radius: 0.5rem;
+        }
+        .promo-labels { display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem; }
+        .promo-row input[type="text"], .promo-row input[type="time"], .promo-row input[type="date"] {
             padding: 0.5rem 0.6rem; border: 1.5px solid #ddd; border-radius: 0.4rem; font-size: 0.85rem;
+            width: 100%; font-family: inherit;
         }
         .promo-row input.filled-es { border-left: 3px solid #FF6B2C; }
         .promo-row input.filled-en { border-left: 3px solid #0B3C49; }
+        .promo-window {
+            display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: end;
+        }
+        .promo-window .field { min-width: 7.5rem; }
+        .promo-window .field label {
+            display: block; font-size: 0.65rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;
+        }
+        .promo-days { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
+        .promo-days label {
+            display: inline-flex; align-items: center; gap: 0.2rem;
+            font-size: 0.75rem; color: #555; background: #f7f7f7;
+            border-radius: 999px; padding: 0.15rem 0.45rem;
+        }
+        .promo-window .toggle { align-self: center; }
+        .promo-hint { flex-basis: 100%; font-size: 0.75rem; color: #888; }
         .promo-note { font-size: 0.8rem; color: #888; }
 
         .add-item {
@@ -179,8 +200,8 @@
         }
 
         @media (max-width: 720px) {
-            .field-pair, .add-category .row, .promo-row { grid-template-columns: 1fr; }
-            .promo-row { grid-template-columns: 1fr auto; }
+            .field-pair, .add-category .row, .promo-labels { grid-template-columns: 1fr; }
+            .promo-labels { grid-template-columns: 1fr auto; }
         }
     </style>
 </head>
@@ -331,18 +352,73 @@
             }).join('');
         }
 
-        function renderPromos(item) {
-            var rows = item.promos.map(function (promo, index) {
-                return '' +
-                '<div class="promo-row" data-promo="' + index + '">' +
+        var PROMO_DAY_KEYS = [
+            'promo_day_sun', 'promo_day_mon', 'promo_day_tue', 'promo_day_wed',
+            'promo_day_thu', 'promo_day_fri', 'promo_day_sat'
+        ];
+
+        function promoDays(promo) {
+            return String(promo.days || '').split(',').filter(function (part) {
+                return part !== '';
+            });
+        }
+
+        // One promo row, shared by rendering and by "Add promo" so the two can
+        // never offer different controls. The window is all optional; blank
+        // means always live, which is how older multi-buy offers behave.
+        function promoRowHtml(promo) {
+            promo = promo || {};
+            var selected = promoDays(promo);
+            var days = PROMO_DAY_KEYS.map(function (key, index) {
+                return '<label><input type="checkbox" data-promo-day="' + index + '"' +
+                    (selected.indexOf(String(index)) !== -1 ? ' checked' : '') + '> ' +
+                    esc(t(key)) + '</label>';
+            }).join('');
+
+            return '' +
+            '<div class="promo-row" data-promo>' +
+                '<div class="promo-labels">' +
                     '<input type="text" data-promo-field="label_en" value="' + esc(promo.label_en) +
                         '" placeholder="' + esc(t('promo_label_en')) + '">' +
                     '<input type="text" data-promo-field="label_es" value="' + esc(promo.label_es) +
                         '" placeholder="' + esc(t('promo_label_es')) + '">' +
                     '<button type="button" class="btn-remove" data-action="remove-promo">' +
                         esc(t('remove')) + '</button>' +
-                '</div>';
-            }).join('');
+                '</div>' +
+                '<div class="promo-window">' +
+                    '<div class="promo-days">' + days + '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('promo_from')) + '</label>' +
+                        '<input type="time" data-promo-field="start_time" value="' +
+                            esc(promo.start_time) + '">' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('promo_to')) + '</label>' +
+                        '<input type="time" data-promo-field="end_time" value="' +
+                            esc(promo.end_time) + '">' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('promo_starts')) + '</label>' +
+                        '<input type="date" data-promo-field="starts_on" value="' +
+                            esc(promo.starts_on) + '">' +
+                    '</div>' +
+                    '<div class="field">' +
+                        '<label>' + esc(t('promo_ends')) + '</label>' +
+                        '<input type="date" data-promo-field="ends_on" value="' +
+                            esc(promo.ends_on) + '">' +
+                    '</div>' +
+                    '<label class="toggle">' +
+                        '<input type="checkbox" data-promo-field="is_active"' +
+                            (promo.is_active === false ? '' : ' checked') + '> ' +
+                        esc(t('promo_active')) +
+                    '</label>' +
+                    '<span class="promo-hint">' + esc(t('promo_window_hint')) + '</span>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderPromos(item) {
+            var rows = item.promos.map(promoRowHtml).join('');
 
             return '' +
             '<div class="promos">' +
@@ -574,10 +650,22 @@
                 }
             });
             node.querySelectorAll('[data-promo]').forEach(function (row) {
-                var promo = { label_en: '', label_es: '' };
+                var promo = {
+                    label_en: '', label_es: '', days: '', start_time: '', end_time: '',
+                    starts_on: '', ends_on: '', is_active: true
+                };
+                var days = [];
                 row.querySelectorAll('[data-promo-field]').forEach(function (input) {
-                    promo[input.dataset.promoField] = input.value;
+                    if (input.dataset.promoField === 'is_active') {
+                        promo.is_active = input.checked;
+                    } else {
+                        promo[input.dataset.promoField] = input.value;
+                    }
                 });
+                row.querySelectorAll('[data-promo-day]').forEach(function (input) {
+                    if (input.checked) days.push(input.dataset.promoDay);
+                });
+                promo.days = days.join(',');
                 // A promo row with nothing typed in is a draft, not an offer.
                 if (promo.label_en.trim() || promo.label_es.trim()) payload.promos.push(promo);
             });
@@ -773,7 +861,16 @@
                 price: item.price,
                 is_available: item.is_available,
                 promos: item.promos.map(function (promo) {
-                    return { label_en: promo.label_en, label_es: promo.label_es };
+                    return {
+                        label_en: promo.label_en,
+                        label_es: promo.label_es,
+                        days: promo.days || '',
+                        start_time: promo.start_time || '',
+                        end_time: promo.end_time || '',
+                        starts_on: promo.starts_on || '',
+                        ends_on: promo.ends_on || '',
+                        is_active: promo.is_active !== false
+                    };
                 })
             };
         }
@@ -820,7 +917,9 @@
                 });
 
                 node.querySelectorAll('[data-promo-field]').forEach(function (input) {
-                    watchLanguage(input, input.dataset.promoField.slice(-2));
+                    if (input.dataset.promoField.endsWith('_en') || input.dataset.promoField.endsWith('_es')) {
+                        watchLanguage(input, input.dataset.promoField.slice(-2));
+                    }
                 });
             });
 
@@ -835,22 +934,19 @@
         function addPromoRow(node) {
             var box = node.querySelector('.promos');
             var row = document.createElement('div');
-            row.className = 'promo-row';
-            row.dataset.promo = String(node.querySelectorAll('[data-promo]').length);
-            row.innerHTML =
-                '<input type="text" data-promo-field="label_en" placeholder="' + esc(t('promo_label_en')) + '">' +
-                '<input type="text" data-promo-field="label_es" placeholder="' + esc(t('promo_label_es')) + '">' +
-                '<button type="button" class="btn-remove" data-action="remove-promo">' +
-                esc(t('remove')) + '</button>';
-            box.insertBefore(row, box.querySelector('[data-action="add-promo"]'));
-            row.querySelectorAll('[data-promo-field]').forEach(function (input) {
-                watchLanguage(input, input.dataset.promoField.slice(-2));
+            row.innerHTML = promoRowHtml({});
+            var promo = row.firstElementChild;
+            box.insertBefore(promo, box.querySelector('[data-action="add-promo"]'));
+            promo.querySelectorAll('[data-promo-field]').forEach(function (input) {
+                if (input.dataset.promoField.endsWith('_en') || input.dataset.promoField.endsWith('_es')) {
+                    watchLanguage(input, input.dataset.promoField.slice(-2));
+                }
             });
-            row.querySelector('[data-action="remove-promo"]').addEventListener('click', function (e) {
+            promo.querySelector('[data-action="remove-promo"]').addEventListener('click', function (e) {
                 e.stopPropagation();
-                row.remove();
+                promo.remove();
             });
-            row.querySelector('input').focus();
+            promo.querySelector('input[type="text"]').focus();
             return Promise.resolve();
         }
 

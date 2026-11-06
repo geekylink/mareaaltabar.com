@@ -102,6 +102,58 @@ def bar_now(now: datetime | None = None) -> str:
     return now.astimezone(timezone(BAR_UTC_OFFSET)).strftime("%Y-%m-%dT%H:%M")
 
 
+def parse_promo_days(days: str) -> set[int]:
+    """Weekday numbers from the stored comma-separated form, 0 = Sunday."""
+    return {int(part) for part in (days or "").split(",") if part.strip().isdigit()}
+
+
+def promo_is_live(promo: MenuItemPromo, now: datetime | None = None) -> bool:
+    """True when a promo is switched on and inside its weekday/time/date window.
+
+    Every window is optional, so a promo with nothing set is always live — the
+    shape every row had before happy hours existed. The comparison is done in
+    Python against the bar clock rather than in SQL, for the same reason as
+    :func:`load_notices`: the admin's ``is_live`` and the public filter must
+    never disagree.
+
+    A window whose end is before its start crosses midnight, and the whole
+    window belongs to the evening it began on. At 01:00 on Saturday, a
+    Friday-only 22:00–02:00 offer is live; its weekday and date bounds are
+    checked against Friday, not Saturday. This is what makes "Friday happy
+    hour" survive into the small hours.
+    """
+    if not promo.is_active:
+        return False
+
+    if now is None:
+        now = datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    local = now.astimezone(timezone(BAR_UTC_OFFSET))
+    today = local.date()
+    current = local.strftime("%H:%M")
+
+    start = (promo.start_time or "").strip()
+    end = (promo.end_time or "").strip()
+    overnight = bool(start and end and start > end)
+    effective = today - timedelta(days=1) if overnight and current <= end else today
+
+    if promo.starts_on and effective.isoformat() < promo.starts_on:
+        return False
+    if promo.ends_on and effective.isoformat() > promo.ends_on:
+        return False
+
+    days = parse_promo_days(promo.days)
+    if days and ((effective.weekday() + 1) % 7) not in days:
+        return False
+
+    if start and end:
+        if overnight:
+            return current >= start or current <= end
+        return start <= current <= end
+    return True
+
+
 # --- Shared data loading ---------------------------------------------------
 
 
@@ -151,7 +203,11 @@ def load_closed_days(db: DBSession, from_date: str | None = None) -> list[dict]:
     ]
 
 
-def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
+def load_menu(
+    db: DBSession,
+    include_unavailable: bool = False,
+    now: datetime | None = None,
+) -> list[dict]:
     """The drinks menu: categories in order, each with its items and promos.
 
     Shared by ``GET /api/menu`` and by both server-rendered pages, so the crawler
@@ -163,6 +219,11 @@ def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
     never switch them back on. Categories with nothing to show are dropped from
     the public read so an emptied section does not linger as a bare heading, and
     kept for the panel, which is the only place anything can be added to one.
+
+    Promos follow the same split: the public read carries only offers that are
+    live *now*, while the admin read carries every offer plus ``is_live`` so a
+    paused or out-of-season promo stays editable. ``now`` is injectable so tests
+    can pin the bar clock, as with :func:`load_notices`.
     """
     categories = db.execute(
         select(MenuCategory).order_by(MenuCategory.sort_order, MenuCategory.id)
@@ -182,6 +243,28 @@ def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
     for item in items:
         if not include_unavailable and not item.is_available:
             continue
+
+        item_promos = []
+        for promo in promos_by_item.get(item.id, []):
+            live = promo_is_live(promo, now)
+            if not include_unavailable and not live:
+                continue
+            item_promos.append(
+                {
+                    "id": promo.id,
+                    "label_en": promo.label_en,
+                    "label_es": promo.label_es,
+                    "days": promo.days,
+                    "start_time": promo.start_time,
+                    "end_time": promo.end_time,
+                    "starts_on": promo.starts_on,
+                    "ends_on": promo.ends_on,
+                    "is_active": bool(promo.is_active),
+                    "is_live": live,
+                    "sort_order": promo.sort_order,
+                }
+            )
+
         items_by_category.setdefault(item.category_id, []).append(
             {
                 "id": item.id,
@@ -195,15 +278,7 @@ def load_menu(db: DBSession, include_unavailable: bool = False) -> list[dict]:
                 "price": item.price,
                 "sort_order": item.sort_order,
                 "is_available": bool(item.is_available),
-                "promos": [
-                    {
-                        "id": promo.id,
-                        "label_en": promo.label_en,
-                        "label_es": promo.label_es,
-                        "sort_order": promo.sort_order,
-                    }
-                    for promo in promos_by_item.get(item.id, [])
-                ],
+                "promos": item_promos,
             }
         )
 
