@@ -305,6 +305,13 @@ class SpecialEvent(Base):
         DateTime, server_default=func.now(), onupdate=func.now()
     )
 
+    # Deleting a dated event removes its guest list too. The FK is declared with
+    # ON DELETE CASCADE as well, but the ORM cascade keeps the in-memory SQLite
+    # test database honest even when PRAGMA foreign_keys is off.
+    rsvps: Mapped[list["Rsvp"]] = relationship(
+        back_populates="event", cascade="all, delete-orphan"
+    )
+
 
 # The public read is "upcoming events, soonest first"; the admin read adds past
 # and switched-off rows. This index serves the public query directly.
@@ -553,3 +560,35 @@ class Upload(Base):
 
 # The admin list is "newest first"; this index keeps it off a full scan.
 Index("ix_uploads_created", Upload.created_at)
+
+
+class Rsvp(Base):
+    """One free RSVP for a dated event (ticket #25).
+
+    Deliberately separate from :class:`Reservation`: a reservation asks for a
+    table on any night, an RSVP says "I am coming to this event". There is no
+    payment or ticket code here — paid ticketing belongs to a provider such as
+    Eventbrite, not to a SQLite row. The admin panel sums ``party_size`` to get
+    the guest count.
+    """
+
+    __tablename__ = "rsvps"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_id: Mapped[int] = mapped_column(
+        ForeignKey("special_events.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    contact: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    party_size: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    event: Mapped["SpecialEvent"] = relationship(back_populates="rsvps")
+
+
+# The admin list is "newest first" and can be filtered to one event; the guest
+# count groups by event. This index serves both.
+Index("ix_rsvps_event_created", Rsvp.event_id, Rsvp.created_at)

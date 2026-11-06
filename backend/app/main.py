@@ -25,6 +25,7 @@ from app.routers import (
     logs,
     newsletter,
     reservations,
+    rsvps,
     uploads,
 )
 from app.seed import seed_menu, seed_schedule
@@ -189,6 +190,7 @@ app.include_router(contact.router)
 app.include_router(content.router)
 app.include_router(newsletter.router)
 app.include_router(reservations.router)
+app.include_router(rsvps.router)
 app.include_router(uploads.router)
 app.include_router(logs.router)
 

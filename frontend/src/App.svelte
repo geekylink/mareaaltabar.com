@@ -8,6 +8,7 @@
   import DrinkOfDay from './lib/DrinkOfDay.svelte';
   import Newsletter from './lib/Newsletter.svelte';
   import Reservation from './lib/Reservation.svelte';
+  import EventRsvp from './lib/EventRsvp.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
@@ -180,6 +181,7 @@
                 {#if event.image_url}
                   <img src={event.image_url} alt="" loading="lazy" />
                 {/if}
+                <EventRsvp eventId={event.id} />
               </div>
             </li>
           {/each}

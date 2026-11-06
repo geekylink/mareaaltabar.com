@@ -14,6 +14,7 @@ from app.routers.auth import reset_rate_limit
 from app.routers.contact import reset_rate_limit as reset_contact_rate_limit
 from app.routers.newsletter import reset_rate_limit as reset_newsletter_rate_limit
 from app.routers.reservations import reset_rate_limit as reset_reservation_rate_limit
+from app.routers.rsvps import reset_rate_limit as reset_rsvp_rate_limit
 from app.seed import seed_menu, seed_schedule
 
 
@@ -24,11 +25,13 @@ def _reset_rate_limiter():
     reset_contact_rate_limit()
     reset_newsletter_rate_limit()
     reset_reservation_rate_limit()
+    reset_rsvp_rate_limit()
     yield
     reset_rate_limit()
     reset_contact_rate_limit()
     reset_newsletter_rate_limit()
     reset_reservation_rate_limit()
+    reset_rsvp_rate_limit()
 
 
 @pytest.fixture()

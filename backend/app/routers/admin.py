@@ -179,6 +179,20 @@ async def admin_content(request: Request, admin=Depends(get_current_admin)):
     )
 
 
+@router.get("/admin/rsvps", response_class=HTMLResponse)
+async def admin_rsvps(request: Request, admin=Depends(get_current_admin)):
+    """Event guest lists: who said they are coming, and how many in total.
+
+    An RSVP is free and not a ticket. The rows come from ``/api/rsvps``; there
+    is no notification, so the guest's contact details are how the bar replies.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/rsvps.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
 @router.get("/admin/uploads", response_class=HTMLResponse)
 async def admin_uploads(request: Request, admin=Depends(get_current_admin)):
     """Image library: upload, caption and delete photos.

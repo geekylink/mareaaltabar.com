@@ -106,6 +106,10 @@ Once logged in at `/admin`, you can:
   Each is resized to 1600 px and re-encoded to WebP with a 480 px thumbnail; the
   original is discarded. Edit bilingual captions, copy the image URL, or delete
   the image and its files. Uploaded files live under `UPLOAD_DIR`, not in SQLite.
+- **Event RSVPs** (`/admin/rsvps`): free guest lists for dated events, with the
+  number of RSVPs and the total number of people coming. Filter by event and
+  delete a duplicate or cancellation. This is a head count, not a ticket and not
+  a table reservation; reply to the guest using the contact they left.
 - **Party Schedule** (`/admin/schedule`): one card per weekday holding the party
   title and description in **both English and Spanish**, plus that day's opening
   hours and a "closed" switch. Per-day **Save**, or **Save all days** at the top.

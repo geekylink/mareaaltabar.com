@@ -66,6 +66,22 @@ export default {
     error: 'Could not send your request. Please try again, or message us.',
     honeypot: 'Leave this field blank',
   },
+  // Free RSVP for one dated event. This is a head count, not a ticket: paid
+  // ticketing belongs to a provider such as Eventbrite, not to this form.
+  rsvp: {
+    open: 'RSVP for this event',
+    subtitle: 'Free RSVP. This is a head count, not a ticket.',
+    name: 'Your name',
+    contact: 'Email or phone',
+    partySize: 'People coming',
+    notes: 'Anything we should know? (optional)',
+    send: 'Send RSVP',
+    sending: 'Sending...',
+    sent: 'You are on the list. See you there!',
+    required: 'Please fill in your name and contact.',
+    error: 'Could not send your RSVP. Please try again.',
+    honeypot: 'Leave this field blank',
+  },
   // Newsletter signup. The address is stored with the consent checkbox; there
   // is no provider connected yet and no unsubscribe link in an email.
   newsletter: {

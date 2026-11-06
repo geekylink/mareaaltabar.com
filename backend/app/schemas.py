@@ -806,6 +806,69 @@ class ReservationUpdate(BaseModel):
         return v
 
 
+# --- Event RSVPs (ticket #25) ---------------------------------------------
+
+
+class RsvpWrite(BaseModel):
+    """A free RSVP for one dated event.
+
+    The event id is in the URL, not the body, so the write cannot accidentally
+    attach a guest to a different event. The same honeypot and contact limits as
+    the other public forms apply; ``party_size`` is capped so one RSVP cannot
+    claim the whole event.
+    """
+
+    name: str = Field(default="", max_length=CONTACT_NAME_MAX)
+    contact: str = Field(default="", max_length=CONTACT_DETAIL_MAX)
+    party_size: int = Field(default=2, ge=1, le=RESERVATION_MAX_GUESTS)
+    notes: str = Field(default="", max_length=CONTACT_MESSAGE_MAX)
+    website: str = Field(default="", max_length=200)
+
+    @model_validator(mode="after")
+    def _clean_and_require(self):
+        self.name = clean_text(self.name, max_length=CONTACT_NAME_MAX)
+        self.contact = clean_text(self.contact, max_length=CONTACT_DETAIL_MAX)
+        self.notes = clean_text(
+            self.notes, max_length=CONTACT_MESSAGE_MAX, multiline=True
+        )
+        self.website = (self.website or "").strip()
+
+        if not self.name:
+            raise ValueError("name is required")
+        if not self.contact:
+            raise ValueError("contact is required")
+        return self
+
+
+class RsvpCreated(BaseModel):
+    """The public endpoint acknowledges an RSVP without exposing the row."""
+
+    ok: bool = True
+
+
+class RsvpResponse(BaseModel):
+    """One RSVP as the admin panel reads it, with its event's identity."""
+
+    id: int
+    event_id: int
+    event_date: str
+    event_title_en: str
+    event_title_es: str
+    name: str
+    contact: str
+    party_size: int
+    notes: str
+    ip: str
+    user_agent: str
+    created_at: datetime
+
+
+class RsvpListResponse(BaseModel):
+    rsvps: list[RsvpResponse]
+    total_rsvps: int
+    total_guests: int
+
+
 # --- Uploaded images (ticket #50) -----------------------------------------
 
 UPLOAD_CAPTION_MAX = 500

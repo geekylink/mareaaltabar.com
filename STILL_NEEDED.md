@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14 and #50** are complete and committed. See [`docs/next.md`](docs/next.md)
+#12, #14, #50 and #25** are complete and committed. See [`docs/next.md`](docs/next.md)
 for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -134,9 +134,10 @@ fill in.
       ticked consent box and stores a consent timestamp, but there is no double
       opt-in, no unsubscribe link (the admin switch is the only one) and no
       privacy notice. Have the wording reviewed. Ticket **#12**.
-- [ ] **Event RSVP/ticketing decision** — free RSVP vs paid tickets, capacity,
-      and whether one-off events own reservations. Ticket **#25** depends on
-      this, and #53 deliberately left the question open.
+- [ ] **Paid ticketing decision** — free RSVP is built (#25), but there is no
+      paid ticket path, capacity limit, waitlist or guest notification. If a
+      bigger event needs tickets, choose Eventbrite or Ticket Tailor and add the
+      link; do not build payments into the site.
 - [ ] **Referral rules** — who qualifies, reward value, abuse limits. Ticket **#29**.
 - [ ] **Legal/privacy wording** — the contact form stores **IP address and user
       agent** and rate-limits by IP. You need a privacy notice that says so, and
@@ -153,9 +154,9 @@ fill in.
 - [ ] **Real-browser / device pass** — tests use jsdom, not a real browser. Check
       the public site and admin panel on a phone, Safari and Firefox, including
       the shared navigation (homepage and `/menu`), the Drink of the Day hero,
-      the newsletter and reservation forms, the content editor, the subscriber
-      list, the reservation queue and the image uploader (including a real
-      phone photo and a large photo).
+      the newsletter and reservation forms, the event RSVP form, the content
+      editor, the subscriber list, the reservation queue, the event guest list
+      and the image uploader (including a real phone photo and a large photo).
 - [ ] **Production HTTPS/cookie check** — confirm login works with
       `COOKIE_SECURE=true` and that the session survives a normal navigation.
 - [ ] **Real notification test** — once SMTP/WhatsApp exists, submit the contact
@@ -177,7 +178,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | # | Ticket | Note |
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
-| 25 | Event RSVP | After #53; needs the RSVP/ticketing decision. |
 | 26 | Live music calendar | After #53; calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend only, resolves against `/api/menu`. |
 | 29 | Referral program | After #21; needs referral rules. |
@@ -237,6 +237,10 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   are random and served with a one-year immutable cache header. There is no
   public gallery yet (#8), no cropping/editing, and deleting an upload does not
   rewrite content rows that already point at its URL.
+- **Event RSVPs (#25)** — free RSVPs only; there is no payment, ticket code,
+  capacity limit, waitlist or guest notification. A hidden or past event returns
+  404. Deleting an event removes its guest list, and the admin delete is **not**
+  audited (matching inbox and reservation actions).
 - **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 

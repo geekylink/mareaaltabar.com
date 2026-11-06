@@ -563,7 +563,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 8 | Add photo gallery | 🟠 | 🟡 | Functionality |
 | | 13 | Embed Instagram feed | 🟠 | 🟡 | Social Media |
 | ✅ | 53 | Dated / special events | 🟠 | 🟡 | Functionality |
-| | 25 | Add event ticketing / RSVP | 🟡 | 🟡 | Functionality |
+| ✅ | 25 | Add event ticketing / RSVP | 🟡 | 🟡 | Functionality |
 | | 26 | Add live music calendar | 🟡 | 🟡 | Functionality |
 | | 21 | Add loyalty program | 🟠 | 🟡 | Retention |
 | | 24 | Add blog / news section | 🟡 | 🟡 | SEO |
@@ -636,6 +636,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## Reservation requests (#14)
 **Shipped** — A `reservations` table stores a bar-local date, time, party size, name, contact and notes. `POST /api/reservations` accepts today through 90 days ahead and 1–20 guests, uses a honeypot and a per-IP limiter, and always creates a `pending` row — this is a request, not a booking. `/admin/reservations` filters by status, confirms, declines, returns to pending and deletes; the dashboard shows a pending badge. No guest notification is sent because #51 is still blocked on provider credentials. `backend/tests/test_reservations.py` and `frontend/src/lib/reservation.test.js` cover validation, the queue and the request-not-booking copy.
+
+## Event RSVPs (#25)
+**Shipped (free RSVP only)** — A separate `rsvps` table attaches a name, contact, party of 1–20 and notes to one `special_events` row; deleting the event cascades to its guest list. `POST /api/special-events/{id}/rsvp` is public, honeypot-protected and rate-limited per IP, and returns 404 for hidden, past or unknown events so a stranger cannot discover an unannounced party. Each event on the homepage gets an expandable RSVP form, and `/admin/rsvps` filters by event and shows both the number of RSVPs and the total number of people coming. Paid tickets are deliberately delegated to Eventbrite or Ticket Tailor; there is no payment, ticket code or guest notification (#51). `backend/tests/test_rsvp.py` and `frontend/src/lib/rsvp.test.js` cover validation, the event-state rules, the honeypot, rate limiting, the admin counts and cascade deletion.
 
 ## Image upload pipeline (#50)
 **Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.

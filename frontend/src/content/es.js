@@ -66,6 +66,22 @@ export default {
     error: 'No se pudo enviar tu solicitud. Inténtalo de nuevo o escríbenos.',
     honeypot: 'Deja este campo vacío',
   },
+  // RSVP gratuito para un evento con fecha. Es un conteo de personas, no una
+  // entrada: la venta de entradas pertenece a un proveedor como Eventbrite.
+  rsvp: {
+    open: 'Confirma tu asistencia',
+    subtitle: 'RSVP gratuito. Es un conteo de personas, no una entrada.',
+    name: 'Tu nombre',
+    contact: 'Correo o teléfono',
+    partySize: 'Personas que vienen',
+    notes: '¿Algo que debamos saber? (opcional)',
+    send: 'Enviar RSVP',
+    sending: 'Enviando...',
+    sent: 'Estás en la lista. ¡Nos vemos allí!',
+    required: 'Completa tu nombre y tu contacto.',
+    error: 'No se pudo enviar tu RSVP. Inténtalo de nuevo.',
+    honeypot: 'Deja este campo vacío',
+  },
   // Suscripción al boletín. La dirección se guarda con la casilla de
   // consentimiento; todavía no hay proveedor conectado ni enlace de baja.
   newsletter: {

@@ -10,6 +10,15 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#25 Event RSVPs** — free RSVPs attach to a dated event (#53), separate from
+  table reservations. `POST /api/special-events/{id}/rsvp` accepts a name,
+  contact, party of 1–20 and notes, with the same honeypot and per-IP limiter as
+  the other public forms; hidden, past and unknown events return 404. Each event
+  on the homepage has an expandable RSVP form. `/admin/rsvps` filters by event
+  and shows both the RSVP count and the total number of people coming; the
+  dashboard links to it. Deleting an event removes its guest list. Paid
+  ticketing is deliberately left to Eventbrite/Ticket Tailor. Tests:
+  `backend/tests/test_rsvp.py`, `frontend/src/lib/rsvp.test.js`.
 - **#50 Image upload pipeline** — admin-only `POST /api/uploads` accepts JPEG,
   PNG, WebP and GIF up to 10 MB, verifies the bytes with Pillow, applies EXIF
   orientation, resizes to 1600 px and a 480 px thumbnail, and re-encodes both to
@@ -70,7 +79,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | # | Ticket | Notes |
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
-| 25 | Event RSVP | After #53: RSVP table, endpoint, admin guest count. |
 | 26 | Live music calendar | After #53: calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend quiz resolving against `/api/menu`. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
@@ -111,8 +119,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#25** Event RSVP — the dated-events table (#53) now exists to attach it to.
-2. **#21** Loyalty program — buildable, but only useful once the owner decides
+1. **#21** Loyalty program — buildable, but only useful once the owner decides
    punches, rewards and expiry.
-3. **#31 PWA support** — manifest, service worker and an offline cache now that
+2. **#31 PWA support** — manifest, service worker and an offline cache now that
    the icon set (#9) exists.
+3. **#26** Live music calendar — a calendar view over the dated events (#53).
