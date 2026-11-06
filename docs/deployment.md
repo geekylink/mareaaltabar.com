@@ -295,15 +295,36 @@ from the old database. Copying a database file while the service is running is
 the one thing to avoid; the backup script exists precisely to make that
 unnecessary.
 
+## Automated deploy
+
+`.github/workflows/ci.yml` runs the backend (`ruff`, `pytest`) and frontend
+(`svelte-check`, Vitest, build) on every push and pull request.
+`.github/workflows/deploy.yml` waits for that run to succeed on `main`, then:
+
+1. builds `frontend/dist` on the runner;
+2. rsyncs `backend/` (excluding `venv`, `.env`, `data` and `__pycache__`) and
+   `frontend/dist/` to the checkout on the server;
+3. installs Python dependencies with the server's own `venv`;
+4. runs `sudo systemctl restart marea-alta`.
+
+It is skipped until you set the repository variable `DEPLOY_ENABLED=true` and
+the secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
+`DEPLOY_KNOWN_HOSTS` and `DEPLOY_PATH`. The service user needs passwordless
+sudo for exactly `systemctl restart marea-alta`. The deploy never touches the
+server's `.env`, database or upload directory.
+
+Manual deploys remain possible; use the checklist below.
+
 ## Deploy checklist
 
-1. `cd frontend && npm test && npm run build`
-2. `cd ../backend && python -m pytest tests/ -q`
+1. `cd frontend && npm run lint && npm test && npm run build`
+2. `cd ../backend && python -m ruff check app tests && python -m pytest tests/ -q`
 3. Copy the code, keep `.env` and the database directory in place.
 4. `sudo systemctl restart marea-alta`
 5. `curl -fsS https://mareaaltabar.com/healthz`
-6. Load `/`, `/menu` and `/admin/login`; confirm the rendered schedule/menu is
-   present in the page source (not only after JavaScript runs).
+6. Load `/`, `/menu`, `/news` and `/admin/login`; confirm the rendered
+   schedule/menu/posts are present in the page source (not only after JavaScript
+   runs).
 7. Check `journalctl -u marea-alta` for a startup error you did not see in the
    HTTP check.
 

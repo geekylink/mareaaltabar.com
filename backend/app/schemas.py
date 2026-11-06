@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from app.sanitize import clean_text
 from app.ssr import bar_today
 
-
 # --- A weekday: event text plus its hours, saved as one unit ---
 
 class DayScheduleUpdate(BaseModel):

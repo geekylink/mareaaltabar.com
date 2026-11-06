@@ -1,6 +1,6 @@
 # Marea Alta Surf Bar
 
-The official website for Marea Alta Surf Bar in Montañita, Ecuador. Features live surf and tide conditions, the weekly party schedule, and the drinks menu.
+The official website for Marea Alta Surf Bar in Montañita, Ecuador. Features live surf and tide conditions, the weekly party schedule, the drinks menu and a news page.
 
 ## Project Structure
 
@@ -34,13 +34,14 @@ npm run dev
 
 - Site: <http://localhost:5173>
 - Drinks menu: <http://localhost:5173/menu> (or `/menu` on the backend port)
+- News: <http://localhost:5173/news> (or `/news` on the backend port)
 - Admin panel: <http://localhost:8000/admin> (not linked from the site)
 - Admin logs: <http://localhost:8000/admin/logs> (read-only: logins, menu and schedule changes)
 
 ### Production
 
 ```bash
-cd frontend && npm run build     # emits frontend/dist (index.html + menu.html)
+cd frontend && npm run build     # emits frontend/dist (index.html, menu.html, news.html)
 cd ../backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
@@ -50,9 +51,21 @@ one domain and the site reads `/api/*` without CORS.
 
 `/` and `/menu` are **rendered**, not served straight off disk: the weekly
 schedule, opening hours, closure notices and the drinks menu are injected into
-the HTML so search engines can read them without running JavaScript. Proxy `/`
-and `/menu` to the backend rather than serving the files directly from nginx,
-or that rendering is skipped.
+the HTML so search engines can read them without running JavaScript. `/news` and
+`/news/<slug>` work the same way, with each article's title, description,
+canonical URL and `BlogPosting` data rendered per post. Proxy `/`, `/menu` and
+`/news` to the backend rather than serving the files directly from nginx, or that
+rendering is skipped.
+
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and push to `main`:
+`ruff` and `pytest` for the backend, `svelte-check`, Vitest and a production
+build for the frontend. `.github/workflows/deploy.yml` waits for that run to
+succeed, builds `frontend/dist`, rsyncs the code and build to the VPS over SSH
+and restarts the systemd service. The deploy job is skipped until the repository
+variable `DEPLOY_ENABLED=true` and the secrets listed in the workflow exist — see
+[Still needed](STILL_NEEDED.md) for the deployment checklist.
 
 ### Docker (single container)
 
@@ -100,12 +113,14 @@ See [tests/README.md](tests/README.md).
 # Everything at once: frontend, backend and the docker smoke test, with a summary
 tests/test_all.sh            # --silent prints only failures and the summary
 
-# Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs
+# Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs, news
 cd backend
 python -m pytest tests/ -v
+python -m ruff check app tests
 
-# Frontend: language switching, fallback, time formatting, closed-day handling, the menu
+# Frontend: language switching, fallback, time formatting, closed-day handling, the menu, news
 cd ../frontend
+npm run lint
 npm test
 ```
 

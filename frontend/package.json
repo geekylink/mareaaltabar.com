@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "svelte-check --no-tsconfig --threshold warning",
+    "check": "svelte-check --no-tsconfig"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
@@ -16,6 +18,7 @@
     "@testing-library/svelte": "^5.4.2",
     "jsdom": "^26.1.0",
     "svelte": "^5.57.2",
+    "svelte-check": "^4.7.8",
     "vite": "^6.0.0",
     "vitest": "^5.0.4"
   }

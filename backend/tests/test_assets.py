@@ -6,8 +6,8 @@ the templates in step: no template may reintroduce the emoji, and every file the
 templates point at has to exist at the advertised size.
 """
 
-from pathlib import Path
 import struct
+from pathlib import Path
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES = BACKEND_DIR / "app" / "templates"

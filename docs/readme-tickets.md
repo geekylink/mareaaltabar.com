@@ -89,7 +89,7 @@ Project manager note:
 
 ## Tier 0 — Ship It
 
-*The backend exists but has never been deployed. `.github/workflows/deploy.yml` runs `npm ci` at the repository root, where there is no `package.json` — it has failed on every push since the `frontend/` restructure. Nothing in Tiers 1–5 is worth anything until the site is actually serving.*
+*The backend exists but has never been deployed. The old `.github/workflows/deploy.yml` ran `npm ci` at the repository root, where there is no `package.json`, and had failed on every push since the `frontend/` restructure. #36 has replaced it: CI now runs both suites and the deploy job waits for green, gated on `DEPLOY_ENABLED` until #41 creates the server. Nothing in Tiers 1–5 is worth anything until the site is actually serving.*
 
 ### 41. Deploy the backend to production (VPS)
 **Impact:** 🔴 · **Effort:** 🟡 · **Category:** DevOps
@@ -529,7 +529,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 42 | Fix closed-day handling on the public site | 🔴 | 🟢 | Functionality |
 | ✅ | 43 | Harden SQLite for concurrent production writes | 🔴 | 🟢 | DevOps |
 | ✅ | 44 | Production environment & secrets runbook | 🟠 | 🟢 | Operations |
-| | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
+| ✅ | 36 | CI/CD rebuild | 🔴 | 🟡 | DevOps |
 | ✅ | 38 | Automated database backups & restore drill | 🔴 | 🟢 | DevOps |
 | ✅ | 39 | Uptime monitoring & health endpoint | 🟠 | 🟢 | DevOps |
 | ✅ | 45 | Security headers: HSTS & CSP | 🟠 | 🟢 | Security |
@@ -593,8 +593,8 @@ Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, ~~45~~.
 *Goal: The site is deployed, reachable over HTTPS and safe from data loss. #42–#45 are done — the closed-day bugs are fixed, SQLite is hardened, the production environment is documented and the security headers ship. Only #41 remains, and none of the rest matters until the site is actually serving.*
 
 **Sprint 1 — "Survive deploys" (1 week)**
-Tickets 36, ~~39~~, 35.
-*Goal: Every change is tested and deployed automatically, and a failure pages someone. Fixes the broken CI in #36 and closes the gap #35 leaves.*
+Tickets ~~36~~, ~~39~~, 35.
+*Goal: Every change is tested and deployed automatically, and a failure pages someone. ~~#36~~ is done — CI runs both suites, ruff and svelte-check, and the deploy workflow waits for green and is skipped until the VPS secrets exist. #35 still needs real-browser coverage.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
 Tickets ~~46~~, 5, 6, 2, 47, ~~3~~, 4, ~~48~~, ~~9~~.
@@ -621,6 +621,13 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, ~~32~~.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## CI/CD rebuild (#36)
+**Shipped** — The GitHub Pages workflow that ran `npm ci` at the repository root is gone. `.github/workflows/ci.yml` now runs on every pull request and on pushes to `main`: one job installs the backend from `backend/requirements.txt`, runs `ruff check app tests` and `pytest -q` against the in-memory test database; the other installs the frontend from `frontend/package-lock.json`, runs `svelte-check` and Vitest, then a production build. Both use dependency caches keyed on the lockfile/requirements file, and a concurrency group cancels superseded runs.
+
+The lint gates are deliberately narrow enough to stay green on the existing code: `backend/ruff.toml` selects pycodestyle errors, pyflakes and import sorting (line length is off), and the cleanup it surfaced was real — two duplicate translation keys and an unused migration variable. `frontend/svelte.config.js` lets `svelte-check` use the same preprocessor as the build; `npm run lint` treats warnings as errors and `npm run check` reports them.
+
+`.github/workflows/deploy.yml` now waits for the CI workflow to succeed on `main`, builds `frontend/dist` on the runner, rsyncs the backend (excluding `venv`, `.env`, `data` and `__pycache__`) and the build to the server, installs Python dependencies and restarts the systemd service. It is gated on the repository variable `DEPLOY_ENABLED`, so the repository stays green until ticket #41 creates the VPS; the required secrets and the one allowed `sudo systemctl restart` command are documented at the top of the workflow.
 
 ## News / blog (#24)
 **Shipped** — A `blog_posts` table gives each article its own public URL (`/news/<slug>`), publication date, bilingual title/excerpt/body and optional image, which is why it is not a row in the generic #17 content tables. The public read (`GET /api/posts`, `GET /api/posts/<slug>`) shows only switched-on posts dated today or earlier at the bar; `GET /api/posts/all` is session-guarded and keeps drafts and scheduled posts editable in `/admin/blog`. A blank slug is derived from the title and a blank date becomes today at the bar. Writes require the usual session and CSRF token, and every change is logged in the content area on `/admin/logs`.

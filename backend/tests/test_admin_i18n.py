@@ -5,8 +5,8 @@ panel — or, worse, as `lookup()` handing the page a key name it then renders a
 literal text. Both directions are cheap to check, so both are checked.
 """
 
-import re
 import pathlib
+import re
 
 import pytest
 

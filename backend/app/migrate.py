@@ -48,7 +48,6 @@ def migrate_events_to_bilingual(engine: Engine) -> None:
     if not _table_exists(engine, "events"):
         return
 
-    cols = _table_columns(engine, "events")
     _add_column(engine, "events", "title_en", "TEXT NOT NULL DEFAULT ''")
     _add_column(engine, "events", "title_es", "TEXT NOT NULL DEFAULT ''")
     _add_column(engine, "events", "note_en", "TEXT NOT NULL DEFAULT ''")

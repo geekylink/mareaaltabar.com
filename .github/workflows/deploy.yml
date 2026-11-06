@@ -1,43 +1,98 @@
-name: Deploy to GitHub Pages
+name: Deploy
+
+# Deploys main after CI has passed. Until the VPS exists (ticket #41), the job is
+# skipped rather than failing on every push: set the repository variable
+# DEPLOY_ENABLED=true and the secrets below when the server is ready.
+#
+# Required repository variable:
+#   DEPLOY_ENABLED   true
+#
+# Required repository secrets:
+#   DEPLOY_HOST          hostname or IP of the VPS
+#   DEPLOY_USER          Linux user that owns the checkout
+#   DEPLOY_SSH_KEY       private key for that user (no passphrase)
+#   DEPLOY_KNOWN_HOSTS   output of `ssh-keyscan <host>` so the runner can verify it
+#   DEPLOY_PATH          absolute path of the checkout, e.g. /srv/marea-alta
+#
+# The service user needs passwordless sudo for exactly this one command:
+#   sudo systemctl restart marea-alta
+#
+# The server keeps its own .env, database and upload directory outside the
+# checkout; the rsync steps below deliberately never touch them.
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: ["main"]
-
   workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Build
-        run: npm run build # Or your specific build command
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist # The folder your build command outputs to
-
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    name: Deploy over SSH
     runs-on: ubuntu-latest
-    needs: build
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # The built HTML is what the backend renders from, so it is built here and
+      # copied as an artifact rather than rebuilt on the server.
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Trust the server key
+        env:
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Install deploy key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Copy code and build
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          rsync -az --delete \
+            --exclude venv --exclude .env --exclude data --exclude __pycache__ \
+            backend/ "$USER@$HOST:$PATH_ON_SERVER/backend/"
+          rsync -az --delete frontend/dist/ "$USER@$HOST:$PATH_ON_SERVER/frontend/dist/"
+
+      - name: Install Python dependencies and restart
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh "$USER@$HOST" \
+            "cd '$PATH_ON_SERVER/backend' && ./venv/bin/pip install -q -r requirements.txt && cd .. && sudo systemctl restart marea-alta"

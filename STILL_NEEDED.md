@@ -6,8 +6,8 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#1, #3, #7, #9, #10, #12, #14, #15, #16,
-#17, #24, #25, #26, #27, #31, #32, #38, #39, #42, #43, #44, #45, #46, #48, #49,
-#50, #52, #53, #54, #55 and #56** are complete and committed. See
+#17, #24, #25, #26, #27, #31, #32, #36, #38, #39, #42, #43, #44, #45, #46, #48,
+#49, #50, #52, #53, #54, #55 and #56** are complete and committed. See
 [`docs/next.md`](docs/next.md) for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -51,6 +51,15 @@ TLS certificate, DNS record or production database exists yet.
       `curl -sI https://mareaaltabar.com/ | grep -iE 'content-security-policy|strict-transport-security|permissions-policy'`.
 - [ ] **Confirm `/`, `/menu` and `/admin/login`** on the real domain, including
       that the schedule/menu are in the page source before JavaScript runs.
+- [ ] **Enable the deploy workflow** after the VPS exists: set the repository
+      variable `DEPLOY_ENABLED=true` and the secrets `DEPLOY_HOST`,
+      `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `DEPLOY_PATH`
+      listed in `.github/workflows/deploy.yml`. Then allow the service user to
+      run `sudo systemctl restart marea-alta` without a password.
+- [ ] **Watch the first CI run.** The workflows are committed but have never run
+      on GitHub because nothing has been pushed. The first push is the first
+      real test of `ci.yml`; the deploy job stays skipped until the variable and
+      secrets above exist.
 - [ ] **Decide where the database lives** and who can read it. It contains admin
       password hashes, contact-form submissions (including IP and user agent)
       and audit logs.
@@ -199,12 +208,11 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 33 | Accessibility pass | Public site and admin panel. |
 | 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
-| 36 | CI/CD rebuild | CI portion buildable; deploy job needs VPS secrets. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
 
 Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 #23, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
-#37, #40, #47**.
+#37, #40, #47**. The deploy half of **#36** is blocked on section 1.
 
 ## 6. Decisions I made that you should confirm
 

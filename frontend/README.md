@@ -1,21 +1,23 @@
 # Marea Alta — Frontend
 
-Svelte 5 + Vite site for Marea Alta Surf Bar. Mobile-first, English/Spanish, no API keys needed. Two documents: the homepage and the standalone drinks menu at `/menu`.
+Svelte 5 + Vite site for Marea Alta Surf Bar. Mobile-first, English/Spanish, no API keys needed. Three documents: the homepage, the standalone drinks menu at `/menu` and the news page at `/news`.
 
 ## Commands
 
 ```bash
 npm install
 npm run dev       # Start dev server at http://localhost:5173
-npm run build     # Build for production → outputs dist/ (index.html + menu.html)
+npm run build     # Build for production → outputs dist/ (index.html, menu.html, news.html)
 npm run preview   # Preview the production build locally
 npm test          # Run the test suite once
 npm run test:watch
+npm run lint      # svelte-check, warnings fail (the CI gate)
+npm run check     # svelte-check, errors only (local convenience)
 ```
 
 ## Tests
 
-Vitest with jsdom. Six files:
+Vitest with jsdom. The suite covers:
 
 - `src/lib/api.test.js` — the language-fallback and time-formatting helpers, plus
   the bar's clock and the closed-day helpers.
@@ -25,9 +27,12 @@ Vitest with jsdom. Six files:
   survives the offline fallback.
 - `src/lib/menu.test.js` — `Menu.svelte` renders prices, promos and ingredients,
   falls back to English, and says nothing at all while loading.
+- `src/lib/news.test.js` — `Blog.svelte` renders posts and the empty state, and
+  `BlogPost.svelte` splits the body into paragraphs, switches language and shows
+  an uploaded image.
 - `src/lib/publicI18n.test.js` — the labels the backend renders are the same
   strings this site shows, so a rename cannot silently leave the two disagreeing.
-- `src/main.test.js` — both entry points replace the server-rendered block on
+- `src/main.test.js` — all three entry points replace the server-rendered block on
   mount instead of stacking on it.
 - `src/App.test.js` — renders the real component with a mocked `fetch` and
   asserts the schedule and the menu both switch language **without a remount**,
@@ -52,21 +57,25 @@ page refresh. Keep `lang` passed as a literal argument in template expressions
   (`../backend/app/public_i18n.py`) — `src/lib/publicI18n.test.js` fails if the two drift apart.
 - The visitor's language choice is remembered; first visit follows the browser language.
 
-## Two Documents
+## Three Documents
 
-`npm run build` emits two HTML files, declared in `vite.config.js`:
+`npm run build` emits three HTML files, declared in `vite.config.js`:
 
 | Entry | Route | Component |
 |---|---|---|
 | `index.html` → `src/main.js` | `/` | `App.svelte` — hero, surf, schedule, **menu**, visit |
 | `menu.html` → `src/menu-main.js` | `/menu` | `MenuPage.svelte` — the menu alone, for sharing and indexing |
+| `news.html` → `src/news-main.js` | `/news`, `/news/<slug>` | `NewsPage.svelte` — the post list and one article |
 
-Both render the same `Menu.svelte`, so the drinks cannot drift between the
-homepage and the standalone page. Modules used by both land in shared chunks.
+The homepage and `/menu` render the same `Menu.svelte`, so the drinks cannot
+drift between them. `NewsPage` switches between `Blog.svelte` and
+`BlogPost.svelte` from the path, so both news routes share one bundle. Modules
+used by more than one document land in shared chunks.
 
-The backend serves `/menu` by rendering `dist/menu.html` (`../backend/app/main.py`),
-so the menu is in the HTML a crawler sees. Proxy `/menu` to the backend in nginx
-for the same reason you proxy `/`.
+The backend serves `/menu` and the two news routes by rendering `dist/menu.html`
+and `dist/news.html` (`../backend/app/main.py`), so the content is in the HTML a
+crawler sees. Proxy `/menu` and `/news` to the backend in nginx for the same
+reason you proxy `/`.
 
 ## Schedule and Menu Data Flow
 
@@ -151,23 +160,26 @@ Coordinates for Montañita are at the top of the file.
 
 ## Deployment
 
-Run `npm run build` to produce `dist/` — both `index.html` and `menu.html`. The backend serves that
-directory from the same origin in production (see `../backend/README.md`), and renders `/` and `/menu`
-rather than serving those files straight off disk.
+Run `npm run build` to produce `dist/` — `index.html`, `menu.html` and `news.html`. The backend serves
+that directory from the same origin in production (see `../backend/README.md`), and renders `/`,
+`/menu`, `/news` and `/news/<slug>` rather than serving those files straight off disk.
 
-**nginx must proxy `/` and `/menu` to the backend, not serve the files itself** — serving them directly
-bypasses the rendering and the site goes back to being invisible to crawlers. Hashed assets under
-`/assets/` can still be served by nginx directly.
+**nginx must proxy `/`, `/menu` and `/news` to the backend, not serve the files itself** — serving
+them directly bypasses the rendering and the site goes back to being invisible to crawlers. Hashed
+assets under `/assets/` can still be served by nginx directly.
 
 ### SEO files
 
-`public/robots.txt` and `public/sitemap.xml` are copied into `dist/` by Vite and served by the
-backend's static mount. They disallow the admin panel and advertise only the two public documents.
+`public/robots.txt` is copied into `dist/` by Vite and served by the backend's static mount; it
+disallows the admin panel and advertises the public documents. `public/sitemap.xml` is the fallback
+copy the backend shadows with a dynamic route (`ssr.render_sitemap`), which lists published news
+posts without a rebuild.
 
-Both HTML entry points carry a canonical URL on the apex domain:
+Each HTML entry point carries a canonical URL on the apex domain:
 
 - `index.html` → `https://mareaaltabar.com/`
 - `menu.html` → `https://mareaaltabar.com/menu`
+- `news.html` → `https://mareaaltabar.com/news` (the backend rewrites this per article)
 
-`src/seo.test.js` checks all four files. If production moves to `www`, update the two canonical tags
-and both files in `public/`.
+`src/seo.test.js` checks the files. If production moves to `www`, update the canonical tags and the
+files in `public/`.

@@ -12,7 +12,7 @@ from sqlalchemy import select
 from app import main as main_module
 from app import ssr as ssr_module
 from app.audit import AREA_CONTENT
-from app.models import AuditEntry, BlogPost
+from app.models import AuditEntry
 from app.seed import seed_blog
 
 BUILT_NEWS = (

@@ -1,6 +1,5 @@
 """Tests for the bilingual closed-days API."""
 
-import pytest
 
 from app.models import ClosedDay
 from app.ssr import bar_today

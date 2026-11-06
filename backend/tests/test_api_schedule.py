@@ -1,6 +1,5 @@
 """Tests for the bilingual weekly schedule API."""
 
-import pytest
 
 
 def test_schedule_is_public(client):

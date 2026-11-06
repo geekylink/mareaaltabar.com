@@ -16,7 +16,6 @@ from sqlalchemy import select, text
 from app import audit, main
 from app.models import AuditEntry, LoginAttempt, MenuItem
 
-
 # --- Helpers ---
 
 

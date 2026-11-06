@@ -10,6 +10,13 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#36 CI/CD rebuild** — `.github/workflows/ci.yml` runs the backend
+  (`ruff` + `pytest`) and frontend (`svelte-check` + Vitest + build) on every
+  pull request and push to `main`; `.github/workflows/deploy.yml` waits for
+  that run to succeed, builds `frontend/dist`, rsyncs the code and build over
+  SSH, and restarts the service. The deploy job is gated on `DEPLOY_ENABLED` so
+  it stays skipped until #41 provides the VPS and secrets. Tests: the workflows
+  themselves; `backend/ruff.toml`, `frontend/svelte.config.js`.
 - **#24 News / blog** — a `blog_posts` table with its own slug, bilingual
   title/excerpt/body, optional image, publication date and active flag.
   `/news` lists published posts and `/news/<slug>` renders one article from the
@@ -128,7 +135,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | 33 | Accessibility pass | Public site and admin panel audit/fixes. |
 | 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
-| 36 | CI/CD rebuild (CI portion) | Rewrite workflow from `frontend/`, add PR CI and lint/check scripts. Deploy job needs VPS secrets. |
 | 51 | Submission notification (fallback) | Shared inbox/unread count satisfies the useful half; email/WhatsApp needs a provider. |
 
 ## Buildable, but needs owner content/assets/credentials
@@ -144,7 +150,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 - **#11 Food menu** — data entry only; needs the real menu.
 - **#51 Full notification** — needs SMTP/WhatsApp credentials and destination.
 - **#34 nginx caching** — needs the production server from #41.
-- **#36 Deploy job** — needs VPS host, SSH key and deployment secrets.
+- **#36 Deploy job** — the workflow is shipped and gated on `DEPLOY_ENABLED`;
+  activating it needs the VPS host, SSH key and deployment secrets from #41.
 
 ## Not implementable on this machine
 
@@ -161,4 +168,5 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 1. **#33** Accessibility pass — public site and admin panel audit/fixes.
 2. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
    concurrency test already exists.
-3. **#36** CI/CD rebuild (CI portion) — the deploy job still needs VPS secrets.
+3. **#30** Signature drinks — `is_featured` plus a "Drinks We're Known For"
+   section.

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as DBSession
 
 from app import audit, auth
-from app.config import BACKEND_DIR, settings
+from app.config import settings
 from app.database import SessionLocal, engine, get_db
 from app.migrate import run_migrations
 from app.models import Base
@@ -19,7 +19,6 @@ from app.public_i18n import DEFAULT_LANG, resolve_lang
 from app.routers import (
     admin,
     api,
-    auth as auth_router,
     blog,
     contact,
     content,
@@ -28,6 +27,9 @@ from app.routers import (
     reservations,
     rsvps,
     uploads,
+)
+from app.routers import (
+    auth as auth_router,
 )
 from app.seed import seed_blog, seed_menu, seed_schedule
 from app.ssr import (

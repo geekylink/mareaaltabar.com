@@ -62,16 +62,20 @@ does not make SQLite a multi-writer database, so do not add `--workers N`.
 ## Testing
 
 ```bash
-pip install pytest httpx
+pip install -r requirements.txt   # includes pytest, httpx and ruff
+python -m ruff check app tests
 python -m pytest tests/ -v
 ```
 
+`ruff.toml` keeps the lint gate to pycodestyle errors, pyflakes and import
+sorting, so it fails on real mistakes rather than on formatting opinions.
+
 The suite runs against an in-memory database and covers login/session handling,
-CSRF enforcement, the admin CRUD API (schedule, closed days and the drinks menu),
-the login and change logs with their retention purge, the server-rendered
-homepage and `/menu`, the bilingual admin strings, and end-to-end propagation of
-admin edits to the public read endpoints *and* to the rendered HTML. Tests never
-touch `data/marea_alta.db`.
+CSRF enforcement, the admin CRUD API (schedule, closed days, the drinks menu and
+news posts), the login and change logs with their retention purge, the
+server-rendered homepage, `/menu` and `/news`, the bilingual admin strings, and
+end-to-end propagation of admin edits to the public read endpoints *and* to the
+rendered HTML. Tests never touch `data/marea_alta.db`.
 
 ## Admin Management
 

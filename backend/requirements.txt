@@ -11,3 +11,6 @@ Pillow>=10.0
 # Test suite
 pytest>=8.0
 httpx>=0.27
+
+# Lint gate (see ruff.toml)
+ruff>=0.6

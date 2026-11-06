@@ -8,7 +8,7 @@ bug these should catch.
 
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 
