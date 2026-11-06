@@ -1,0 +1,25 @@
+{#- Server-rendered news article, injected into <div id="app"> for crawlers and
+    for visitors without JavaScript. Replaced by the SPA on mount.
+
+    Context: ssr.build_blog_payload(). `post` is already resolved for one
+    language; `paragraphs` is the body split on blank lines. -#}
+<article id="marea-news-post">
+  <a class="mn-back" href="/news">&larr; {{ labels.news_back }}</a>
+
+  <header class="mn-hero">
+    <p class="mn-eyebrow">{{ labels.news_heading }}</p>
+    <p class="mn-date">{{ post.date_label }}</p>
+    <h1>{{ post.title }}</h1>
+    {% if post.excerpt %}<p class="mn-sub">{{ post.excerpt }}</p>{% endif %}
+  </header>
+
+  {% if post.image_url %}
+  <img class="mn-hero-img" src="{{ post.image_url }}" alt="{{ post.title }}" loading="lazy" width="1200" height="750">
+  {% endif %}
+
+  <div class="mn-body">
+    {% for paragraph in post.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+  </div>
+
+  <p class="mn-back-wrap"><a class="mn-back" href="/news">&larr; {{ labels.news_back }}</a></p>
+</article>

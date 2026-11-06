@@ -5,7 +5,7 @@ import logging
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session as DBSession
@@ -20,6 +20,7 @@ from app.routers import (
     admin,
     api,
     auth as auth_router,
+    blog,
     contact,
     content,
     logs,
@@ -28,8 +29,19 @@ from app.routers import (
     rsvps,
     uploads,
 )
-from app.seed import seed_menu, seed_schedule
-from app.ssr import FRONTEND_DIST, INDEX_HTML, MENU_HTML, render_index, render_menu
+from app.seed import seed_blog, seed_menu, seed_schedule
+from app.ssr import (
+    FRONTEND_DIST,
+    INDEX_HTML,
+    MENU_HTML,
+    NEWS_HTML,
+    render_index,
+    render_menu,
+    render_news,
+    render_news_not_found,
+    render_news_post,
+    render_sitemap,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +57,7 @@ _db = SessionLocal()
 try:
     seed_schedule(_db)
     seed_menu(_db)
+    seed_blog(_db)
 finally:
     _db.close()
 
@@ -186,6 +199,7 @@ async def security_headers(request: Request, call_next):
 app.include_router(auth_router.router)
 app.include_router(admin.router)
 app.include_router(api.router)
+app.include_router(blog.router)
 app.include_router(contact.router)
 app.include_router(content.router)
 app.include_router(newsletter.router)
@@ -264,6 +278,83 @@ async def menu(request: Request, lang: str | None = None, db: DBSession = Depend
         html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)
 
     return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+
+
+# The news index and its individual articles share one Vite document. The
+# backend injects the actual posts so a crawler (or a visitor without
+# JavaScript) reads the article, and the SPA replaces that block on mount.
+@app.api_route("/news", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route(
+    "/news.html", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False
+)
+async def news(request: Request, lang: str | None = None, db: DBSession = Depends(get_db)):
+    """Public: the news index, rendered into the HTML for crawlers."""
+    lang = resolve_lang(lang)
+
+    if not NEWS_HTML.is_file():
+        return JSONResponse(
+            {"detail": "Frontend not built. Run `npm run build` in ../frontend."}
+        )
+
+    try:
+        html = render_news(db, lang, request.state.csp_nonce)
+    except Exception:  # noqa: BLE001
+        logger.exception("Server-rendered news failed; serving the plain shell")
+        html = NEWS_HTML.read_text(encoding="utf-8")
+
+    if lang != DEFAULT_LANG:
+        html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)
+
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+
+
+@app.api_route("/news/{slug}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def news_post(
+    slug: str,
+    request: Request,
+    lang: str | None = None,
+    db: DBSession = Depends(get_db),
+):
+    """Public: one published article, with per-post metadata and JSON-LD."""
+    lang = resolve_lang(lang)
+
+    if not NEWS_HTML.is_file():
+        return JSONResponse(
+            {"detail": "Frontend not built. Run `npm run build` in ../frontend."}
+        )
+
+    try:
+        html = render_news_post(db, lang, slug, request.state.csp_nonce)
+    except Exception:  # noqa: BLE001
+        logger.exception("Server-rendered article failed; serving the plain shell")
+        html = NEWS_HTML.read_text(encoding="utf-8")
+
+    if html is None:
+        try:
+            html = render_news_not_found(db, lang, request.state.csp_nonce)
+        except Exception:  # noqa: BLE001
+            logger.exception("Server-rendered news 404 failed; serving the plain shell")
+            html = NEWS_HTML.read_text(encoding="utf-8")
+        if lang != DEFAULT_LANG:
+            html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)
+        return HTMLResponse(html, status_code=404, headers={"Cache-Control": "no-cache"})
+
+    if lang != DEFAULT_LANG:
+        html = html.replace('<html lang="en">', f'<html lang="{lang}">', 1)
+
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
+
+
+# The sitemap is dynamic so articles written in the panel are discoverable
+# without a frontend rebuild. Registered before the static mount, which would
+# otherwise serve public/sitemap.xml.
+@app.api_route("/sitemap.xml", methods=["GET", "HEAD"])
+async def sitemap(db: DBSession = Depends(get_db)):
+    return Response(
+        content=render_sitemap(db),
+        media_type="application/xml",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 if FRONTEND_DIST.is_dir():

@@ -1,0 +1,32 @@
+{#- Server-rendered news index, injected into <div id="app"> for crawlers and
+    for visitors without JavaScript. Replaced by the SPA on mount.
+
+    Context: ssr.build_blog_payload(). `posts` is already resolved for one
+    language, and everything is auto-escaped. -#}
+<div id="marea-news">
+  <header class="mn-hero">
+    <p class="mn-eyebrow">{{ labels.news_heading }}</p>
+    <h1>{{ labels.news_heading }}</h1>
+    <p class="mn-sub">{{ labels.news_intro }}</p>
+  </header>
+
+  {% if not posts %}
+  <p class="mn-empty">{{ labels.news_empty }}</p>
+  {% endif %}
+
+  <div class="mn-grid">
+    {% for post in posts %}
+    <article class="mn-card">
+      {% if post.image_url %}
+      <a class="mn-card-media" href="{{ post.url }}" tabindex="-1" aria-hidden="true">
+        <img src="{{ post.image_url }}" alt="" loading="lazy" width="640" height="400">
+      </a>
+      {% endif %}
+      <p class="mn-date">{{ post.date_label }}</p>
+      <h2><a href="{{ post.url }}">{{ post.title }}</a></h2>
+      {% if post.excerpt %}<p class="mn-excerpt">{{ post.excerpt }}</p>{% endif %}
+      <a class="mn-more" href="{{ post.url }}">{{ labels.news_read_more }} &rarr;</a>
+    </article>
+    {% endfor %}
+  </div>
+</div>

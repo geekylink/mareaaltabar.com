@@ -31,6 +31,8 @@ import json
 import re
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from html import escape as html_escape
+from xml.sax.saxutils import escape as xml_escape
 
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -38,6 +40,7 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.config import BACKEND_DIR
 from app.models import (
+    BlogPost,
     ClosedDay,
     ContentItem,
     ContentSection,
@@ -54,6 +57,7 @@ from app.public_i18n import strings_for
 FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
 INDEX_HTML = FRONTEND_DIST / "index.html"
 MENU_HTML = FRONTEND_DIST / "menu.html"
+NEWS_HTML = FRONTEND_DIST / "news.html"
 TEMPLATES_DIR = BACKEND_DIR / "app" / "templates"
 
 # The SPA's mount target, and the anchor the schedule block is injected into.
@@ -343,6 +347,69 @@ def load_content(
             }
         )
     return result
+
+
+# --- News / blog (ticket #24) ---------------------------------------------
+
+
+def _blog_post_row(post: BlogPost, today: str) -> dict:
+    """One post in the API's shape, with the public liveness flag."""
+    return {
+        "id": post.id,
+        "slug": post.slug,
+        "title_en": post.title_en,
+        "title_es": post.title_es,
+        "excerpt_en": post.excerpt_en,
+        "excerpt_es": post.excerpt_es,
+        "body_en": post.body_en,
+        "body_es": post.body_es,
+        "image_url": post.image_url,
+        "published_on": post.published_on,
+        "is_active": bool(post.is_active),
+        "is_live": bool(post.is_active) and post.published_on <= today,
+    }
+
+
+def load_blog_posts(
+    db: DBSession,
+    include_inactive: bool = False,
+    today: str | None = None,
+) -> list[dict]:
+    """News posts, newest first.
+
+    The public read is the same split used everywhere else: only switched-on
+    posts whose publication date is today or earlier at the bar. The admin read
+    keeps drafts and scheduled posts so they can be written before they go live.
+    """
+    today = today or bar_today()[1]
+    rows = db.execute(
+        select(BlogPost).order_by(BlogPost.published_on.desc(), BlogPost.id.desc())
+    ).scalars().all()
+
+    posts = []
+    for row in rows:
+        post = _blog_post_row(row, today)
+        if not include_inactive and not post["is_live"]:
+            continue
+        posts.append(post)
+    return posts
+
+
+def load_blog_post(
+    db: DBSession,
+    slug: str,
+    include_inactive: bool = False,
+    today: str | None = None,
+) -> dict | None:
+    """One post by slug, or ``None`` when it is missing or not public yet."""
+    today = today or bar_today()[1]
+    row = db.execute(select(BlogPost).where(BlogPost.slug == slug)).scalar_one_or_none()
+    if row is None:
+        return None
+    post = _blog_post_row(row, today)
+    if not include_inactive and not post["is_live"]:
+        return None
+    return post
 
 
 def load_menu(
@@ -704,6 +771,57 @@ def menu_display(menu: list[dict], lang: str, labels: dict | None = None) -> lis
     return displayed
 
 
+def blog_post_display(post: dict, lang: str) -> dict:
+    """A post resolved for one language, ready for the server-rendered page.
+
+    The body stays plain text in the database. Blank lines are paragraph breaks,
+    which is the one formatting rule both the Jinja partial and the Svelte
+    component apply; admin-entered HTML is never interpreted.
+    """
+    body = pick(post, lang, "body")
+    paragraphs = [part.strip() for part in re.split(r"\n\s*\n", body) if part.strip()]
+    return {
+        "id": post["id"],
+        "slug": post["slug"],
+        "title": pick(post, lang, "title"),
+        "excerpt": pick(post, lang, "excerpt"),
+        "body": body,
+        "paragraphs": paragraphs,
+        "image_url": post["image_url"],
+        "published_on": post["published_on"],
+        "date_label": format_event_date(post["published_on"], lang),
+        "url": f"/news/{post['slug']}",
+        "is_active": post["is_active"],
+        "is_live": post["is_live"],
+    }
+
+
+def build_blog_payload(db: DBSession, lang: str, post: dict | None = None) -> dict:
+    """Everything the news pages render, resolved for one language.
+
+    ``post`` is set on ``/news/<slug>``; the list is always present so the SPA can
+    switch between the two views without a second request. The raw API-shaped
+    rows ride along in ``seed`` for the first paint, exactly like the homepage's
+    schedule and menu.
+    """
+    labels = strings_for(lang)
+    posts = load_blog_posts(db)
+    notices = load_notices(db)
+    return {
+        "lang": lang,
+        "labels": labels,
+        "today": bar_today()[1],
+        "posts": [blog_post_display(row, lang) for row in posts],
+        "post": blog_post_display(post, lang) if post else None,
+        "notices": notice_display(notices, lang),
+        "seed": {
+            "blogPosts": posts,
+            "blogPost": post,
+            "notices": notices,
+        },
+    }
+
+
 # --- Structured data (ticket #49) -----------------------------------------
 
 # The canonical menu URL and bar name used by the schema.org graph.
@@ -797,6 +915,40 @@ def render_menu_json_ld(payload: dict, nonce: str) -> str:
     )
 
 
+BLOG_URL = "https://mareaaltabar.com/news"
+
+
+def blog_json_ld(post: dict) -> dict:
+    """A schema.org ``BlogPosting`` built from the same row the page renders."""
+    url = f"https://mareaaltabar.com/news/{post['slug']}"
+    data = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post["title"],
+        "description": post["excerpt"] or post["title"],
+        "datePublished": post["published_on"],
+        "inLanguage": post["lang"],
+        "mainEntityOfPage": {"@type": "WebPage", "@id": url},
+        "url": url,
+        "author": {"@type": "Organization", "name": SITE_NAME, "url": BLOG_URL},
+        "publisher": {"@type": "Organization", "name": SITE_NAME},
+    }
+    if post["image_url"]:
+        data["image"] = post["image_url"]
+    return data
+
+
+def render_blog_json_ld(payload: dict, nonce: str) -> str:
+    """JSON-LD for the individual news article."""
+    post = dict(payload["post"])
+    post["lang"] = payload["lang"]
+    return (
+        f'<script type="application/ld+json" nonce="{nonce}">'
+        f"{_json_for_script(blog_json_ld(post))}"
+        "</script>"
+    )
+
+
 # --- HTML injection --------------------------------------------------------
 
 
@@ -862,6 +1014,26 @@ def render_notice_styles() -> str:
 def render_menu_styles() -> str:
     """Same, for the menu block."""
     return templates.get_template("partials/menu_style.html").render()
+
+
+def render_blog_block(payload: dict) -> str:
+    """The crawler-readable news index."""
+    return templates.get_template("partials/blog.html").render(**payload)
+
+
+def render_blog_post_block(payload: dict) -> str:
+    """The crawler-readable article."""
+    return templates.get_template("partials/blog_post.html").render(**payload)
+
+
+def render_blog_not_found_block(payload: dict) -> str:
+    """The crawler-readable 404 for an unknown or unpublished slug."""
+    return templates.get_template("partials/blog_not_found.html").render(**payload)
+
+
+def render_blog_styles() -> str:
+    """The ``<style>`` the news blocks need."""
+    return templates.get_template("partials/blog_style.html").render()
 
 
 def _inject(
@@ -943,6 +1115,87 @@ def render_menu_html(menu_html: str, payload: dict, nonce: str) -> str:
     )
 
 
+def render_news_html(news_html: str, payload: dict, nonce: str) -> str:
+    """Inject the news index into the shared ``news.html`` document."""
+    return _inject(
+        news_html,
+        payload,
+        [render_notice_block(payload), render_blog_block(payload)],
+        render_notice_styles() + render_blog_styles(),
+        "news.html",
+        nonce,
+    )
+
+
+def _replace_first(html: str, pattern: str, replacement: str) -> str:
+    """Replace the first match of ``pattern``, leaving no match untouched."""
+    return re.sub(pattern, lambda match: replacement, html, count=1)
+
+
+def render_news_post_head(html: str, payload: dict) -> str:
+    """Rewrite the document head for one article.
+
+    The list document carries the site's generic news metadata. For a post the
+    title, description, canonical URL and social previews must describe that
+    post, or every share from Instagram points at the same generic card. The
+    patterns match the static tags in ``frontend/news.html`` exactly.
+    """
+    post = payload["post"]
+    title = f"{post['title']} · {SITE_NAME}"
+    description = post["excerpt"] or post["title"]
+    url = f"https://mareaaltabar.com/news/{post['slug']}"
+    attr_title = html_escape(title, quote=True)
+    attr_description = html_escape(description, quote=True)
+    attr_url = html_escape(url, quote=True)
+
+    html = _replace_first(html, r"<title>.*?</title>", f"<title>{html_escape(title)}</title>")
+    html = _replace_first(
+        html,
+        r'<meta name="description" content="[^"]*" />',
+        f'<meta name="description" content="{attr_description}" />',
+    )
+    html = _replace_first(
+        html,
+        r'<link rel="canonical" href="[^"]*" />',
+        f'<link rel="canonical" href="{attr_url}" />',
+    )
+    for pattern, replacement in (
+        (r'<meta property="og:title" content="[^"]*" />', f'<meta property="og:title" content="{attr_title}" />'),
+        (r'<meta property="og:description" content="[^"]*" />', f'<meta property="og:description" content="{attr_description}" />'),
+        (r'<meta property="og:url" content="[^"]*" />', f'<meta property="og:url" content="{attr_url}" />'),
+        (r'<meta name="twitter:title" content="[^"]*" />', f'<meta name="twitter:title" content="{attr_title}" />'),
+        (r'<meta name="twitter:description" content="[^"]*" />', f'<meta name="twitter:description" content="{attr_description}" />'),
+    ):
+        html = _replace_first(html, pattern, replacement)
+    return html
+
+
+def render_news_post_html(news_html: str, payload: dict, nonce: str) -> str:
+    """Inject one article and its per-post metadata and JSON-LD."""
+    html = render_news_post_head(news_html, payload)
+    return _inject(
+        html,
+        payload,
+        [render_notice_block(payload), render_blog_post_block(payload)],
+        render_notice_styles() + render_blog_styles(),
+        "news.html",
+        nonce,
+        render_blog_json_ld(payload, nonce),
+    )
+
+
+def render_news_not_found_html(news_html: str, payload: dict, nonce: str) -> str:
+    """The news shell with a real 404 block for an unknown slug."""
+    return _inject(
+        news_html,
+        payload,
+        [render_notice_block(payload), render_blog_not_found_block(payload)],
+        render_notice_styles() + render_blog_styles(),
+        "news.html",
+        nonce,
+    )
+
+
 def render_index(db: DBSession, lang: str, nonce: str) -> str:
     """Read the built index.html and return it with the schedule and menu rendered in."""
     return render_index_html(
@@ -955,3 +1208,57 @@ def render_menu(db: DBSession, lang: str, nonce: str) -> str:
     return render_menu_html(
         MENU_HTML.read_text(encoding="utf-8"), build_payload(db, lang), nonce
     )
+
+
+def render_news(db: DBSession, lang: str, nonce: str) -> str:
+    """Read the built news.html and render the published-post index into it."""
+    return render_news_html(
+        NEWS_HTML.read_text(encoding="utf-8"), build_blog_payload(db, lang), nonce
+    )
+
+
+def render_news_post(db: DBSession, lang: str, slug: str, nonce: str) -> str | None:
+    """Render one published post, or ``None`` when the slug is not public."""
+    post = load_blog_post(db, slug)
+    if post is None:
+        return None
+    return render_news_post_html(
+        NEWS_HTML.read_text(encoding="utf-8"),
+        build_blog_payload(db, lang, post),
+        nonce,
+    )
+
+
+def render_news_not_found(db: DBSession, lang: str, nonce: str) -> str:
+    """The news shell for a slug that does not exist or is not published."""
+    return render_news_not_found_html(
+        NEWS_HTML.read_text(encoding="utf-8"), build_blog_payload(db, lang), nonce
+    )
+
+
+SITE_URL = "https://mareaaltabar.com"
+
+
+def render_sitemap(db: DBSession) -> str:
+    """The sitemap, including every published article.
+
+    The static ``frontend/public/sitemap.xml`` is the fallback Vite copies into
+    ``dist``; this route shadows it so a post written in the panel appears
+    without a rebuild. Only public URLs are listed — drafts and future posts are
+    absent for the same reason the API hides them.
+    """
+    entries = [("/", ""), ("/menu", ""), ("/news", "")]
+    entries.extend((f"/news/{post['slug']}", post["published_on"]) for post in load_blog_posts(db))
+
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ]
+    for path, lastmod in entries:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{xml_escape(SITE_URL + path)}</loc>")
+        if lastmod:
+            lines.append(f"    <lastmod>{xml_escape(lastmod)}</lastmod>")
+        lines.append("  </url>")
+    lines.append("</urlset>")
+    return "\n".join(lines)

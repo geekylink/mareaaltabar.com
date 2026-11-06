@@ -15,7 +15,7 @@
 // Bump VERSION when the shell or caching rules change. Activate deletes every
 // cache from an older version, which also drops stale HTML after a deploy.
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 
 const SHELL_CACHE = `marea-alta-shell-${VERSION}`;
 const PAGE_CACHE = `marea-alta-pages-${VERSION}`;
@@ -26,6 +26,7 @@ const OFFLINE_URL = '/offline.html';
 const SHELL_URLS = [
   '/',
   '/menu',
+  '/news',
   OFFLINE_URL,
   '/manifest.json',
   '/icons/icon-192.png',
@@ -40,7 +41,14 @@ const PUBLIC_API = new Set([
   '/api/menu',
   '/api/notices',
   '/api/special-events',
+  '/api/posts',
 ]);
+
+// One article is `/api/posts/<slug>`. `/api/posts/all` is the admin read and
+// must never be cached, so the prefix test excludes it explicitly.
+function isPublicApi(path) {
+  return PUBLIC_API.has(path) || (path.startsWith('/api/posts/') && path !== '/api/posts/all');
+}
 
 const IMMUTABLE_PREFIXES = ['/assets/', '/icons/', '/uploads/'];
 
@@ -83,7 +91,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.pathname.startsWith('/api/')) {
-    if (PUBLIC_API.has(url.pathname)) {
+    if (isPublicApi(url.pathname)) {
       event.respondWith(networkFirst(request, API_CACHE));
     }
     return;

@@ -566,7 +566,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 25 | Add event ticketing / RSVP | 🟡 | 🟡 | Functionality |
 | ✅ | 26 | Add live music calendar | 🟡 | 🟡 | Functionality |
 | | 21 | Add loyalty program | 🟠 | 🟡 | Retention |
-| | 24 | Add blog / news section | 🟡 | 🟡 | SEO |
+| ✅ | 24 | Add blog / news section | 🟡 | 🟡 | SEO |
 | | 28 | Add photo contest / UGC | 🟡 | 🟡 | Social Media |
 | | 29 | Add referral program | 🟡 | 🟡 | Growth |
 | ✅ | 27 | Add "Perfect Drink" quiz | 🟡 | 🟡 | Engagement |
@@ -609,8 +609,8 @@ Tickets ~~15~~, ~~12~~, 51, ~~14~~, ~~52~~, ~~50~~, 8, 13, 22, 19, 20.
 *Goal: Turn visitors into conversations. ~~#15~~, ~~#12~~, ~~#14~~ and ~~#50~~ are done. #51 is now the missing half — forms without a notification channel are worse than no form. #8 still needs real photographs.*
 
 **Sprint 5 — "Events & community" (2–3 weeks)**
-Tickets 53, 25, 26, 21, 24, 28, 29, ~~27~~, 23.
-*Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations.*
+Tickets 53, 25, 26, 21, ~~24~~, 28, 29, ~~27~~, 23.
+*Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations. ~~#24~~ is done — the news engine, admin editor and launch post are live; only the writing remains.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
 Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, ~~32~~.
@@ -621,6 +621,11 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, ~~32~~.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## News / blog (#24)
+**Shipped** — A `blog_posts` table gives each article its own public URL (`/news/<slug>`), publication date, bilingual title/excerpt/body and optional image, which is why it is not a row in the generic #17 content tables. The public read (`GET /api/posts`, `GET /api/posts/<slug>`) shows only switched-on posts dated today or earlier at the bar; `GET /api/posts/all` is session-guarded and keeps drafts and scheduled posts editable in `/admin/blog`. A blank slug is derived from the title and a blank date becomes today at the bar. Writes require the usual session and CSRF token, and every change is logged in the content area on `/admin/logs`.
+
+The index and the article share one Vite entry (`frontend/news.html`), so `/news` and `/news/<slug>` render the same list/article components. The backend injects the posts into the HTML first for crawlers and visitors without JavaScript, rewrites the title, description, canonical and social tags per article, and emits `BlogPosting` JSON-LD. The sitemap became a route that lists published posts, so a new article needs no rebuild to be discoverable. One bilingual placeholder post announcing the launch is seeded only when the table is empty; it can be edited or deleted from the panel without coming back on restart. Tests: `backend/tests/test_blog.py`, `frontend/src/lib/news.test.js`, `frontend/src/lib/publicI18n.test.js`, `frontend/src/seo.test.js`.
 
 ## Dark mode toggle (#32)
 **Shipped** — The public site has one light/dark switch in the shared `Nav.svelte`, next to the language selector. The choice is stored in `localStorage` under `theme`; a visitor with no stored choice follows `prefers-color-scheme`, and the store keeps following the system while the page is open until they press the toggle. `frontend/src/app.css` now defines semantic tokens (`--bg`, `--text`, `--surface`, `--text-muted`, `--rule`, `--accent-ink`, `--accent-bg`, success/error and notice colours) with a `[data-theme='dark']` override and a system-dark media fallback for visitors with JavaScript disabled. The backend injects a nonce-protected head script in `ssr.py`, so the saved theme is on `<html>` before the first paint rather than after the SPA mounts. The hero, surf, menu, calendar, forms, quiz, RSVP, newsletter and server-rendered blocks all use the tokens. Tests: `frontend/src/lib/theme.test.js`, `frontend/src/lib/nav.test.js` and `backend/tests/test_ssr.py`.

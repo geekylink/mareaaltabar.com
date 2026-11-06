@@ -7,7 +7,7 @@ export default {
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
   },
   ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error', switchToDark: 'Switch to dark mode', switchToLight: 'Switch to light mode' },
-  nav: { surf: 'Surf', party: 'Party', menu: 'Menu', contact: 'Contact', visit: 'Visit' },
+  nav: { surf: 'Surf', party: 'Party', menu: 'Menu', news: 'News', contact: 'Contact', visit: 'Visit' },
   hero: {
     line1: 'Surf by day.',
     line2: 'Dance by night.',
@@ -166,6 +166,18 @@ export default {
     sent: 'Thanks! We will get back to you soon.',
     error: 'Could not send your message. Please try again, or find us on social media.',
     honeypot: 'Leave this field blank',
+  },
+  // News / blog. Posts are database rows; these are the page's own labels.
+  news: {
+    title: 'News',
+    subtitle: 'New drinks, upcoming parties, surf days worth planning around and news from Montañita.',
+    empty: 'No news yet. Check back soon.',
+    readMore: 'Read more',
+    back: 'All news',
+    notFound: 'That story could not be found.',
+    notFoundHint: 'It may have been removed, or the address may be wrong.',
+    error: 'Could not load the news. Please try again.',
+    retry: 'Try again',
   },
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   visit: {

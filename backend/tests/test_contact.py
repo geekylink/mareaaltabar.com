@@ -8,6 +8,8 @@ is also deliberately absent from the audit log, which is asserted rather than
 assumed.
 """
 
+import re
+
 import pytest
 from sqlalchemy import select
 
@@ -216,13 +218,13 @@ def test_the_dashboard_links_to_the_inbox_and_counts_unread(
 ):
     submit(client)
     body = client.get("/admin").text
-    assert 'href="/admin/inbox"' in body
-    assert '<span class="badge">1 ' in body
+    inbox = re.search(r'<a href="/admin/inbox".*?</a>', body, re.S).group(0)
+    assert '<span class="badge">1 ' in inbox
 
 
 def test_the_dashboard_badge_is_absent_with_no_unread_messages(
     client, auth_cookies
 ):
     body = client.get("/admin").text
-    assert 'href="/admin/inbox"' in body
-    assert '<span class="badge">' not in body
+    inbox = re.search(r'<a href="/admin/inbox".*?</a>', body, re.S).group(0)
+    assert '<span class="badge">' not in inbox

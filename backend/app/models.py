@@ -470,6 +470,45 @@ Index("ix_content_sections_active_order", ContentSection.is_active, ContentSecti
 Index("ix_content_items_section_order", ContentItem.section_id, ContentItem.sort_order)
 
 
+class BlogPost(Base):
+    """One news article (ticket #24).
+
+    A post is deliberately not a generic :class:`ContentSection` row: it has a
+    public URL of its own (``/news/<slug>``), a publication date that controls
+    when it becomes visible, and SEO fields (excerpt, image) that a package or
+    gallery row does not need. Keeping those first-class is what makes the page
+    shareable from Instagram and indexable on its own.
+
+    ``body_en`` / ``body_es`` are plain text. Blank lines separate paragraphs,
+    which both the server-rendered article and ``BlogPost.svelte`` honour; HTML
+    is never stored, so an admin cannot accidentally break the page.
+    """
+
+    __tablename__ = "blog_posts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(120), nullable=False, unique=True, default="")
+    title_en: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    title_es: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    excerpt_en: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    excerpt_es: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    body_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    published_on: Mapped[str] = mapped_column(String(10), nullable=False, default="")  # YYYY-MM-DD
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+# The public list is "active posts published by today, newest first"; the admin
+# list is "newest first, every row". This index serves the public read and keeps
+# the admin sort cheap.
+Index("ix_blog_posts_active_published", BlogPost.is_active, BlogPost.published_on)
+
+
 class Subscriber(Base):
     """One newsletter signup from the public site.
 

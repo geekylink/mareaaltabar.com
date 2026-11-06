@@ -18,12 +18,14 @@ describe('Nav.svelte', () => {
     expect(screen.getByText('Marea Alta').closest('a').getAttribute('href')).toBe('#top');
     expect(screen.getByText('Surf').closest('a').getAttribute('href')).toBe('#surf');
     expect(screen.getByText('Menu').closest('a').getAttribute('href')).toBe('#menu');
+    expect(screen.getByText('News').closest('a').getAttribute('href')).toBe('/news');
   });
 
   it('links back to the homepage from another document', () => {
     render(Nav, { props: { home: false } });
     expect(screen.getByText('Surf').closest('a').getAttribute('href')).toBe('/#surf');
     expect(screen.getByText('Visit').closest('a').getAttribute('href')).toBe('/#visit');
+    expect(screen.getByText('News').closest('a').getAttribute('href')).toBe('/news');
   });
 
   it('renders only the links it is given', () => {

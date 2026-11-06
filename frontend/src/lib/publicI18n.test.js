@@ -31,6 +31,12 @@ const SHARED_LABELS = {
   menu_ingredients: (c) => c.menu.ingredients,
   menu_promo: (c) => c.menu.promo,
   menu_empty: (c) => c.menu.empty,
+  news_heading: (c) => c.news.title,
+  news_intro: (c) => c.news.subtitle,
+  news_empty: (c) => c.news.empty,
+  news_read_more: (c) => c.news.readMore,
+  news_back: (c) => c.news.back,
+  news_not_found: (c) => c.news.notFound,
 };
 
 const CONTENT = { en, es };

@@ -24,7 +24,8 @@ from app.audit import ChangeAuthor
 from app.config import settings
 from app.database import get_db
 from app.dependencies import change_author, get_current_admin, get_current_session
-from app.models import Admin, Reservation, Submission, Subscriber
+from app.models import Admin, BlogPost, Reservation, Submission, Subscriber
+from app.ssr import bar_today
 
 router = APIRouter()
 
@@ -92,6 +93,9 @@ async def admin_dashboard(
     active_subscribers = db.scalar(
         select(func.count(Subscriber.id)).where(Subscriber.is_active.is_(True))
     ) or 0
+    published_posts = db.scalar(
+        select(func.count(BlogPost.id)).where(BlogPost.is_active.is_(True))
+    ) or 0
     return templates.TemplateResponse(
         request=request,
         name="admin/dashboard.html",
@@ -100,6 +104,7 @@ async def admin_dashboard(
             "unread_submissions": unread,
             "pending_reservations": pending_reservations,
             "active_subscribers": active_subscribers,
+            "published_posts": published_posts,
             **_i18n_payload(),
         },
     )
@@ -178,6 +183,20 @@ async def admin_content(request: Request, admin=Depends(get_current_admin)):
         request=request,
         name="admin/content.html",
         context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/blog", response_class=HTMLResponse)
+async def admin_blog(request: Request, admin=Depends(get_current_admin)):
+    """News posts: write, schedule, publish and remove articles.
+
+    The rows come from ``/api/posts/all`` so drafts and future-dated posts stay
+    editable; the public read hides them until their date at the bar.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/blog.html",
+        context={"admin": admin, "today": bar_today()[1], **_i18n_payload()},
     )
 
 

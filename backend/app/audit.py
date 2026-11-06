@@ -57,6 +57,7 @@ TARGET_NOTICE = "notice"
 TARGET_SPECIAL_EVENT = "special_event"
 TARGET_CONTENT_SECTION = "content_section"
 TARGET_CONTENT_ITEM = "content_item"
+TARGET_BLOG_POST = "post"
 TARGET_UPLOAD = "upload"
 
 # 07:00 at the bar, which is when the retention purge runs.

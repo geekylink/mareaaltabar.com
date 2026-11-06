@@ -10,6 +10,15 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#24 News / blog** — a `blog_posts` table with its own slug, bilingual
+  title/excerpt/body, optional image, publication date and active flag.
+  `/news` lists published posts and `/news/<slug>` renders one article from the
+  same Vite entry; the backend injects both into the HTML, rewrites the head
+  metadata per article and emits `BlogPosting` JSON-LD. `/admin/blog` writes,
+  schedules, edits and deletes posts, and `/sitemap.xml` is now dynamic so a new
+  post appears without a rebuild. One bilingual launch post is seeded only into
+  an empty table. Tests: `backend/tests/test_blog.py`,
+  `frontend/src/lib/news.test.js`.
 - **#32 Dark mode toggle** — the public site now has a light/dark theme switch
   in the shared header. A saved choice lives in `localStorage` under `theme`,
   and a first-time visitor follows `prefers-color-scheme`. The backend injects a
@@ -133,7 +142,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 - **#20 Private events / group booking** — needs capacity, pricing and policy.
 - **#18 Drink descriptions** — content only; admin already supports it.
 - **#11 Food menu** — data entry only; needs the real menu.
-- **#24 Blog / news** — engine can be built; needs a committed writer.
 - **#51 Full notification** — needs SMTP/WhatsApp credentials and destination.
 - **#34 nginx caching** — needs the production server from #41.
 - **#36 Deploy job** — needs VPS host, SSH key and deployment secrets.

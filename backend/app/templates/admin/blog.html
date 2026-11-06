@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; background: #f5f5f5; color: #1D1A17; }
+        header { background: #0B3C49; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        header h1 { font-size: 1.25rem; font-weight: 800; }
+        .user-info { display: flex; align-items: center; gap: .9rem; font-size: .85rem; }
+        .btn-logout { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3); padding: .4rem .8rem; border-radius: .4rem; font-size: .8rem; text-decoration: none; cursor: pointer; }
+        .btn-logout:hover { background: rgba(255,255,255,.24); }
+        .lang-switch { display: flex; gap: .2rem; }
+        .lang-switch button { background: transparent; color: rgba(255,255,255,.7); border: 1px solid rgba(255,255,255,.3); border-radius: .3rem; padding: .25rem .5rem; font-size: .72rem; font-weight: 700; cursor: pointer; }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,.24); color: #fff; }
+        main { max-width: 72rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link { display: inline-block; color: #0B3C49; font-size: .875rem; font-weight: 600; text-decoration: none; margin-bottom: 1.25rem; }
+        .back-link:hover { text-decoration: underline; }
+        .toolbar { display: flex; align-items: baseline; gap: .75rem; flex-wrap: wrap; margin-bottom: .35rem; }
+        .toolbar h2 { font-size: 1.5rem; color: #0B3C49; }
+        .status { font-size: .8rem; font-weight: 700; color: #166534; opacity: 0; transition: opacity .2s; }
+        .status.visible { opacity: 1; }
+        .status.error { color: #991B1B; }
+        .intro { font-size: .9rem; color: #666; line-height: 1.55; margin-bottom: 1.5rem; max-width: 52rem; }
+        .error-banner { background: #FEE2E2; color: #991B1B; padding: .85rem 1rem; border-radius: .5rem; margin-bottom: 1rem; font-size: .9rem; }
+        .panel { background: #fff; border-radius: .85rem; padding: 1.35rem; margin-bottom: 1.75rem; border: 2px solid transparent; }
+        .panel h3 { font-size: 1.1rem; color: #0B3C49; margin-bottom: 1rem; }
+        .fields { display: grid; gap: .75rem; }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+        .field label { display: block; font-size: .7rem; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; }
+        .field input, .field textarea { width: 100%; padding: .55rem .7rem; border: 1.5px solid #ddd; border-radius: .4rem; font-size: .9rem; font-family: inherit; }
+        .field textarea { resize: vertical; min-height: 5rem; }
+        .field input:focus, .field textarea:focus { outline: none; border-color: #0B3C49; }
+        .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
+        .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
+        .hint { font-size: .75rem; color: #888; line-height: 1.45; }
+        .actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+        .btn { border: 0; border-radius: .4rem; padding: .55rem 1rem; font-size: .85rem; font-weight: 700; cursor: pointer; background: #0B3C49; color: #fff; }
+        .btn:hover { background: #0E4E5E; }
+        .btn-quiet { background: #F1F5F9; color: #0B3C49; border: 1px solid #d8e0e6; }
+        .btn-quiet:hover { background: #e5edf3; }
+        .btn-remove { background: #FEE2E2; color: #991B1B; }
+        .btn-remove:hover { background: #FECACA; }
+        .toggle { display: flex; align-items: center; gap: .4rem; font-size: .82rem; color: #333; font-weight: 600; }
+        .post-list { list-style: none; display: grid; gap: .85rem; }
+        .post { background: #fff; border-radius: .85rem; padding: 1rem 1.15rem; border: 2px solid transparent; }
+        .post.is-off { background: #FAFAFA; }
+        .post-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+        .post-head .name { font-weight: 700; color: #0B3C49; margin-right: auto; }
+        .post-head .date { font-size: .78rem; color: #888; font-weight: 600; }
+        .flag { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; border-radius: 999px; padding: .15rem .55rem; }
+        .flag-live { color: #166534; background: #DCFCE7; }
+        .flag-scheduled { color: #92400E; background: #FEF3C7; }
+        .flag-off { color: #991B1B; background: #FEE2E2; }
+        .post .excerpt { font-size: .85rem; color: #666; line-height: 1.45; margin-top: .45rem; }
+        .post-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+        .empty-note { font-size: .9rem; color: #888; padding: .5rem 0; }
+        .loading { padding: 2rem 0; text-align: center; color: #666; }
+        @media (max-width: 720px) { .field-pair { grid-template-columns: 1fr; } header { padding-inline: 1.25rem; } }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+        <div class="toolbar">
+            <h2 data-i18n="blog_heading">News / Blog</h2>
+            <span class="status" id="global-status"></span>
+        </div>
+        <p class="intro" data-i18n="blog_intro">Write a post once, in both languages. Drafts and future dates stay off the public page until you publish them. Blank lines separate paragraphs.</p>
+        <div id="alert-slot"></div>
+
+        <section class="panel">
+            <h3 id="form-title" data-i18n="blog_new">New post</h3>
+            <form id="post-form">
+                <input type="hidden" id="post-id">
+                <div class="fields">
+                    <div class="field-pair">
+                        <div class="field">
+                            <label data-i18n="blog_title_en">Title (English)</label>
+                            <input type="text" id="post-title-en" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label data-i18n="blog_title_es">Title (Spanish)</label>
+                            <input type="text" id="post-title-es" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label data-i18n="blog_slug">Slug / URL</label>
+                        <input type="text" id="post-slug" autocomplete="off" placeholder="website-launch">
+                        <p class="hint" data-i18n="blog_slug_hint">Leave blank to build it from the title. The post lives at /news/your-slug.</p>
+                    </div>
+                    <div class="field-pair">
+                        <div class="field">
+                            <label data-i18n="blog_excerpt_en">Short summary (English)</label>
+                            <input type="text" id="post-excerpt-en" autocomplete="off">
+                        </div>
+                        <div class="field">
+                            <label data-i18n="blog_excerpt_es">Short summary (Spanish)</label>
+                            <input type="text" id="post-excerpt-es" autocomplete="off">
+                        </div>
+                    </div>
+                    <p class="hint" data-i18n="blog_excerpt_hint">One or two lines for the news list and social previews.</p>
+                    <div class="field-pair">
+                        <div class="field">
+                            <label data-i18n="blog_body_en">Article (English)</label>
+                            <textarea id="post-body-en" rows="7"></textarea>
+                        </div>
+                        <div class="field">
+                            <label data-i18n="blog_body_es">Article (Spanish)</label>
+                            <textarea id="post-body-es" rows="7"></textarea>
+                        </div>
+                    </div>
+                    <p class="hint" data-i18n="blog_body_hint">Plain text. Leave a blank line between paragraphs.</p>
+                    <div class="field-pair">
+                        <div class="field">
+                            <label data-i18n="blog_image_url">Image URL (optional)</label>
+                            <input type="text" id="post-image" autocomplete="off" placeholder="/uploads/photo.webp">
+                            <p class="hint" data-i18n="blog_image_hint">A link to a photo, or a path on this site such as /uploads/name.webp.</p>
+                        </div>
+                        <div class="field">
+                            <label data-i18n="blog_published_on">Publication date</label>
+                            <input type="date" id="post-date" value="{{ today }}">
+                            <p class="hint" data-i18n="blog_date_hint">The post appears on the site on this date, at the bar's time.</p>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <label class="toggle"><input type="checkbox" id="post-active" checked> <span data-i18n="blog_active">Publish on the site</span></label>
+                        <button type="submit" class="btn" id="save-button" data-i18n="blog_save">Save post</button>
+                        <button type="button" class="btn btn-quiet" id="cancel-button" data-i18n="blog_cancel">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section>
+            <div id="posts"><div class="loading" data-i18n="loading">Loading...</div></div>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var posts = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) { return HTML_ESCAPES[ch]; });
+        }
+        function t(key) { return AdminI18n.t(key); }
+
+        function setStatus(message, isError) {
+            var el = document.getElementById('global-status');
+            el.textContent = message;
+            el.classList.toggle('error', !!isError);
+            el.classList.add('visible');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(function () { el.classList.remove('visible'); }, 3000);
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        function clearAlert() {
+            document.getElementById('alert-slot').innerHTML = '';
+        }
+
+        function statusFor(post) {
+            if (!post.is_active) return { label: t('blog_off'), cls: 'flag-off' };
+            if (post.is_live) return { label: t('blog_live'), cls: 'flag-live' };
+            return { label: t('blog_scheduled'), cls: 'flag-scheduled' };
+        }
+
+        function renderList() {
+            var host = document.getElementById('posts');
+            if (!posts.length) {
+                host.innerHTML = '<p class="empty-note">' + esc(t('blog_no_posts')) + '</p>';
+                return;
+            }
+            host.innerHTML = '<ul class="post-list">' + posts.map(function (post) {
+                var status = statusFor(post);
+                var title = post.title_en || post.title_es || t('blog_untitled');
+                var summary = post.excerpt_en || post.excerpt_es || '';
+                return '' +
+                    '<li class="post' + (post.is_active ? '' : ' is-off') + '" data-id="' + post.id + '">' +
+                        '<div class="post-head">' +
+                            '<span class="name">' + esc(title) + '</span>' +
+                            '<span class="flag ' + status.cls + '">' + esc(status.label) + '</span>' +
+                            '<span class="date">' + esc(post.published_on) + '</span>' +
+                        '</div>' +
+                        (summary ? '<p class="excerpt">' + esc(summary) + '</p>' : '') +
+                        '<div class="post-actions">' +
+                            '<button type="button" class="btn btn-quiet" data-action="edit">' + esc(t('blog_edit')) + '</button>' +
+                            (post.is_live ? '<a class="btn btn-quiet" href="/news/' + encodeURIComponent(post.slug) + '" target="_blank" rel="noopener">' + esc(t('blog_view')) + '</a>' : '') +
+                            '<button type="button" class="btn btn-remove" data-action="delete">' + esc(t('blog_delete')) + '</button>' +
+                        '</div>' +
+                    '</li>';
+            }).join('') + '</ul>';
+
+            host.querySelectorAll('.post').forEach(function (node) {
+                var post = posts.filter(function (p) { return String(p.id) === node.dataset.id; })[0];
+                node.querySelector('[data-action="edit"]').addEventListener('click', function () { fillForm(post); });
+                node.querySelector('[data-action="delete"]').addEventListener('click', function () { remove(post); });
+            });
+        }
+
+        function fillForm(post) {
+            clearAlert();
+            document.getElementById('post-id').value = post.id;
+            document.getElementById('post-title-en').value = post.title_en;
+            document.getElementById('post-title-es').value = post.title_es;
+            document.getElementById('post-slug').value = post.slug;
+            document.getElementById('post-excerpt-en').value = post.excerpt_en;
+            document.getElementById('post-excerpt-es').value = post.excerpt_es;
+            document.getElementById('post-body-en').value = post.body_en;
+            document.getElementById('post-body-es').value = post.body_es;
+            document.getElementById('post-image').value = post.image_url;
+            document.getElementById('post-date').value = post.published_on;
+            document.getElementById('post-active').checked = !!post.is_active;
+            document.getElementById('form-title').textContent = t('blog_edit');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            document.getElementById('post-form').reset();
+            document.getElementById('post-id').value = '';
+            document.getElementById('post-date').value = '{{ today }}';
+            document.getElementById('post-active').checked = true;
+            document.getElementById('form-title').textContent = t('blog_new');
+            clearAlert();
+        }
+
+        function payload() {
+            return {
+                title_en: document.getElementById('post-title-en').value,
+                title_es: document.getElementById('post-title-es').value,
+                slug: document.getElementById('post-slug').value,
+                excerpt_en: document.getElementById('post-excerpt-en').value,
+                excerpt_es: document.getElementById('post-excerpt-es').value,
+                body_en: document.getElementById('post-body-en').value,
+                body_es: document.getElementById('post-body-es').value,
+                image_url: document.getElementById('post-image').value,
+                published_on: document.getElementById('post-date').value,
+                is_active: document.getElementById('post-active').checked
+            };
+        }
+
+        function reload() {
+            return api('/api/posts/all').then(function (data) {
+                posts = data;
+                renderList();
+            });
+        }
+
+        function save(event) {
+            event.preventDefault();
+            clearAlert();
+            var id = document.getElementById('post-id').value;
+            var button = document.getElementById('save-button');
+            button.disabled = true;
+            setStatus(t('blog_saving'), false);
+            api(id ? '/api/posts/' + id : '/api/posts', {
+                method: id ? 'PUT' : 'POST',
+                body: payload()
+            }).then(function () {
+                resetForm();
+                return reload();
+            }).then(function () {
+                setStatus(t('blog_saved'), false);
+            }).catch(function (err) {
+                showAlert(err.message || t('blog_save_failed'));
+                setStatus(t('blog_save_failed'), true);
+            }).finally(function () {
+                button.disabled = false;
+            });
+        }
+
+        function remove(post) {
+            if (!window.confirm(t('blog_confirm_delete'))) return;
+            api('/api/posts/' + post.id, { method: 'DELETE' }).then(function () {
+                if (document.getElementById('post-id').value === String(post.id)) resetForm();
+                return reload();
+            }).then(function () {
+                setStatus(t('saved'), false);
+            }).catch(function (err) {
+                showAlert(err.message || t('blog_delete_failed'));
+            });
+        }
+
+        document.getElementById('post-form').addEventListener('submit', save);
+        document.getElementById('cancel-button').addEventListener('click', resetForm);
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                renderList();
+                if (!document.getElementById('post-id').value) {
+                    document.getElementById('form-title').textContent = t('blog_new');
+                }
+            });
+        });
+        syncLangButtons();
+
+        reload().catch(function (err) { showAlert(err.message || t('blog_load_failed')); });
+    })();
+    </script>
+</body>
+</html>

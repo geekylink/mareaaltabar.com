@@ -1,0 +1,63 @@
+{#- Styles for the server-rendered news blocks, injected into <head>.
+
+    The SPA's CSS is built from Svelte's scoped component styles, so none of it
+    applies to server-rendered markup. These rules cover the window between the
+    HTML arriving and the entry script replacing the block, plus visitors with
+    JavaScript disabled. -#}
+<style>
+  #marea-news, #marea-news-post {
+    padding: 3rem 1.25rem 4rem; max-width: 68rem; margin-inline: auto;
+  }
+  #marea-news .mn-hero h1, #marea-news-post .mn-hero h1 {
+    font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+    font-size: clamp(2.25rem, 8vw, 4rem); font-weight: 800;
+    letter-spacing: -.03em; line-height: .98; margin: 0 0 .9rem;
+  }
+  #marea-news .mn-eyebrow, #marea-news-post .mn-eyebrow {
+    font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .14em; color: var(--accent-ink); margin: 0 0 .65rem;
+  }
+  #marea-news .mn-sub, #marea-news-post .mn-sub {
+    font-size: clamp(1rem, 2.6vw, 1.2rem); color: var(--text-muted);
+    max-width: 44rem; line-height: 1.55; margin: 0;
+  }
+  #marea-news .mn-date, #marea-news-post .mn-date {
+    font-size: .8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-soft); margin: 0 0 .5rem;
+  }
+  #marea-news .mn-empty { color: var(--text-soft); margin-top: 2rem; }
+  #marea-news .mn-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    gap: 1.5rem; margin-top: 2.5rem;
+  }
+  #marea-news .mn-card {
+    display: flex; flex-direction: column; gap: .55rem;
+    background: var(--surface); border: 2px solid var(--rule);
+    border-radius: 1.1rem; padding: 1.25rem;
+  }
+  #marea-news .mn-card-media { display: block; margin: -.35rem -.35rem .35rem; border-radius: .8rem; overflow: hidden; }
+  #marea-news .mn-card-media img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; object-fit: cover; }
+  #marea-news .mn-card h2 { font-family: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif; font-size: 1.5rem; line-height: 1.1; margin: 0; }
+  #marea-news .mn-card h2 a { text-decoration: none; }
+  #marea-news .mn-card h2 a:hover { text-decoration: underline; }
+  #marea-news .mn-excerpt { color: var(--text-muted); line-height: 1.55; margin: 0; }
+  #marea-news .mn-more, #marea-news-post .mn-more, #marea-news .mn-back, #marea-news-post .mn-back {
+    font-weight: 700; text-decoration: none;
+  }
+  #marea-news .mn-more:hover, #marea-news-post .mn-more:hover,
+  #marea-news .mn-back:hover, #marea-news-post .mn-back:hover { text-decoration: underline; }
+  #marea-news-post .mn-back { display: inline-block; margin-bottom: 1.75rem; }
+  #marea-news-post .mn-hero { margin-bottom: 2rem; }
+  #marea-news-post .mn-hero-img {
+    display: block; width: 100%; height: auto; aspect-ratio: 16 / 10;
+    object-fit: cover; border-radius: 1.1rem; margin: 0 0 2rem;
+  }
+  #marea-news-post .mn-body { max-width: 44rem; }
+  #marea-news-post .mn-body p { font-size: 1.05rem; line-height: 1.7; margin: 0 0 1.15rem; }
+  #marea-news-post .mn-back-wrap { margin-top: 2.5rem; }
+  #marea-news .mn-not-found { padding-block: 2rem; }
+  @media (min-width: 760px) {
+    #marea-news, #marea-news-post { padding-inline: 2rem; }
+  }
+</style>

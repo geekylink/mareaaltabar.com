@@ -38,7 +38,7 @@ describe('public SEO files', () => {
     const locs = [...doc.querySelectorAll('loc')].map((node) => node.textContent);
 
     expect(doc.querySelector('parsererror')).toBeNull();
-    expect(locs).toEqual([`${PUBLIC_ROOT}/`, `${PUBLIC_ROOT}/menu`]);
+    expect(locs).toEqual([`${PUBLIC_ROOT}/`, `${PUBLIC_ROOT}/menu`, `${PUBLIC_ROOT}/news`]);
   });
 
   it('gives each document one canonical URL', () => {
@@ -48,12 +48,16 @@ describe('public SEO files', () => {
     expect(read('../menu.html')).toContain(
       `<link rel="canonical" href="${PUBLIC_ROOT}/menu" />`
     );
+    expect(read('../news.html')).toContain(
+      `<link rel="canonical" href="${PUBLIC_ROOT}/news" />`
+    );
   });
 
   it('gives each document a complete Open Graph and Twitter preview', () => {
     const documents = [
       { html: read('../index.html'), url: `${PUBLIC_ROOT}/`, image: `${PUBLIC_ROOT}/og-image.png` },
       { html: read('../menu.html'), url: `${PUBLIC_ROOT}/menu`, image: `${PUBLIC_ROOT}/og-menu.png` },
+      { html: read('../news.html'), url: `${PUBLIC_ROOT}/news`, image: `${PUBLIC_ROOT}/og-image.png` },
     ];
 
     for (const { html, url, image } of documents) {
@@ -84,7 +88,7 @@ describe('public SEO files', () => {
   });
 
   it('points both documents at the branded icon set', () => {
-    for (const html of [read('../index.html'), read('../menu.html')]) {
+    for (const html of [read('../index.html'), read('../menu.html'), read('../news.html')]) {
       expect(html).toContain('<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />');
       expect(html).toContain('href="/icons/favicon-32.png" sizes="32x32"');
       expect(html).toContain('href="/icons/favicon-16.png" sizes="16x16"');

@@ -7,7 +7,7 @@ export default {
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
   ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error', switchToDark: 'Cambiar a modo oscuro', switchToLight: 'Cambiar a modo claro' },
-  nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', contact: 'Contacto', visit: 'Ubicación' },
+  nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', news: 'Noticias', contact: 'Contacto', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',
     line2: 'Baile de noche.',
@@ -166,6 +166,19 @@ export default {
     sent: '¡Gracias! Te responderemos pronto.',
     error: 'No se pudo enviar tu mensaje. Inténtalo de nuevo o búscanos en redes sociales.',
     honeypot: 'Deja este campo vacío',
+  },
+  // Noticias / blog. Las publicaciones viven en la base de datos; estas son las
+  // etiquetas propias de la página.
+  news: {
+    title: 'Noticias',
+    subtitle: 'Nuevas bebidas, próximas fiestas, días de surf que vale la pena planear y noticias de Montañita.',
+    empty: 'Todavía no hay noticias. Vuelve pronto.',
+    readMore: 'Leer más',
+    back: 'Todas las noticias',
+    notFound: 'No encontramos esa historia.',
+    notFoundHint: 'Puede que se haya eliminado o que la dirección esté mal.',
+    error: 'No se pudieron cargar las noticias. Inténtalo de nuevo.',
+    retry: 'Reintentar',
   },
   days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   visit: {

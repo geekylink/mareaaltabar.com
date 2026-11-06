@@ -12,7 +12,8 @@ admin panel is where the rest of it gets written.
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
-from app.models import Event, Hours, MenuCategory, MenuItem, MenuItemPromo
+from app.models import BlogPost, Event, Hours, MenuCategory, MenuItem, MenuItemPromo
+from app.ssr import bar_today
 
 DEFAULT_EVENTS = [
     {
@@ -207,6 +208,77 @@ DEFAULT_MENU = [
     {"slug": "vinos", "name_en": "Wine", "name_es": "Vinos", "items": []},
     {"slug": "licores", "name_en": "Liquor", "name_es": "Licores", "items": []},
 ]
+
+
+DEFAULT_BLOG_POSTS = [
+    {
+        "slug": "website-launch",
+        "title_en": "The new Marea Alta website is live",
+        "title_es": "Ya está en línea el nuevo sitio de Marea Alta",
+        "excerpt_en": (
+            "Surf, parties, the full menu and table requests — now in one place, "
+            "in English and Spanish."
+        ),
+        "excerpt_es": (
+            "Surf, fiestas, el menú completo y solicitudes de mesa: ahora todo en "
+            "un solo lugar, en inglés y español."
+        ),
+        "body_en": (
+            "After a good run, mareaaltabar.com has a new home. The site now shows "
+            "the live surf and tide report for Montañita, the week's parties and "
+            "opening hours, and the full drinks menu with current prices.\n\n"
+            "You can switch between English and Spanish, install the site on your "
+            "phone, and keep reading the menu and schedule when the signal drops. "
+            "Table requests and messages come straight to the bar.\n\n"
+            "We will use this page for new drinks, upcoming parties, surf days "
+            "worth planning around, and news from Montañita. See you at the bar."
+        ),
+        "body_es": (
+            "Después de una buena temporada, mareaaltabar.com tiene un nuevo "
+            "hogar. El sitio ahora muestra el reporte de surf y marea en vivo de "
+            "Montañita, las fiestas y horarios de la semana, y el menú completo "
+            "de bebidas con precios actuales.\n\n"
+            "Puedes cambiar entre inglés y español, instalar el sitio en tu "
+            "teléfono y seguir leyendo el menú y la programación cuando se caiga "
+            "la señal. Las solicitudes de mesa y los mensajes llegan directo al "
+            "bar.\n\n"
+            "Usaremos esta página para nuevas bebidas, próximas fiestas, días de "
+            "surf que vale la pena planear y noticias de Montañita. Nos vemos en "
+            "el bar."
+        ),
+        "image_url": "",
+    },
+]
+
+
+def seed_blog(db: DBSession) -> None:
+    """Insert the launch post if the news table is empty.
+
+    Same contract as :func:`seed_menu`: it only inserts into a genuinely fresh
+    database, so the placeholder can be edited or deleted from the panel without
+    being recreated on the next restart. The publication date is today at the
+    bar, which is also the clock the public read filters on.
+    """
+    if db.execute(select(BlogPost).limit(1)).scalar_one_or_none() is not None:
+        return
+
+    today = bar_today()[1]
+    for post in DEFAULT_BLOG_POSTS:
+        db.add(
+            BlogPost(
+                slug=post["slug"],
+                title_en=post["title_en"],
+                title_es=post["title_es"],
+                excerpt_en=post.get("excerpt_en", ""),
+                excerpt_es=post.get("excerpt_es", ""),
+                body_en=post.get("body_en", ""),
+                body_es=post.get("body_es", ""),
+                image_url=post.get("image_url", ""),
+                published_on=today,
+                is_active=True,
+            )
+        )
+    db.commit()
 
 
 def seed_menu(db: DBSession) -> None:

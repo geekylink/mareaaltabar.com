@@ -44,7 +44,7 @@
 <NoticeBanner {notices} {lang} />
 
 <header>
-  <Nav home={false} links={['surf', 'party', 'contact', 'visit']} />
+  <Nav home={false} links={['surf', 'party', 'news', 'contact', 'visit']} />
 </header>
 
 {#if loading && !categories.length}

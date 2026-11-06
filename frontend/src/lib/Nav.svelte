@@ -8,9 +8,11 @@
   // page is a document of its own. `links` is passed in so the menu page can
   // drop the "Menu" item it is already on.
   export let home = true;
-  export let links = ['surf', 'party', 'menu', 'contact', 'visit'];
+  export let links = ['surf', 'party', 'menu', 'news', 'contact', 'visit'];
 
-  $: href = (key) => (home ? `#${key}` : `/#${key}`);
+  // News is a document of its own, so it is the one link that never resolves to
+  // an in-page anchor. Everything else keeps the homepage/menu-page behaviour.
+  $: href = (key) => (key === 'news' ? '/news' : home ? `#${key}` : `/#${key}`);
 </script>
 
 <nav aria-label={$t.ui.mainNav}>

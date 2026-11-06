@@ -31,6 +31,12 @@ STRINGS = {
         "menu_ingredients": "Ingredients",
         "menu_promo": "Promo",
         "menu_empty": "The menu is being updated. Ask us for today's prices.",
+        "news_heading": "News",
+        "news_intro": "New drinks, upcoming parties, surf days worth planning around and news from Montañita.",
+        "news_empty": "No news yet. Check back soon.",
+        "news_read_more": "Read more",
+        "news_back": "All news",
+        "news_not_found": "That story could not be found.",
         "days": [
             "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
         ],
@@ -47,6 +53,12 @@ STRINGS = {
         "menu_ingredients": "Ingredientes",
         "menu_promo": "Promo",
         "menu_empty": "Estamos actualizando el menú. Pregúntanos los precios de hoy.",
+        "news_heading": "Noticias",
+        "news_intro": "Nuevas bebidas, próximas fiestas, días de surf que vale la pena planear y noticias de Montañita.",
+        "news_empty": "Todavía no hay noticias. Vuelve pronto.",
+        "news_read_more": "Leer más",
+        "news_back": "Todas las noticias",
+        "news_not_found": "No encontramos esa historia.",
         "days": [
             "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
         ],

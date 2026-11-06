@@ -1,0 +1,9 @@
+{#- The news shell's 404 block. The route still returns HTTP 404, and the SPA
+    renders the same message once it mounts. -#}
+<div id="marea-news">
+  <div class="mn-not-found">
+    <p class="mn-eyebrow">{{ labels.news_heading }}</p>
+    <h1>{{ labels.news_not_found }}</h1>
+    <p><a class="mn-more" href="/news">{{ labels.news_back }} &rarr;</a></p>
+  </div>
+</div>

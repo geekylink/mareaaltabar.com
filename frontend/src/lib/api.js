@@ -77,7 +77,11 @@ function setCache(data) {
 
 async function fetchJSON(path) {
   const res = await fetch(path);
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(`API error: ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
@@ -145,6 +149,49 @@ async function load() {
 }
 
 export { load };
+
+// --- News (ticket #24) ----------------------------------------------------
+//
+// The news pages have their own document and their own server-rendered seed, so
+// they do not share the homepage's schedule cache. `blogSeeded` makes the seed a
+// first-paint shortcut only; a language switch re-renders from the same rows,
+// and a reload fetches fresh posts.
+
+let blogSeeded = false;
+
+export async function loadNews() {
+  const seed = seededData();
+  if (seed && !blogSeeded && Array.isArray(seed.blogPosts)) {
+    blogSeeded = true;
+    return { posts: seed.blogPosts, notices: seed.notices || [] };
+  }
+  const [posts, notices] = await Promise.all([
+    fetchJSON('/api/posts'),
+    fetchJSON('/api/notices'),
+  ]);
+  return { posts, notices: notices || [] };
+}
+
+// Returns `{ post: null }` for a post that is not public (404), and throws for a
+// real network or server error so the page can distinguish "no such story"
+// from "the bar's server is down".
+export async function loadPost(slug) {
+  const seed = seededData();
+  if (seed && !blogSeeded && seed.blogPost && seed.blogPost.slug === slug) {
+    blogSeeded = true;
+    return { post: seed.blogPost, notices: seed.notices || [] };
+  }
+  try {
+    const [post, notices] = await Promise.all([
+      fetchJSON(`/api/posts/${encodeURIComponent(slug)}`),
+      fetchJSON('/api/notices'),
+    ]);
+    return { post, notices: notices || [] };
+  } catch (err) {
+    if (err.status === 404) return { post: null, notices: [] };
+    throw err;
+  }
+}
 
 // Picks the visitor's language, falling back to English when a translation is blank.
 export function pick(day, lang, field) {

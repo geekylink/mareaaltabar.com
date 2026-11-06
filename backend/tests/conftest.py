@@ -15,7 +15,7 @@ from app.routers.contact import reset_rate_limit as reset_contact_rate_limit
 from app.routers.newsletter import reset_rate_limit as reset_newsletter_rate_limit
 from app.routers.reservations import reset_rate_limit as reset_reservation_rate_limit
 from app.routers.rsvps import reset_rate_limit as reset_rsvp_rate_limit
-from app.seed import seed_menu, seed_schedule
+from app.seed import seed_blog, seed_menu, seed_schedule
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +47,7 @@ def db_session():
     session = TestingSessionLocal()
     seed_schedule(session)
     seed_menu(session)
+    seed_blog(session)
     try:
         yield session
     finally:

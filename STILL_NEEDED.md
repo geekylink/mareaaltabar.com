@@ -5,8 +5,9 @@ account, a credential, real business content, a decision) or something that
 could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
-Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50, #25, #31, #26, #27, #56 and #32** are complete and committed. See
+Status at the time of writing: tickets **#1, #3, #7, #9, #10, #12, #14, #15, #16,
+#17, #24, #25, #26, #27, #31, #32, #38, #39, #42, #43, #44, #45, #46, #48, #49,
+#50, #52, #53, #54, #55 and #56** are complete and committed. See
 [`docs/next.md`](docs/next.md) for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -125,8 +126,10 @@ fill in.
       cancellation policy. Ticket **#20**.
 - [ ] **Merch products** — items, sizes, colours, prices, stock and photos.
       Ticket **#23**.
-- [ ] **Blog/news commitment** — who writes it, how often, and the first posts.
-      Ticket **#24** needs an engine plus a committed writer.
+- [ ] **Blog/news commitment** — the engine (#24), admin editor and launch
+      post are shipped; what is missing is a committed writer, a cadence and the
+      real posts after the placeholder. A blog that stops after one post is
+      worse than none.
 - [ ] **Photo contest rules and consent wording** — eligibility, prizes, rights
       to republish, and how entrants consent. Ticket **#28**.
 - [ ] **Loyalty programme rules** — punches per reward, expiry, whether rewards
@@ -157,7 +160,8 @@ fill in.
       `tests/docker_smoke_test.sh`.
 - [ ] **Real-browser / device pass** — tests use jsdom, not a real browser. Check
       the public site and admin panel on a phone, Safari and Firefox, including
-      the shared navigation (homepage and `/menu`), the Drink of the Day hero,
+      the shared navigation (homepage and `/menu`), the news index and an
+      article page (including the share preview), the Drink of the Day hero,
       the newsletter and reservation forms, the event RSVP form, the live music
       calendar, the “Perfect Drink” quiz (including the share sheet on a real
       phone), the content editor, the subscriber list, the reservation queue,
@@ -199,7 +203,7 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
 
 Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
-#23, #24, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
+#23, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
 #37, #40, #47**.
 
 ## 6. Decisions I made that you should confirm

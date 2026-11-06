@@ -646,6 +646,75 @@ class ContentItemResponse(BaseModel):
 ContentSectionResponse.model_rebuild()
 
 
+# --- News / blog (ticket #24) ---------------------------------------------
+#
+# A post is a dated article with its own slug, excerpt and optional image. The
+# public read hides drafts and anything dated after today at the bar; the admin
+# read keeps every row so a scheduled post can be written and checked first.
+
+BLOG_TITLE_MAX = 255
+BLOG_EXCERPT_MAX = 500
+BLOG_BODY_MAX = 20000
+BLOG_SLUG_MAX = 120
+BLOG_IMAGE_MAX = 500
+
+
+class BlogPostWrite(BaseModel):
+    """Admin write payload for one news post.
+
+    A blank slug is derived from the English title (or Spanish when English is
+    blank), and a blank publication date defaults to today at the bar. Both are
+    conveniences for the owner, not hidden rules: the panel shows the resolved
+    values after saving.
+    """
+
+    slug: str = Field(default="", max_length=BLOG_SLUG_MAX)
+    title_en: str = Field(default="", max_length=BLOG_TITLE_MAX)
+    title_es: str = Field(default="", max_length=BLOG_TITLE_MAX)
+    excerpt_en: str = Field(default="", max_length=BLOG_EXCERPT_MAX)
+    excerpt_es: str = Field(default="", max_length=BLOG_EXCERPT_MAX)
+    body_en: str = Field(default="", max_length=BLOG_BODY_MAX)
+    body_es: str = Field(default="", max_length=BLOG_BODY_MAX)
+    image_url: str = Field(default="", max_length=BLOG_IMAGE_MAX)
+    published_on: str = Field(default="", max_length=10)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def _clean_and_derive(self):
+        for name in ("title_en", "title_es", "excerpt_en", "excerpt_es", "body_en", "body_es"):
+            setattr(self, name, (getattr(self, name) or "").strip())
+
+        if not (self.title_en or self.title_es):
+            raise ValueError("a title is required in at least one language")
+
+        self.slug = (self.slug or "").strip()
+        if not self.slug:
+            self.slug = slugify(self.title_en or self.title_es, fallback="post")
+        else:
+            self.slug = slugify(self.slug, fallback="post")
+
+        self.image_url = _check_optional_url(self.image_url, "image_url")
+        self.published_on = _check_optional_date(self.published_on, "published_on") or bar_today()[1]
+        return self
+
+
+class BlogPostResponse(BaseModel):
+    id: int
+    slug: str
+    title_en: str
+    title_es: str
+    excerpt_en: str
+    excerpt_es: str
+    body_en: str
+    body_es: str
+    image_url: str
+    published_on: str
+    is_active: bool
+    # Public reads only return live posts; the admin read uses this to explain
+    # why a row is not on the site yet.
+    is_live: bool = True
+
+
 # --- Newsletter (ticket #12) ----------------------------------------------
 
 NEWSLETTER_NAME_MAX = 120
