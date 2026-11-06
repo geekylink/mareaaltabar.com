@@ -21,7 +21,7 @@
   --row-current: rgba(255, 107, 44, .15);
   --text-muted: #555;
   --text-soft: #666;
-  --text-faint: #888;
+  --text-faint: #6f665a;
   --rule: rgba(29, 26, 23, .12);
   --rule-soft: rgba(29, 26, 23, .1);
   --field-border: rgba(11, 60, 73, .25);
@@ -129,6 +129,31 @@ h2 { font-size: clamp(2rem, 7vw, 3.25rem); font-weight: 800; }
 p { margin: 0; max-width: 62ch; }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--marigold); outline-offset: 3px; border-radius: 6px; }
+
+/* Component styles set `outline: none` on fields to avoid a double ring on
+   mouse focus, which also removed the only visible focus cue for keyboard
+   users. The ring wins here, and the mouse case is unaffected because
+   `:focus-visible` does not match a click. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--marigold) !important;
+  outline-offset: 2px;
+}
+
+/* First tab stop on every public page: it stays out of the layout until it has
+   focus, so sighted keyboard users can jump past the navigation in one key. */
+.skip-link {
+  position: absolute; left: 1rem; top: -4rem; z-index: 100;
+  padding: .65rem 1rem; border-radius: .5rem;
+  background: var(--deep); color: var(--sand);
+  font-weight: 700; text-decoration: none;
+  transition: top .15s var(--ease);
+}
+.skip-link:focus { top: 1rem; }
+#main { scroll-margin-top: 1rem; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

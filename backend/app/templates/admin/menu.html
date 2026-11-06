@@ -92,7 +92,7 @@
         .fields { display: grid; gap: 0.75rem; }
         .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .field label {
-            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            display: block; font-size: 0.7rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
         }
         .field input, .field textarea, .field select {
@@ -102,7 +102,7 @@
         }
         .field textarea { resize: vertical; min-height: 2.6rem; }
         .field input:focus, .field textarea:focus, .field select:focus {
-            outline: none; border-color: #0B3C49;
+            outline: 3px solid #FF6B2C; outline-offset: 1px; border-color: #0B3C49;
         }
         .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
         .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
@@ -140,7 +140,7 @@
             letter-spacing: 0.04em; color: #991B1B; background: #FEE2E2;
             border-radius: 999px; padding: 0.1rem 0.5rem;
         }
-        .item .hint { font-size: 0.8rem; color: #888; margin-left: auto; }
+        .item .hint { font-size: 0.8rem; color: #5f5f5f; margin-left: auto; }
         .item .star-flag {
             font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.04em; color: #92400E; background: #FEF3C7;
@@ -151,7 +151,7 @@
 
         .promos { border-top: 1px dashed #e5e5e5; padding-top: 0.75rem; }
         .promos h4 {
-            font-size: 0.7rem; font-weight: 700; color: #888;
+            font-size: 0.7rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem;
         }
         .promo-row {
@@ -170,7 +170,7 @@
         }
         .promo-window .field { min-width: 7.5rem; }
         .promo-window .field label {
-            display: block; font-size: 0.65rem; font-weight: 700; color: #888;
+            display: block; font-size: 0.65rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.2rem;
         }
         .promo-days { display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center; }
@@ -180,14 +180,14 @@
             border-radius: 999px; padding: 0.15rem 0.45rem;
         }
         .promo-window .toggle { align-self: center; }
-        .promo-hint { flex-basis: 100%; font-size: 0.75rem; color: #888; }
-        .promo-note { font-size: 0.8rem; color: #888; }
+        .promo-hint { flex-basis: 100%; font-size: 0.75rem; color: #5f5f5f; }
+        .promo-note { font-size: 0.8rem; color: #5f5f5f; }
 
         .add-item {
             display: grid; gap: 0.75rem; margin-top: 1rem;
             padding-top: 1rem; border-top: 1px solid #eee;
         }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.5rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.5rem 0; }
 
         .add-category {
             background: #fff; border-radius: 0.85rem; padding: 1.5rem;
@@ -229,11 +229,11 @@
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <div class="toolbar">
             <h2 data-i18n="menu_heading">Drinks menu</h2>
-            <span class="status" id="global-status"></span>
+            <span class="status" id="global-status" role="status" aria-live="polite"></span>
         </div>
         <p class="intro" data-i18n="menu_intro">
             Fill in both languages. Leave a translation blank to fall back to English on the site.

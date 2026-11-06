@@ -89,7 +89,7 @@
         .fields { display: grid; gap: 0.75rem; }
         .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .field label {
-            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            display: block; font-size: 0.7rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
         }
         .field input, .field textarea, .field select {
@@ -97,7 +97,7 @@
             border-radius: 0.4rem; font-size: 0.9rem; font-family: inherit;
         }
         .field textarea { resize: vertical; min-height: 2.6rem; }
-        .field input:focus, .field textarea:focus { outline: none; border-color: #0B3C49; }
+        .field input:focus, .field textarea:focus { outline: 3px solid #FF6B2C; outline-offset: 1px; border-color: #0B3C49; }
         .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
         .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
         .toggle {
@@ -116,12 +116,12 @@
         }
         .item .body { display: grid; gap: 0.75rem; margin-top: 0.6rem; }
         .item-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-        .hint { font-size: 0.75rem; color: #888; }
+        .hint { font-size: 0.75rem; color: #5f5f5f; }
         .add-item {
             display: grid; gap: 0.75rem; margin-top: 1rem;
             padding-top: 1rem; border-top: 1px solid #eee;
         }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.5rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.5rem 0; }
 
         .add-section {
             background: #fff; border-radius: 0.85rem; padding: 1.5rem; margin-top: 1.5rem;
@@ -158,11 +158,11 @@
 
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <div class="toolbar">
             <h2 data-i18n="content_heading">Site content</h2>
-            <span class="status" id="global-status"></span>
+            <span class="status" id="global-status" role="status" aria-live="polite"></span>
         </div>
         <p class="intro" data-i18n="content_intro">Sections and their rows. Leave a translation blank to fall back to English. Images are links; uploads are coming later.</p>
 

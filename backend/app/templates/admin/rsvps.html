@@ -76,8 +76,8 @@
         }
         tr:last-child td { border-bottom: none; }
         .event-cell { font-weight: 700; color: #0B3C49; }
-        .event-date { display: block; font-size: 0.75rem; color: #888; font-weight: 400; }
-        .muted { color: #888; }
+        .event-date { display: block; font-size: 0.75rem; color: #5f5f5f; font-weight: 400; }
+        .muted { color: #5f5f5f; }
         .notes { white-space: pre-wrap; max-width: 18rem; }
         .btn-small {
             border: none; padding: 0.4rem 0.7rem; border-radius: 0.35rem;
@@ -85,7 +85,7 @@
         }
         .btn-delete { background: #FEE2E2; color: #991B1B; }
         .btn-delete:hover { background: #FECACA; }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.75rem 0; }
         .error-banner {
             background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
             border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
@@ -97,7 +97,7 @@
             td { border: none; padding: 0.35rem 0.5rem; }
             td::before {
                 content: attr(data-label); display: block; font-size: 0.66rem;
-                text-transform: uppercase; letter-spacing: 0.04em; color: #888;
+                text-transform: uppercase; letter-spacing: 0.04em; color: #5f5f5f;
             }
         }
     </style>
@@ -121,7 +121,7 @@
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <section class="section">
             <h2 data-i18n="rsvps_heading">Event RSVPs</h2>

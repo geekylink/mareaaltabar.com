@@ -464,7 +464,7 @@ With more than one admin (#54) and more content types in the database (#17, #53)
 ---
 
 ### 33. Accessibility pass
-**Impact:** ⚪ · **Effort:** 🟡 · **Category:** Design
+**Impact:** ⚪ · **Effort:** 🟡 · **Category:** Design · **Status:** ✅ Shipped
 
 An audit across both tiers, which is why the scope grew: images need alt text, contrast must meet WCAG AA, interactive elements must be keyboard-navigable, ARIA labels must be correct. The public site already has some good habits — focus-visible rings, `aria-label`s, semantic sections. The admin panel is un-audited and is where a keyboard-only user would struggle most, particularly the save-on-blur fields in `admin/schedule.html`. The right thing to do, and broader in reach than the original single-tier estimate.
 
@@ -575,7 +575,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 37 | Add error tracking (Sentry) | 🟠 | 🟡 | DevOps |
 | ✅ | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
 | ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
-| | 33 | Accessibility pass | ⚪ | 🟡 | Design |
+| ✅ | 33 | Accessibility pass | ⚪ | 🟡 | Design |
 | | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
 | ✅ | 31 | Add PWA support | 🟠 | 🟡 | UX |
 | ✅ | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
@@ -613,14 +613,21 @@ Tickets 53, 25, 26, 21, ~~24~~, 28, 29, ~~27~~, 23.
 *Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations. ~~#24~~ is done — the news engine, admin editor and launch post are live; only the writing remains.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
-Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, ~~32~~.
-*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. ~~#32~~ is done — the public site has a persisted light/dark theme. Do the rest before high season, not during.*
+Tickets 37, ~~54~~, 55, ~~33~~, 34, 31, ~~56~~, 40, ~~32~~.
+*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. ~~#32~~ is done — the public site has a persisted light/dark theme. ~~#33~~ is done — skip links, landmarks, focus rings, live regions and contrast are fixed; a screen-reader pass still belongs on the pre-launch checklist. Do the rest before high season, not during.*
 
 ---
 
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Accessibility pass (#33)
+**Shipped** — Every public page now starts with a translated skip link to a real `<main id="main">` landmark; the homepage, `/menu` and `/news` each have exactly one, and the standalone menu page finally has a visible `<h1>` instead of a heading the layout had hidden. The calendar is labelled as a table, today carries `aria-current="date"`, and the month heading is announced as it pages. Retry buttons declare `type="button"`, the surf error and critical notices are announced as alerts, and the menu section keeps an accessible name even when its heading is suppressed.
+
+Focus is visible again everywhere. The global `:focus-visible` ring now wins over the component-level `outline: none` that had removed the only keyboard cue from the contact, RSVP and admin forms; the admin panel uses a 3 px orange ring on every field, including login. The faint grey used for hints and labels moved from `#888` to `#5f5f5f` in the admin and `#6f665a` on the public site, which clears WCAG AA on the surfaces they sit on. The admin status line is a polite live region and injected error banners are `role="alert"`, so a save or a validation failure is spoken instead of silently changing colour.
+
+The deliberate limits: no admin skip-link retrofit, no focus trap or keyboard rework of the schedule's save-on-blur cards, and no automated axe run. A screen-reader and keyboard-only pass with real assistive technology stays on the `STILL_NEEDED.md` pre-launch checklist. Tests: `frontend/src/App.test.js` covers the landmark and the translated skip link; the existing component tests exercise the changed markup.
 
 ## CI/CD rebuild (#36)
 **Shipped** — The GitHub Pages workflow that ran `npm ci` at the repository root is gone. `.github/workflows/ci.yml` now runs on every pull request and on pushes to `main`: one job installs the backend from `backend/requirements.txt`, runs `ruff check app tests` and `pytest -q` against the in-memory test database; the other installs the frontend from `frontend/package-lock.json`, runs `svelte-check` and Vitest, then a production build. Both use dependency caches keyed on the lockfile/requirements file, and a concurrency group cancels superseded runs.

@@ -191,8 +191,10 @@ fill in.
       has not been run against production storage.
 - [ ] **Load/concurrency sanity check** — SQLite is single-writer by design; the
       app runs one worker. Confirm that matches expected Friday-night traffic.
-- [ ] **Accessibility audit with real assistive tech** — ticket **#33** is not
-      built; automated checks do not replace a screen-reader pass.
+- [ ] **Accessibility audit with real assistive tech** — the code fixes from
+      **#33** are shipped (skip links, landmarks, focus rings, live regions,
+      contrast), but automated tests do not replace a screen-reader and
+      keyboard-only pass.
 - [ ] **Content proofread by a native Spanish speaker** — the Spanish copy is
       translated but should be reviewed for local Ecuadorian usage.
 
@@ -205,7 +207,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
 | 29 | Referral program | After #21; needs referral rules. |
-| 33 | Accessibility pass | Public site and admin panel. |
 | 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |

@@ -59,7 +59,7 @@
         }
         .btn-primary:hover { background: #e85a1c; }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .hint { font-size: 0.78rem; color: #888; margin-top: 0.6rem; }
+        .hint { font-size: 0.78rem; color: #5f5f5f; margin-top: 0.6rem; }
         .upload-row {
             display: grid; grid-template-columns: 9rem 1fr auto; gap: 1rem;
             padding: 1rem 0; border-bottom: 1px solid #eee; align-items: start;
@@ -73,7 +73,7 @@
         .upload-original {
             font-size: 0.78rem; color: #666; word-break: break-all; margin-bottom: 0.2rem;
         }
-        .upload-meta { font-size: 0.75rem; color: #888; margin-bottom: 0.6rem; }
+        .upload-meta { font-size: 0.75rem; color: #5f5f5f; margin-bottom: 0.6rem; }
         .field { margin-bottom: 0.6rem; }
         .field label {
             display: block; font-size: 0.68rem; font-weight: 700; color: #777;
@@ -83,7 +83,7 @@
             width: 100%; padding: 0.5rem 0.6rem; border: 1.5px solid #ddd;
             border-radius: 0.4rem; font-size: 0.85rem; font-family: inherit;
         }
-        .field input:focus { outline: none; border-color: #0B3C49; }
+        .field input:focus { outline: 3px solid #FF6B2C; outline-offset: 1px; border-color: #0B3C49; }
         .actions { display: flex; flex-direction: column; gap: 0.45rem; }
         .btn-small {
             border: none; padding: 0.42rem 0.75rem; border-radius: 0.35rem;
@@ -95,7 +95,7 @@
         .btn-copy:hover { background: #D1D5DB; }
         .btn-delete { background: #FEE2E2; color: #991B1B; }
         .btn-delete:hover { background: #FECACA; }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.75rem 0; }
         .error-banner {
             background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
             border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
@@ -130,7 +130,7 @@
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <section class="section">
             <h2 data-i18n="uploads_heading">Images</h2>

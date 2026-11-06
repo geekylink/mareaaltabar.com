@@ -92,7 +92,7 @@
     >›</button>
   </div>
 
-  <table class="grid">
+  <table class="grid" aria-label={$t.calendar.label}>
     <thead>
       <tr>
         {#each $t.days as day}
@@ -113,6 +113,7 @@
                   class="day"
                   on:click={() => (selected = iso)}
                   aria-pressed={selected === iso}
+                  aria-current={iso === todayIso ? 'date' : undefined}
                   aria-label={`${dayLabel(iso, lang)}${dayEvents.length ? ` — ${dayEvents.length}` : ''}`}
                 >
                   <span class="num">{day}</span>

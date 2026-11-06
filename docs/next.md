@@ -10,6 +10,17 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#33 Accessibility pass** — every public page starts with a translated skip
+  link to one `<main id="main">` landmark, and the standalone menu page now has
+  a visible `<h1>`. The calendar is a labelled table with `aria-current="date"`
+  on today, interactive controls declare `type="button"`, the surf error and
+  critical notices announce themselves, and the menu keeps an accessible name
+  when its heading is hidden. Focus rings were restored over component-level
+  `outline: none` on the public forms and every admin field, faint admin text
+  moved to `#5f5f5f` (public `--text-faint` to `#6f665a`) to clear WCAG AA, and
+  admin status/error slots are now live regions. A real assistive-technology
+  pass remains on `STILL_NEEDED.md`. Tests: `frontend/src/App.test.js`, plus the
+  existing component suites.
 - **#36 CI/CD rebuild** — `.github/workflows/ci.yml` runs the backend
   (`ruff` + `pytest`) and frontend (`svelte-check` + Vitest + build) on every
   pull request and push to `main`; `.github/workflows/deploy.yml` waits for
@@ -132,7 +143,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
-| 33 | Accessibility pass | Public site and admin panel audit/fixes. |
 | 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
 | 51 | Submission notification (fallback) | Shared inbox/unread count satisfies the useful half; email/WhatsApp needs a provider. |
@@ -165,7 +175,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#33** Accessibility pass — public site and admin panel audit/fixes.
+1. **#34** Performance optimizations — server-side surf proxy/cache, lazy
+   loading, font preload and an asset budget.
 2. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
    concurrency test already exists.
 3. **#30** Signature drinks — `is_featured` plus a "Drinks We're Known For"

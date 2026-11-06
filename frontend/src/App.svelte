@@ -91,7 +91,7 @@
   }
 </script>
 
-<svelte:window on:unmount={() => clearInterval(refreshInterval)} />
+<a class="skip-link" href="#main">{$t.ui.skipToContent}</a>
 
 <NoticeBanner {notices} {lang} />
 
@@ -120,6 +120,7 @@
   </div>
 </header>
 
+<main id="main">
 <Surf />
 
 {#if loading && schedule.length === 0}
@@ -129,13 +130,13 @@
 {:else if schedule.length === 0}
   <div class="error-state">
     <p>{loadError || $t.ui.error}</p>
-    <button class="btn primary" on:click={loadData}>{$t.ui.retry}</button>
+    <button type="button" class="btn primary" on:click={loadData}>{$t.ui.retry}</button>
   </div>
 {:else}
   <section class="party" id="party" aria-labelledby="party-h">
     <div class="section-header">
       <h2 id="party-h">{$t.party.title}</h2>
-      <button class="btn-refresh" on:click={loadData}>{$t.ui.refresh}</button>
+      <button type="button" class="btn-refresh" on:click={loadData}>{$t.ui.refresh}</button>
     </div>
     {#if loadError}
       <p class="cache-notice">{$t.party.cacheNotice}</p>
@@ -209,6 +210,8 @@
 </section>
 
 <InstallPrompt />
+
+</main>
 
 <footer>{fmt($t.footer, vars)}</footer>
 

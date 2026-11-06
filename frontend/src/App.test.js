@@ -327,3 +327,31 @@ describe('App menu section', () => {
     expect(screen.getByText('See the menu').closest('a').getAttribute('href')).toBe('/menu');
   });
 });
+
+describe('App accessibility landmarks', () => {
+  beforeEach(() => {
+    global.fetch = mockFetch();
+    locale.set('en');
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('starts with a skip link that targets the main landmark', async () => {
+    render(App);
+    await waitFor(() => expect(document.querySelector('#party-h')).toBeTruthy());
+    const skip = screen.getByText('Skip to content').closest('a');
+    expect(skip.getAttribute('href')).toBe('#main');
+    expect(document.querySelectorAll('main#main')).toHaveLength(1);
+    expect(document.querySelector('main#main #party-h')).toBeTruthy();
+  });
+
+  it('translates the skip link with the rest of the page', async () => {
+    render(App);
+    locale.set('es');
+    await tick();
+    expect(screen.getByText('Saltar al contenido').closest('a').getAttribute('href')).toBe('#main');
+  });
+});

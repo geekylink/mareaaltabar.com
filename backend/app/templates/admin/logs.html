@@ -92,7 +92,7 @@
             gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;
         }
         .panel-head h3 { font-size: 1.05rem; color: #0B3C49; }
-        .count { font-size: 0.8rem; color: #888; }
+        .count { font-size: 0.8rem; color: #5f5f5f; }
 
         .table-wrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
@@ -101,7 +101,7 @@
             border-bottom: 1px solid #f0f0f0; vertical-align: top;
         }
         th {
-            font-size: 0.7rem; font-weight: 700; color: #888;
+            font-size: 0.7rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em;
             border-bottom: 2px solid #eee; white-space: nowrap;
         }
@@ -116,7 +116,7 @@
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         .what strong { color: #0B3C49; }
-        .what .ref { color: #888; font-size: 0.75rem; }
+        .what .ref { color: #5f5f5f; font-size: 0.75rem; }
         .changes { line-height: 1.5; }
         .changes .field {
             display: inline-block; background: #f0f4f5; color: #0B3C49;
@@ -148,7 +148,7 @@
         .btn-more:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .loading { padding: 2rem 0; text-align: center; color: #666; }
-        .empty-note { padding: 1.5rem 0; text-align: center; color: #888; font-size: 0.9rem; }
+        .empty-note { padding: 1.5rem 0; text-align: center; color: #5f5f5f; font-size: 0.9rem; }
         .error-banner {
             background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
             border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
@@ -178,7 +178,7 @@
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <div class="toolbar">
             <h2 data-i18n="logs_heading">Logs</h2>

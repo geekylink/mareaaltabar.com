@@ -102,7 +102,7 @@
         .fields { display: grid; gap: 0.75rem; }
         .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .field label {
-            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            display: block; font-size: 0.7rem; font-weight: 700; color: #5f5f5f;
             text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
         }
         .field input, .field textarea {
@@ -112,7 +112,7 @@
         }
         .field textarea { resize: vertical; min-height: 3.2rem; }
         .field input:focus, .field textarea:focus {
-            outline: none; border-color: #0B3C49;
+            outline: 3px solid #FF6B2C; outline-offset: 1px; border-color: #0B3C49;
         }
         .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
         .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
@@ -154,7 +154,7 @@
             display: grid; grid-template-columns: 9rem 1fr 1fr auto;
             gap: 0.6rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;
         }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.75rem 0; }
 
         .loading { padding: 3rem 0; text-align: center; color: #666; }
         .error-banner {
@@ -187,12 +187,12 @@
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
 
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <div class="toolbar">
             <h2 style="font-size:1.35rem;color:#0B3C49;" data-i18n="schedule_heading">Weekly schedule</h2>
             <div style="display:flex;align-items:center;gap:1rem;">
-                <span class="status" id="global-status"></span>
+                <span class="status" id="global-status" role="status" aria-live="polite"></span>
                 <button class="btn-primary" id="save-all" data-i18n="save_all">Save all days</button>
             </div>
         </div>

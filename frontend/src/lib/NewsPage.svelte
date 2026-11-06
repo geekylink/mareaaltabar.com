@@ -66,19 +66,21 @@
   <meta name="description" content={pageDescription} />
 </svelte:head>
 
+<a class="skip-link" href="#main">{$t.ui.skipToContent}</a>
+
 <NoticeBanner {notices} {lang} />
 
 <header>
   <Nav home={false} links={['surf', 'party', 'menu', 'contact', 'visit']} />
 </header>
 
-<main>
+<main id="main">
   {#if loading && !post && !posts.length && !notFound}
     <p class="state">{$t.ui.loading}</p>
   {:else if error}
     <div class="state">
       <p>{$t.news.error}</p>
-      <button class="btn" on:click={loadData}>{$t.news.retry}</button>
+      <button type="button" class="btn" on:click={loadData}>{$t.news.retry}</button>
     </div>
   {:else if notFound}
     <div class="state not-found">

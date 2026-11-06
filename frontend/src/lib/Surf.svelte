@@ -75,9 +75,9 @@
       {#each Array(4) as _}<div class="tile skeleton"></div>{/each}
     </div>
   {:else if state === 'error'}
-    <div class="err">
+    <div class="err" role="alert">
       <p>{$tx.surf.error}</p>
-      <button on:click={load}>{$tx.surf.retry}</button>
+      <button type="button" on:click={load}>{$tx.surf.retry}</button>
     </div>
   {:else}
     <div class="grid">

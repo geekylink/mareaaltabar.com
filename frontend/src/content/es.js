@@ -6,7 +6,7 @@ export default {
     title: 'Marea Alta Surf Bar · Montañita',
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
-  ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error', switchToDark: 'Cambiar a modo oscuro', switchToLight: 'Cambiar a modo claro' },
+  ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error', switchToDark: 'Cambiar a modo oscuro', switchToLight: 'Cambiar a modo claro', skipToContent: 'Saltar al contenido' },
   nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', news: 'Noticias', contact: 'Contacto', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',
@@ -43,7 +43,7 @@ export default {
   party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', closedDays: 'Días cerrados', specialEvents: 'Eventos especiales', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
   // Vista mensual de los eventos con fecha. La semana empieza en domingo para
   // coincidir con `days` y con la semana del bar.
-  calendar: { prev: 'Mes anterior', next: 'Mes siguiente', empty: 'No hay eventos este mes.' },
+  calendar: { prev: 'Mes anterior', next: 'Mes siguiente', label: 'Calendario de eventos', empty: 'No hay eventos este mes.' },
   // Menú de bebidas. Los precios y las promos vienen de la API, aquí solo el texto.
   // Estas cuatro etiquetas están duplicadas en backend/app/public_i18n.py para el
   // bloque renderizado en el servidor, y publicI18n.test.js falla si se separan.

@@ -18,7 +18,7 @@
   export let id = 'menu';
 </script>
 
-<section class="menu" {id} aria-labelledby="{id}-h">
+<section class="menu" {id} aria-labelledby={heading ? `${id}-h` : undefined} aria-label={heading ? undefined : $t.menu.title}>
   {#if heading}
     <div class="head">
       <h2 id="{id}-h">{$t.menu.title}</h2>

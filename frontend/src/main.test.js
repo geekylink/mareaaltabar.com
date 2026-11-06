@@ -85,7 +85,7 @@ describe('menu boot', () => {
 
     await waitFor(() => expect(document.body.textContent).toContain('Cuba Libre'));
     expect(document.querySelector('#marea-menu')).toBeNull();
-    expect(document.querySelectorAll('#app > section.menu')).toHaveLength(1);
+    expect(document.querySelectorAll('#app section.menu')).toHaveLength(1);
   });
 
   it('paints the menu without asking the API for it', async () => {

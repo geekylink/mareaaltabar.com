@@ -6,7 +6,7 @@ export default {
     title: 'Marea Alta Surf Bar · Montañita',
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
   },
-  ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error', switchToDark: 'Switch to dark mode', switchToLight: 'Switch to light mode' },
+  ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error', switchToDark: 'Switch to dark mode', switchToLight: 'Switch to light mode', skipToContent: 'Skip to content' },
   nav: { surf: 'Surf', party: 'Party', menu: 'Menu', news: 'News', contact: 'Contact', visit: 'Visit' },
   hero: {
     line1: 'Surf by day.',
@@ -43,7 +43,7 @@ export default {
   party: { title: 'Party schedule', tonight: 'Tonight', closedToday: 'Closed today', closedDays: 'Closed days', specialEvents: 'Special events', noEvent: 'No event scheduled', cacheNotice: 'Showing cached data (offline)' },
   // Month view over the dated events. The week starts on Sunday to match the
   // schedule's `days` array and the bar's own week.
-  calendar: { prev: 'Previous month', next: 'Next month', empty: 'No events this month.' },
+  calendar: { prev: 'Previous month', next: 'Next month', label: 'Event calendar', empty: 'No events this month.' },
   // Drinks menu. Prices and promos come from the API, so only the wording here.
   // These four labels are duplicated in backend/app/public_i18n.py for the
   // server-rendered block, and publicI18n.test.js fails if the two drift apart.

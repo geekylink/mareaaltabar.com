@@ -59,12 +59,12 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
         th {
             text-align: left; font-size: 0.7rem; text-transform: uppercase;
-            letter-spacing: 0.04em; color: #888; padding: 0.6rem 0.5rem;
+            letter-spacing: 0.04em; color: #5f5f5f; padding: 0.6rem 0.5rem;
             border-bottom: 2px solid #eee; white-space: nowrap;
         }
         td { padding: 0.7rem 0.5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
         td.email { font-weight: 600; color: #0B3C49; word-break: break-word; }
-        .muted { color: #888; font-size: 0.8rem; }
+        .muted { color: #5f5f5f; font-size: 0.8rem; }
         .badge {
             font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.04em; padding: 0.18rem 0.45rem; border-radius: 999px;
@@ -81,7 +81,7 @@
         .btn-toggle:hover { background: #BAE6FD; }
         .btn-delete { background: #FEE2E2; color: #991B1B; }
         .btn-delete:hover { background: #FECACA; }
-        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .empty-note { font-size: 0.875rem; color: #5f5f5f; padding: 0.75rem 0; }
         .error-banner {
             background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
             border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
@@ -92,7 +92,7 @@
             table, tbody, tr, td { display: block; width: 100%; }
             tr { border: 1px solid #eee; border-radius: 0.6rem; padding: 0.5rem; margin-bottom: 0.7rem; }
             td { border: none; padding: 0.25rem 0.4rem; }
-            td::before { content: attr(data-label); display: inline-block; min-width: 5.5rem; color: #888; font-size: 0.72rem; text-transform: uppercase; }
+            td::before { content: attr(data-label); display: inline-block; min-width: 5.5rem; color: #5f5f5f; font-size: 0.72rem; text-transform: uppercase; }
         }
     </style>
 </head>
@@ -114,7 +114,7 @@
 
     <main>
         <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
-        <div id="alert-slot"></div>
+        <div id="alert-slot" role="alert"></div>
 
         <section class="section">
             <div class="section-head">

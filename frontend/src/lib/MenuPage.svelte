@@ -41,24 +41,32 @@
   onDestroy(() => clearInterval(refreshTimer));
 </script>
 
+<a class="skip-link" href="#main">{$t.ui.skipToContent}</a>
+
 <NoticeBanner {notices} {lang} />
 
 <header>
   <Nav home={false} links={['surf', 'party', 'news', 'contact', 'visit']} />
 </header>
 
+<main id="main">
+<div class="page-head">
+  <h1>{$t.menu.title}</h1>
+  <p>{$t.menu.subtitle}</p>
+</div>
 {#if loading && !categories.length}
   <p class="state">{$t.ui.loading}</p>
 {:else if error && !categories.length}
   <p class="state">
     {$t.ui.error}
-    <button class="btn" on:click={loadData}>{$t.ui.retry}</button>
+    <button type="button" class="btn" on:click={loadData}>{$t.ui.retry}</button>
   </p>
 {:else}
   <Menu {categories} {lang} {loading} id="menu-top" heading={false} />
 {/if}
 
 <InstallPrompt />
+</main>
 
 <footer>{$t.menu.all}</footer>
 
@@ -69,6 +77,9 @@
     padding: env(safe-area-inset-top) 1.25rem 1.5rem;
   }
   .state { padding: 3rem 1.25rem; text-align: center; color: var(--text-soft); }
+  .page-head { padding: 2.5rem 1.25rem .5rem; max-width: 68rem; margin-inline: auto; }
+  .page-head h1 { font-size: clamp(2.25rem, 8vw, 3.75rem); font-weight: 800; letter-spacing: -.03em; }
+  .page-head p { color: var(--text-muted); margin-top: .6rem; max-width: 44rem; }
   .btn {
     margin-top: 1rem; border: 0; border-radius: 999px; padding: .75rem 1.4rem;
     font: 700 1rem var(--font-body); background: var(--marigold);
