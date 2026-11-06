@@ -114,6 +114,7 @@ suite to `tests/test_all.log`, replaced on each run.
 
 ## Documentation
 
+- [Still needed](STILL_NEEDED.md) — what is not done and what only the owner can do: deploy, credentials, real content, unrun checks
 - [Frontend README](frontend/README.md) — content editing, schedule data flow, deployment
 - [Backend README](backend/README.md) — API reference, admin panel, security, database schema
 

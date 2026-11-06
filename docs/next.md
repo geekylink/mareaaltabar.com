@@ -5,6 +5,8 @@ current machine (no Docker, VPS, external accounts, or missing business data).
 It is updated after every completed ticket.
 
 Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
+For everything that is **not** done and needs you — deploy, credentials, real
+content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
