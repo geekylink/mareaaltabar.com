@@ -34,7 +34,7 @@
   }
   .notice {
     padding: 0.9rem 1.25rem;
-    color: #fff;
+    color: var(--hero-ink);
   }
   .notice p {
     max-width: 68rem;
@@ -44,7 +44,7 @@
     line-height: 1.4;
     white-space: pre-wrap;
   }
-  .notice-info { background: #0b3c49; }
-  .notice-warning { background: #b45309; }
-  .notice-critical { background: #991b1b; }
+  .notice-info { background: var(--notice-info); }
+  .notice-warning { background: var(--notice-warning); }
+  .notice-critical { background: var(--notice-critical); }
 </style>

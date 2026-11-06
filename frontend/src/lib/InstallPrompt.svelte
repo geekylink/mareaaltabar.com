@@ -49,13 +49,13 @@
 <style>
   .install {
     display: flex; align-items: center; justify-content: center; gap: 1rem;
-    flex-wrap: wrap; padding: 1rem 1.25rem; background: rgba(255, 182, 39, .22);
-    border-top: 2px solid rgba(11, 60, 73, .12);
+    flex-wrap: wrap; padding: 1rem 1.25rem; background: var(--surface-warm);
+    border-top: 2px solid var(--rule);
   }
-  .install p { margin: 0; font-size: .9rem; color: var(--deep); font-weight: 600; }
+  .install p { margin: 0; font-size: .9rem; color: var(--accent-ink); font-weight: 600; }
   button {
     border: none; border-radius: 999px; padding: .55rem 1.1rem;
-    background: var(--deep); color: var(--sand); font: inherit; font-weight: 700;
+    background: var(--accent-bg); color: var(--accent-contrast); font: inherit; font-weight: 700;
     font-size: .85rem; cursor: pointer; transition: transform .2s var(--ease), background .2s;
   }
   button:hover { transform: translateY(-2px); background: var(--papaya); }

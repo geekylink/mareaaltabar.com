@@ -6,7 +6,7 @@ export default {
     title: 'Marea Alta Surf Bar · Montañita',
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
   },
-  ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error' },
+  ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error', switchToDark: 'Switch to dark mode', switchToLight: 'Switch to light mode' },
   nav: { surf: 'Surf', party: 'Party', menu: 'Menu', contact: 'Contact', visit: 'Visit' },
   hero: {
     line1: 'Surf by day.',

@@ -15,7 +15,7 @@
 // Bump VERSION when the shell or caching rules change. Activate deletes every
 // cache from an older version, which also drops stale HTML after a deploy.
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 
 const SHELL_CACHE = `marea-alta-shell-${VERSION}`;
 const PAGE_CACHE = `marea-alta-pages-${VERSION}`;

@@ -6,7 +6,7 @@ export default {
     title: 'Marea Alta Surf Bar · Montañita',
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
-  ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error' },
+  ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error', switchToDark: 'Cambiar a modo oscuro', switchToLight: 'Cambiar a modo claro' },
   nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', contact: 'Contacto', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',

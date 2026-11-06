@@ -580,7 +580,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 31 | Add PWA support | 🟠 | 🟡 | UX |
 | ✅ | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
 | | 40 | Add CDN in front of the server | ⚪ | 🟡 | Efficiency |
-| | 32 | Add dark mode toggle | ⚪ | 🟢 | Design |
+| ✅ | 32 | Add dark mode toggle | ⚪ | 🟢 | Design |
 
 ---
 
@@ -613,14 +613,17 @@ Tickets 53, 25, 26, 21, 24, 28, 29, ~~27~~, 23.
 *Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
-Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, 32.
-*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. Do the rest before high season, not during.*
+Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, ~~32~~.
+*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. ~~#32~~ is done — the public site has a persisted light/dark theme. Do the rest before high season, not during.*
 
 ---
 
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Dark mode toggle (#32)
+**Shipped** — The public site has one light/dark switch in the shared `Nav.svelte`, next to the language selector. The choice is stored in `localStorage` under `theme`; a visitor with no stored choice follows `prefers-color-scheme`, and the store keeps following the system while the page is open until they press the toggle. `frontend/src/app.css` now defines semantic tokens (`--bg`, `--text`, `--surface`, `--text-muted`, `--rule`, `--accent-ink`, `--accent-bg`, success/error and notice colours) with a `[data-theme='dark']` override and a system-dark media fallback for visitors with JavaScript disabled. The backend injects a nonce-protected head script in `ssr.py`, so the saved theme is on `<html>` before the first paint rather than after the SPA mounts. The hero, surf, menu, calendar, forms, quiz, RSVP, newsletter and server-rendered blocks all use the tokens. Tests: `frontend/src/lib/theme.test.js`, `frontend/src/lib/nav.test.js` and `backend/tests/test_ssr.py`.
 
 ## Shared navigation (#16)
 **Shipped** — `frontend/src/lib/Nav.svelte` is now the one header for `/` and `/menu`, including the logo link and the language selector. On the homepage it emits in-page anchors; on the menu document it emits `/#surf`, `/#party`, `/#contact` and `/#visit` and deliberately drops the menu item the visitor is already on. The old duplicated markup and styles were removed from `App.svelte` and `MenuPage.svelte`. `frontend/src/lib/nav.test.js` covers both link bases, a reduced link list and the Spanish labels.

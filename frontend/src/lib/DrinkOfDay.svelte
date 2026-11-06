@@ -35,17 +35,17 @@
     background: rgba(255, 255, 255, .16);
     border: 2px solid rgba(255, 255, 255, .5);
     backdrop-filter: blur(6px);
-    color: #fff;
+    color: var(--hero-ink);
   }
   .eyebrow {
     display: inline-block; font-family: var(--font-display); font-size: .72rem;
     font-weight: 800; text-transform: uppercase; letter-spacing: .1em;
-    background: #fff; color: var(--hibiscus); border-radius: 999px;
+    background: var(--hero-ink); color: var(--hibiscus); border-radius: 999px;
     padding: .15rem .65rem; margin-bottom: .5rem;
   }
   .row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   h2 { font-size: clamp(1.5rem, 6vw, 2.2rem); }
   .price { font-weight: 800; font-size: 1.2rem; white-space: nowrap; }
   p { margin-top: .35rem; font-size: .95rem; }
-  .cta { display: inline-block; margin-top: .6rem; font-size: .85rem; font-weight: 700; color: #fff; }
+  .cta { display: inline-block; margin-top: .6rem; font-size: .85rem; font-weight: 700; color: var(--hero-ink); }
 </style>

@@ -108,49 +108,49 @@
 <style>
   .quiz {
     padding: 4rem 1.25rem; max-width: 42rem; margin-inline: auto;
-    border-top: 2px solid rgba(29, 26, 23, .1);
+    border-top: 2px solid var(--rule-soft);
   }
   .head { margin-bottom: 1.5rem; }
-  .sub { margin-top: .6rem; color: #555; }
+  .sub { margin-top: .6rem; color: var(--text-muted); }
   .progress {
     font-size: .75rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--deep); margin-bottom: .35rem;
+    letter-spacing: .08em; color: var(--accent-ink); margin-bottom: .35rem;
   }
-  h3 { font-size: clamp(1.3rem, 5vw, 1.7rem); color: var(--deep); }
+  h3 { font-size: clamp(1.3rem, 5vw, 1.7rem); color: var(--accent-ink); }
   .options { display: grid; gap: .6rem; margin-top: 1rem; }
   .options button {
-    text-align: left; border: 2px solid rgba(11, 60, 73, .25); border-radius: .7rem;
-    padding: .85rem 1rem; background: #fff; color: var(--ink); font: inherit;
+    text-align: left; border: 2px solid var(--field-border); border-radius: .7rem;
+    padding: .85rem 1rem; background: var(--surface); color: var(--text); font: inherit;
     font-weight: 600; cursor: pointer; transition: border-color .2s, background .2s, transform .2s;
   }
-  .options button:hover { border-color: var(--deep); background: rgba(255, 182, 39, .18); transform: translateX(4px); }
+  .options button:hover { border-color: var(--accent-ink); background: var(--surface-warm); transform: translateX(4px); }
   .primary {
     justify-self: start; border: none; border-radius: 999px; padding: .85rem 1.6rem;
-    background: var(--deep); color: var(--sand); font: inherit; font-weight: 700;
+    background: var(--accent-bg); color: var(--accent-contrast); font: inherit; font-weight: 700;
     cursor: pointer; transition: transform .25s var(--ease), background .25s;
   }
   .primary:hover { transform: translateY(-2px); background: var(--papaya); }
   .back {
-    margin-top: 1rem; border: none; background: none; color: var(--deep);
+    margin-top: 1rem; border: none; background: none; color: var(--accent-ink);
     font: inherit; font-weight: 700; font-size: .85rem; text-decoration: underline;
     cursor: pointer; padding: 0;
   }
   .result {
     margin-top: 1.25rem; padding: 1.25rem; border-radius: 1rem;
-    background: rgba(255, 182, 39, .22); border-left: 4px solid var(--papaya);
+    background: var(--surface-warm); border-left: 4px solid var(--papaya);
   }
   .eyebrow {
     font-size: .72rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .08em; color: var(--deep);
+    letter-spacing: .08em; color: var(--accent-ink);
   }
   .result h3 { margin-top: .15rem; }
-  .meta { margin-top: .2rem; font-size: .85rem; font-weight: 700; color: #666; }
+  .meta { margin-top: .2rem; font-size: .85rem; font-weight: 700; color: var(--text-soft); }
   .result p { margin-top: .5rem; font-size: .92rem; }
-  .ingredients { color: #666; font-size: .85rem !important; }
+  .ingredients { color: var(--text-soft); font-size: .85rem !important; }
   .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1.25rem; }
   .actions .back { margin-top: 0; }
-  .copied { margin-top: .75rem; font-size: .85rem; color: #065F46; }
-  .empty { color: #666; }
+  .copied { margin-top: .75rem; font-size: .85rem; color: var(--success-ink); }
+  .empty { color: var(--text-soft); }
   @media (min-width: 760px) {
     .quiz { padding-inline: 2rem; }
   }

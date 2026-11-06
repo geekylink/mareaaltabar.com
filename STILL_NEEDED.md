@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50, #25, #31, #26, #27 and #56** are complete and committed. See
+#12, #14, #50, #25, #31, #26, #27, #56 and #32** are complete and committed. See
 [`docs/next.md`](docs/next.md) for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -163,7 +163,10 @@ fill in.
       phone), the content editor, the subscriber list, the reservation queue,
       the event guest list, the image uploader (including a real phone photo
       and a large photo) and the CSV export/import page (download a file, edit
-      it in a real spreadsheet and upload it back).
+      it in a real spreadsheet and upload it back). Also toggle dark mode on
+      both `/` and `/menu`, reload, and confirm the choice survives and the
+      first paint is dark rather than flashing light; check the system-dark
+      fallback with JavaScript disabled.
 - [ ] **PWA install and offline check** — install the app on a real Android and
       iPhone, confirm the manifest icons and standalone window, then load `/`
       and `/menu` offline. The service worker is not exercised by jsdom tests.
@@ -189,7 +192,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
 | 29 | Referral program | After #21; needs referral rules. |
-| 32 | Dark mode toggle | CSS variables, toggle, persisted choice. |
 | 33 | Accessibility pass | Public site and admin panel. |
 | 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
@@ -261,6 +263,11 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   database table, so changing the questions or keywords is a code change. The
   cigarette category is excluded. Answers and results are not stored. The result
   shares via the Web Share API, falling back to copying the current URL.
+- **Dark mode (#32)** — the toggle is public-site only, not in the admin panel.
+  The saved value is `theme` in `localStorage`; with no saved value the site
+  follows the operating system. The dark palette is a hand-picked override of
+  the semantic tokens, not an automated contrast calculation, so the real-browser
+  and accessibility passes above still matter.
 - **CSV export / import (#56)** — imports are all-or-nothing and never delete;
   a row missing from the file stays in the database. Rows update by id, or by
   slug for categories and sections, and a blank id creates a new row. Menu items
@@ -274,6 +281,6 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 
 ---
 
-_Last updated after tickets #26, #27 and #56. Keep this file honest: delete a
+_Last updated after tickets #26, #27, #56 and #32. Keep this file honest: delete a
 line when it is actually done, and add one when a new external dependency
 appears._

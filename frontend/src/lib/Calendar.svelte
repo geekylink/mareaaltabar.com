@@ -156,43 +156,43 @@
 <style>
   .calendar { margin-top: .75rem; }
   .bar { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .bar h4 { flex: 1; text-align: center; font-size: 1rem; color: var(--deep); text-transform: capitalize; }
+  .bar h4 { flex: 1; text-align: center; font-size: 1rem; color: var(--accent-ink); text-transform: capitalize; }
   .nav {
-    border: 2px solid rgba(11, 60, 73, .25); background: #fff; color: var(--deep);
+    border: 2px solid var(--field-border); background: var(--surface); color: var(--accent-ink);
     width: 2rem; height: 2rem; border-radius: 50%; font: inherit; font-size: 1.1rem;
     line-height: 1; cursor: pointer;
   }
-  .nav:hover:not(:disabled) { background: var(--deep); color: var(--sand); }
+  .nav:hover:not(:disabled) { background: var(--accent-bg); color: var(--accent-contrast); }
   .nav:disabled { opacity: .35; cursor: not-allowed; }
   .grid { width: 100%; border-collapse: collapse; margin-top: .6rem; table-layout: fixed; }
   .grid th {
     font-size: .65rem; text-transform: uppercase; letter-spacing: .04em;
-    color: #777; padding: .25rem 0; font-weight: 700;
+    color: var(--text-soft); padding: .25rem 0; font-weight: 700;
   }
   .grid td { padding: 1px; text-align: center; }
   .grid td.blank { background: transparent; }
   .day {
-    width: 100%; min-height: 2.1rem; border: 1px solid rgba(11, 60, 73, .12);
-    border-radius: .35rem; background: #fff; color: var(--ink); font: inherit;
+    width: 100%; min-height: 2.1rem; border: 1px solid var(--rule-soft);
+    border-radius: .35rem; background: var(--surface); color: var(--text); font: inherit;
     font-size: .8rem; cursor: pointer; display: grid; place-items: center; gap: 1px;
     padding: .2rem 0;
   }
-  .day:hover { border-color: var(--deep); }
-  .day[aria-pressed='true'] { background: var(--deep); color: var(--sand); border-color: var(--deep); }
+  .day:hover { border-color: var(--accent-ink); }
+  .day[aria-pressed='true'] { background: var(--accent-bg); color: var(--accent-contrast); border-color: var(--accent-bg); }
   .today .day:not([aria-pressed='true']) { border-color: var(--papaya); box-shadow: inset 0 0 0 1px var(--papaya); }
-  .has-event .day:not([aria-pressed='true']) { background: rgba(255, 182, 39, .3); }
+  .has-event .day:not([aria-pressed='true']) { background: var(--row-hover); }
   .num { line-height: 1; }
   .dot { width: .35rem; height: .35rem; border-radius: 50%; background: var(--hibiscus); }
-  .day[aria-pressed='true'] .dot { background: var(--sand); }
+  .day[aria-pressed='true'] .dot { background: var(--accent-contrast); }
   .agenda { margin-top: .9rem; display: grid; gap: .75rem; }
   .agenda article {
-    background: #fff; border-radius: .7rem; padding: .8rem .9rem;
+    background: var(--surface); border-radius: .7rem; padding: .8rem .9rem;
     border-left: 3px solid var(--papaya);
   }
-  .agenda time { font-size: .78rem; font-weight: 700; color: var(--deep); text-transform: capitalize; }
+  .agenda time { font-size: .78rem; font-weight: 700; color: var(--accent-ink); text-transform: capitalize; }
   .agenda h5 { font-size: 1rem; margin-top: .1rem; }
-  .agenda .time { display: block; font-size: .8rem; color: #666; margin-top: .1rem; }
+  .agenda .time { display: block; font-size: .8rem; color: var(--text-soft); margin-top: .1rem; }
   .agenda p { margin-top: .35rem; font-size: .9rem; }
   .agenda img { display: block; max-width: 12rem; max-height: 8rem; object-fit: cover; border-radius: .5rem; margin-top: .5rem; }
-  .empty { font-size: .9rem; color: #777; }
+  .empty { font-size: .9rem; color: var(--text-soft); }
 </style>

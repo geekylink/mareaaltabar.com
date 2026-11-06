@@ -1,18 +1,126 @@
 :root {
+  /* Brand palette. These do not change between themes. */
   --papaya: #ff6b2c;
   --hibiscus: #e8336d;
   --marigold: #ffb627;
   --sand: #fff3e0;
   --deep: #0b3c49;
   --ink: #1d1a17;
+
+  /* Semantic tokens. Components use these instead of raw colours so the whole
+     site can be re-themed in one place. */
+  color-scheme: light;
+  --bg: var(--sand);
+  --text: var(--ink);
+  --surface: #fff;
+  --surface-soft: rgba(11, 60, 73, .06);
+  --surface-warm: rgba(255, 182, 39, .22);
+  --surface-warm-soft: rgba(255, 107, 44, .08);
+  --promo-bg: rgba(255, 182, 39, .35);
+  --row-hover: rgba(255, 182, 39, .3);
+  --row-current: rgba(255, 107, 44, .15);
+  --text-muted: #555;
+  --text-soft: #666;
+  --text-faint: #888;
+  --rule: rgba(29, 26, 23, .12);
+  --rule-soft: rgba(29, 26, 23, .1);
+  --field-border: rgba(11, 60, 73, .25);
+  --accent-ink: var(--deep);
+  --accent-bg: var(--deep);
+  --accent-contrast: var(--sand);
+  --hero-ink: #fff;
+  --success-bg: #d1fae5;
+  --success-ink: #065f46;
+  --error-bg: #fee2e2;
+  --error-ink: #991b1b;
+  --notice-info: #0b3c49;
+  --notice-warning: #b45309;
+  --notice-critical: #991b1b;
+  --shadow: rgba(0, 0, 0, .25);
+  --sun: #ffe08a;
+  --water: rgba(11, 60, 73, .55);
+  --theme-color: #0b3c49;
+
   --font-display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
   --font-body: 'Figtree', system-ui, sans-serif;
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
+
+/* When the visitor has not chosen a theme, follow the operating system. The
+   inline theme script in the served HTML sets data-theme before the first
+   paint, so this block mainly covers JavaScript being disabled. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0d1a1d;
+    --text: #f6ead9;
+    --surface: #14282c;
+    --surface-soft: rgba(255, 243, 224, .06);
+    --surface-warm: rgba(255, 182, 39, .14);
+    --surface-warm-soft: rgba(255, 107, 44, .14);
+    --promo-bg: rgba(255, 182, 39, .18);
+    --row-hover: rgba(255, 182, 39, .16);
+    --row-current: rgba(255, 107, 44, .22);
+    --text-muted: #c9beb1;
+    --text-soft: #b0a598;
+    --text-faint: #9b9085;
+    --rule: rgba(255, 243, 224, .16);
+    --rule-soft: rgba(255, 243, 224, .12);
+    --field-border: rgba(255, 243, 224, .3);
+    --accent-ink: #8fd6c8;
+    --accent-bg: #1f5560;
+    --accent-contrast: #fff3e0;
+    --success-bg: #123f2c;
+    --success-ink: #a7f3d0;
+    --error-bg: #4a1d1d;
+    --error-ink: #fecaca;
+    --notice-info: #123c46;
+    --notice-warning: #7c3f07;
+    --notice-critical: #7f1d1d;
+    --shadow: rgba(0, 0, 0, .5);
+    --sun: #ffd166;
+    --water: rgba(255, 243, 224, .22);
+    --theme-color: #0d1a1d;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0d1a1d;
+  --text: #f6ead9;
+  --surface: #14282c;
+  --surface-soft: rgba(255, 243, 224, .06);
+  --surface-warm: rgba(255, 182, 39, .14);
+  --surface-warm-soft: rgba(255, 107, 44, .14);
+  --promo-bg: rgba(255, 182, 39, .18);
+  --row-hover: rgba(255, 182, 39, .16);
+  --row-current: rgba(255, 107, 44, .22);
+  --text-muted: #c9beb1;
+  --text-soft: #b0a598;
+  --text-faint: #9b9085;
+  --rule: rgba(255, 243, 224, .16);
+  --rule-soft: rgba(255, 243, 224, .12);
+  --field-border: rgba(255, 243, 224, .3);
+  --accent-ink: #8fd6c8;
+  --accent-bg: #1f5560;
+  --accent-contrast: #fff3e0;
+  --success-bg: #123f2c;
+  --success-ink: #a7f3d0;
+  --error-bg: #4a1d1d;
+  --error-ink: #fecaca;
+  --notice-info: #123c46;
+  --notice-warning: #7c3f07;
+  --notice-critical: #7f1d1d;
+  --shadow: rgba(0, 0, 0, .5);
+  --sun: #ffd166;
+  --water: rgba(255, 243, 224, .22);
+  --theme-color: #0d1a1d;
+}
+
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { background: var(--bg); scroll-behavior: smooth; }
 body {
-  margin: 0; background: var(--sand); color: var(--ink);
+  margin: 0; background: var(--bg); color: var(--text);
   font: 400 1.0625rem/1.6 var(--font-body);
   -webkit-font-smoothing: antialiased;
 }

@@ -10,6 +10,14 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#32 Dark mode toggle** — the public site now has a light/dark theme switch
+  in the shared header. A saved choice lives in `localStorage` under `theme`,
+  and a first-time visitor follows `prefers-color-scheme`. The backend injects a
+  nonce-protected head script so the chosen theme is on `<html>` before the
+  first paint; the Svelte store keeps it in sync afterwards. Colours moved to
+  semantic CSS variables in `app.css`, with a dark override and a system-dark
+  fallback for JavaScript-disabled visitors. Tests: `theme.test.js`,
+  `nav.test.js`, `backend/tests/test_ssr.py`.
 - **#56 CSV export / import** — `/admin/data` downloads seven tables as CSV:
   menu categories, items and promos, content sections and items, special events
   and reservations. Import is all-or-nothing: every row is validated with the
@@ -108,7 +116,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
-| 32 | Dark mode toggle | CSS variables, toggle, persisted preference. |
 | 33 | Accessibility pass | Public site and admin panel audit/fixes. |
 | 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
@@ -143,8 +150,7 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
-   backend.
-2. **#33** Accessibility pass — public site and admin panel audit/fixes.
-3. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
+1. **#33** Accessibility pass — public site and admin panel audit/fixes.
+2. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
    concurrency test already exists.
+3. **#36** CI/CD rebuild (CI portion) — the deploy job still needs VPS secrets.

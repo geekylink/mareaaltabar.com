@@ -137,35 +137,35 @@
 <style>
   .reservation {
     padding: 4rem 1.25rem; max-width: 42rem; margin-inline: auto;
-    border-top: 2px solid rgba(29, 26, 23, .1);
+    border-top: 2px solid var(--rule-soft);
   }
   .head { margin-bottom: 1.5rem; }
-  .sub { margin-top: .6rem; color: #555; }
+  .sub { margin-top: .6rem; color: var(--text-muted); }
   .policy {
-    margin-top: .75rem; font-size: .82rem; color: var(--deep);
-    background: rgba(255, 182, 39, .25); border-radius: .6rem;
+    margin-top: .75rem; font-size: .82rem; color: var(--accent-ink);
+    background: var(--surface-warm); border-radius: .6rem;
     padding: .6rem .8rem;
   }
   form { display: grid; gap: 1rem; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  label { display: grid; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--deep); }
+  label { display: grid; gap: .35rem; font-size: .85rem; font-weight: 700; color: var(--accent-ink); }
   input, textarea {
-    width: 100%; padding: .7rem .8rem; border: 2px solid rgba(11, 60, 73, .25);
-    border-radius: .6rem; font: inherit; font-weight: 400; color: var(--ink);
-    background: #fff;
+    width: 100%; padding: .7rem .8rem; border: 2px solid var(--field-border);
+    border-radius: .6rem; font: inherit; font-weight: 400; color: var(--text);
+    background: var(--surface);
   }
   textarea { resize: vertical; min-height: 5rem; }
-  input:focus, textarea:focus { outline: none; border-color: var(--deep); }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent-ink); }
   button {
     justify-self: start; border: none; border-radius: 999px; padding: .85rem 1.6rem;
-    background: var(--deep); color: var(--sand); font: inherit; font-weight: 700;
+    background: var(--accent-bg); color: var(--accent-contrast); font: inherit; font-weight: 700;
     cursor: pointer; transition: transform .25s var(--ease), background .25s;
   }
   button:hover { transform: translateY(-2px); background: var(--papaya); }
   button:disabled { opacity: .65; cursor: not-allowed; transform: none; }
   .notice { padding: .8rem 1rem; border-radius: .6rem; font-size: .9rem; }
-  .success { background: #D1FAE5; color: #065F46; }
-  .error { background: #FEE2E2; color: #991B1B; }
+  .success { background: var(--success-bg); color: var(--success-ink); }
+  .error { background: var(--error-bg); color: var(--error-ink); }
   .hp {
     position: absolute; left: -9999px; width: 1px; height: 1px;
     overflow: hidden; opacity: 0; pointer-events: none;

@@ -15,6 +15,7 @@ import pytest
 from app import main as main_module
 from app.models import ClosedDay, MenuItem
 from app.ssr import (
+    THEME_SCRIPT,
     bar_today,
     build_payload,
     format_hours,
@@ -400,6 +401,16 @@ def test_root_falls_back_to_english_for_an_unknown_language(site):
 
 def test_index_html_is_rendered_too(site):
     assert "Latin Night" in site.get("/index.html").text
+
+
+def test_the_saved_theme_is_applied_before_the_body(site):
+    """A dark-mode visitor must not see the light theme until the SPA mounts."""
+    for path in ("/", "/menu"):
+        html = site.get(path).text
+        assert THEME_SCRIPT in html
+        assert html.index(THEME_SCRIPT) < html.index("<body")
+        assert "prefers-color-scheme: dark" in THEME_SCRIPT
+        assert "data-theme" in THEME_SCRIPT
 
 
 def test_head_returns_the_same_document_as_get(site):

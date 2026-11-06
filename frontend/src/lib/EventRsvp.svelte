@@ -104,35 +104,35 @@
 
 <style>
   .rsvp {
-    margin-top: .75rem; border-top: 1px dashed rgba(11, 60, 73, .2);
+    margin-top: .75rem; border-top: 1px dashed var(--rule);
     padding-top: .6rem;
   }
   summary {
-    cursor: pointer; font-size: .85rem; font-weight: 700; color: var(--deep);
+    cursor: pointer; font-size: .85rem; font-weight: 700; color: var(--accent-ink);
     list-style-position: inside;
   }
   summary:hover { color: var(--papaya); }
-  .hint { margin: .6rem 0; font-size: .8rem; color: #666; }
+  .hint { margin: .6rem 0; font-size: .8rem; color: var(--text-soft); }
   form { display: grid; gap: .7rem; max-width: 34rem; }
   .pair { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
-  label { display: grid; gap: .3rem; font-size: .8rem; font-weight: 700; color: var(--deep); }
+  label { display: grid; gap: .3rem; font-size: .8rem; font-weight: 700; color: var(--accent-ink); }
   input, textarea {
-    width: 100%; padding: .55rem .65rem; border: 2px solid rgba(11, 60, 73, .25);
-    border-radius: .5rem; font: inherit; font-weight: 400; color: var(--ink);
-    background: #fff;
+    width: 100%; padding: .55rem .65rem; border: 2px solid var(--field-border);
+    border-radius: .5rem; font: inherit; font-weight: 400; color: var(--text);
+    background: var(--surface);
   }
   textarea { resize: vertical; min-height: 3.5rem; }
-  input:focus, textarea:focus { outline: none; border-color: var(--deep); }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent-ink); }
   button {
     justify-self: start; border: none; border-radius: 999px; padding: .6rem 1.2rem;
-    background: var(--deep); color: var(--sand); font: inherit; font-weight: 700;
+    background: var(--accent-bg); color: var(--accent-contrast); font: inherit; font-weight: 700;
     font-size: .85rem; cursor: pointer; transition: transform .25s var(--ease), background .25s;
   }
   button:hover { transform: translateY(-2px); background: var(--papaya); }
   button:disabled { opacity: .65; cursor: not-allowed; transform: none; }
   .notice { padding: .6rem .8rem; border-radius: .5rem; font-size: .85rem; }
-  .success { background: #D1FAE5; color: #065F46; }
-  .error { background: #FEE2E2; color: #991B1B; }
+  .success { background: var(--success-bg); color: var(--success-ink); }
+  .error { background: var(--error-bg); color: var(--error-ink); }
   .hp {
     position: absolute; left: -9999px; width: 1px; height: 1px;
     overflow: hidden; opacity: 0; pointer-events: none;

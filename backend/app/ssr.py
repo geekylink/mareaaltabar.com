@@ -808,6 +808,27 @@ def _json_for_script(value) -> str:
     )
 
 
+# The saved theme must be on <html> before the first paint, or a visitor who
+# chose dark mode sees the light theme until the SPA mounts. The key and the
+# fallback match frontend/src/lib/theme.js. The nonce is the request's CSP
+# nonce, like every other inline script in the document.
+THEME_SCRIPT = """(function () {
+  try {
+    var saved = localStorage.getItem('theme');
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = saved === 'dark' || saved === 'light' ? saved : (dark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d1a1d' : '#0b3c49');
+  } catch (e) {}
+})();"""
+
+
+def render_theme_script(nonce: str) -> str:
+    """The head script that applies the saved (or system) theme before paint."""
+    return f'<script nonce="{nonce}">{THEME_SCRIPT}</script>'
+
+
 def _json_seed(seed: dict) -> str:
     """The page's data seed, escaped for its ``<script>`` element."""
     return _json_for_script(seed)
@@ -877,8 +898,15 @@ def _inject(
     filled = f'<div id="app">{"".join(blocks)}{seed}</div>'
 
     html = html[:start] + filled + html[start + len(APP_MOUNT) :]
-    # head < start, so inserting into the head cannot invalidate the offset.
-    return html[:head] + styles + head_extra + html[head:]
+    # head < start, so inserting into the head cannot invalidate the offset. The
+    # theme script comes first so data-theme is set before any styled content.
+    return (
+        html[:head]
+        + render_theme_script(nonce)
+        + styles
+        + head_extra
+        + html[head:]
+    )
 
 
 def render_index_html(index_html: str, payload: dict, nonce: str) -> str:

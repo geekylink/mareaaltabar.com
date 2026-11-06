@@ -64,11 +64,11 @@
 
 <style>
   header {
-    color: #fff;
+    color: var(--hero-ink);
     background: linear-gradient(180deg, var(--hibiscus) 0%, var(--papaya) 100%);
     padding: env(safe-area-inset-top) 1.25rem 1.5rem;
   }
-  .state { padding: 3rem 1.25rem; text-align: center; color: #666; }
+  .state { padding: 3rem 1.25rem; text-align: center; color: var(--text-soft); }
   .btn {
     margin-top: 1rem; border: 0; border-radius: 999px; padding: .75rem 1.4rem;
     font: 700 1rem var(--font-body); background: var(--marigold);
