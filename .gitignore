@@ -21,6 +21,7 @@ __pycache__/
 .eggs/
 venv/
 .venv/
+.venv*/
 env/
 backend/.env
 backend/data/

@@ -2,7 +2,8 @@
   import { onDestroy } from 'svelte';
   import Menu from './Menu.svelte';
   import NoticeBanner from './NoticeBanner.svelte';
-  import { t, locale, LANGS } from './i18n.js';
+  import Nav from './Nav.svelte';
+  import { t, locale } from './i18n.js';
   import { BAR } from './data.js';
   import { load } from './api.js';
 
@@ -42,19 +43,7 @@
 <NoticeBanner {notices} {lang} />
 
 <header>
-  <nav aria-label={$t.ui.mainNav}>
-    <a class="logo" href="/">{BAR.name}</a>
-    <div class="right">
-      <div class="links">
-        <a href="/#surf">{$t.nav.surf}</a>
-        <a href="/#party">{$t.nav.party}</a>
-        <a href="/#visit">{$t.nav.visit}</a>
-      </div>
-      <select class="lang" bind:value={$locale} aria-label={$t.ui.language}>
-        {#each LANGS as l}<option value={l.code}>{l.label}</option>{/each}
-      </select>
-    </div>
-  </nav>
+  <Nav home={false} links={['surf', 'party', 'contact', 'visit']} />
 </header>
 
 {#if loading && !categories.length}
@@ -76,20 +65,6 @@
     background: linear-gradient(180deg, var(--hibiscus) 0%, var(--papaya) 100%);
     padding: env(safe-area-inset-top) 1.25rem 1.5rem;
   }
-  nav {
-    display: flex; justify-content: space-between; align-items: center;
-    max-width: 68rem; width: 100%; margin-inline: auto;
-  }
-  .logo { font: 800 clamp(1.1rem, 4.5vw, 1.35rem) var(--font-display); text-decoration: none; }
-  .right { display: flex; align-items: center; gap: .8rem; }
-  .links { display: flex; gap: .9rem; font-size: .95rem; }
-  .links a { text-decoration: none; font-weight: 700; }
-  .lang {
-    appearance: none; -webkit-appearance: none; cursor: pointer; color: #fff;
-    font: 700 .9rem var(--font-body); padding: .3rem 1.6rem .3rem .75rem; border-radius: 999px;
-    border: 2px solid rgba(255, 255, 255, .75); background-color: rgba(255, 255, 255, .15);
-  }
-  .lang option { color: var(--ink); }
   .state { padding: 3rem 1.25rem; text-align: center; color: #666; }
   .btn {
     margin-top: 1rem; border: 0; border-radius: 999px; padding: .75rem 1.4rem;
@@ -99,6 +74,5 @@
   footer { background: var(--deep); color: var(--sand); text-align: center; padding: 1.5rem 1rem; font-size: .85rem; }
   @media (min-width: 760px) {
     header { padding-inline: 2rem; }
-    .links { gap: 1.25rem; }
   }
 </style>

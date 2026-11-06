@@ -538,31 +538,31 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 6 | Display phone number and address | 🔴 | 🟢 | UX |
 | | 2 | Add WhatsApp floating button | 🔴 | 🟢 | Growth |
 | | 47 | Set up a Google Business Profile | 🟠 | 🟢 | SEO |
-| | 3 | Add Open Graph / social preview tags | 🟠 | 🟢 | Growth |
+| ✅ | 3 | Add Open Graph / social preview tags | 🟠 | 🟢 | Growth |
 | | 4 | Add analytics | 🟠 | 🟢 | Analytics |
 | ✅ | 48 | robots.txt, sitemap.xml & canonical URLs | 🟡 | 🟢 | SEO |
-| | 9 | Add proper favicon and app icons | 🟡 | 🟢 | Design |
+| ✅ | 9 | Add proper favicon and app icons | 🟡 | 🟢 | Design |
 | ✅ | 1 | Add a drinks menu page | 🔴 | 🟡 | Functionality |
-| | 17 | Content tables for promos, packages & gallery | 🔴 | 🟡 | Operations |
-| | 16 | Create separate menu page (multi-page) | 🟠 | 🟢 | Architecture |
+| ✅ | 17 | Content tables for promos, packages & gallery | 🔴 | 🟡 | Operations |
+| ✅ | 16 | Create separate menu page (multi-page) | 🟠 | 🟢 | Architecture |
 | ✅ | 49 | Menu SEO (Menu schema & indexable route) | 🟠 | 🟢 | SEO |
-| | 7 | Add happy hour / daily promos | 🟠 | 🟢 | Functionality |
+| ✅ | 7 | Add happy hour / daily promos | 🟠 | 🟢 | Functionality |
 | | 18 | Add drink pricing and descriptions | 🟠 | 🟢 | Content |
 | | 11 | Add food menu section | 🟡 | 🟢 | Functionality |
 | | 30 | Add signature drinks section | 🟡 | 🟢 | Content |
-| | 10 | Add "Drink of the Day" banner | 🟡 | 🟢 | Engagement |
+| ✅ | 10 | Add "Drink of the Day" banner | 🟡 | 🟢 | Engagement |
 | | 22 | Add birthday / package deals | 🟠 | 🟢 | Revenue |
 | | 19 | Add "About Us" section | 🟡 | 🟢 | Content |
 | | 20 | Add private events / group booking | 🟡 | 🟡 | Revenue |
-| | 15 | Add contact form | 🟠 | 🟢 | Functionality |
-| | 12 | Add email capture / newsletter | 🟠 | 🟢 | Growth |
+| ✅ | 15 | Add contact form | 🟠 | 🟢 | Functionality |
+| ✅ | 12 | Add email capture / newsletter | 🟠 | 🟢 | Growth |
 | | 51 | Notify the bar on new submissions | 🟠 | 🟡 | Operations |
-| | 14 | Add reservation / booking system | 🟠 | 🟡 | Functionality |
+| ✅ | 14 | Add reservation / booking system | 🟠 | 🟡 | Functionality |
 | ✅ | 52 | Emergency notice banner | 🟠 | 🟡 | Functionality |
 | | 50 | Image upload pipeline | 🟠 | 🟡 | Infrastructure |
 | | 8 | Add photo gallery | 🟠 | 🟡 | Functionality |
 | | 13 | Embed Instagram feed | 🟠 | 🟡 | Social Media |
-| | 53 | Dated / special events | 🟠 | 🟡 | Functionality |
+| ✅ | 53 | Dated / special events | 🟠 | 🟡 | Functionality |
 | | 25 | Add event ticketing / RSVP | 🟡 | 🟡 | Functionality |
 | | 26 | Add live music calendar | 🟡 | 🟡 | Functionality |
 | | 21 | Add loyalty program | 🟠 | 🟡 | Retention |
@@ -597,16 +597,16 @@ Tickets 36, ~~39~~, 35.
 *Goal: Every change is tested and deployed automatically, and a failure pages someone. Fixes the broken CI in #36 and closes the gap #35 leaves.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
-Tickets ~~46~~, 5, 6, 2, 47, 3, 4, ~~48~~, 9.
-*Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #5 and #6 build on it.*
+Tickets ~~46~~, 5, 6, 2, 47, ~~3~~, 4, ~~48~~, ~~9~~.
+*Goal: Make the bar discoverable. #46 is done — the schedule and hours are in the HTML. #3 and #9 are also done. #5 and #6 build on it.*
 
 **Sprint 3 — "Sell the drinks" (1 week)**
-Tickets ~~1~~, 18, 11, ~~49~~, 7, 17.
-*Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route — and ~~#49~~ added the `Menu` JSON-LD. What is left is content (#18, #11); #16 largely landed with #1.*
+Tickets ~~1~~, 18, 11, ~~49~~, ~~7~~, ~~17~~, ~~16~~, ~~10~~.
+*Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route — and ~~#49~~ added the `Menu` JSON-LD. ~~#7~~, ~~#17~~, ~~#16~~ and ~~#10~~ are also done. What is left is content (#18, #11).*
 
 **Sprint 4 — "Convert" (2 weeks)**
-Tickets 15, 12, 51, 14, ~~52~~, 50, 8, 13, 22, 19, 20.
-*Goal: Turn visitors into conversations. #51 is not optional — forms without a notification channel are worse than no form. #50 unlocks #8.*
+Tickets ~~15~~, ~~12~~, 51, ~~14~~, ~~52~~, 50, 8, 13, 22, 19, 20.
+*Goal: Turn visitors into conversations. ~~#15~~, ~~#12~~ and ~~#14~~ are done. #51 is now the missing half — forms without a notification channel are worse than no form. #50 unlocks #8.*
 
 **Sprint 5 — "Events & community" (2–3 weeks)**
 Tickets 53, 25, 26, 21, 24, 28, 29, 27, 23.
@@ -621,6 +621,36 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Shared navigation (#16)
+**Shipped** — `frontend/src/lib/Nav.svelte` is now the one header for `/` and `/menu`, including the logo link and the language selector. On the homepage it emits in-page anchors; on the menu document it emits `/#surf`, `/#party`, `/#contact` and `/#visit` and deliberately drops the menu item the visitor is already on. The old duplicated markup and styles were removed from `App.svelte` and `MenuPage.svelte`. `frontend/src/lib/nav.test.js` covers both link bases, a reduced link list and the Spanish labels.
+
+## Drink of the Day (#10)
+**Shipped** — `menu_items.is_drink_of_day` is a boolean with a migration, editable from `/admin/menu`. The item write handlers clear the flag on every other row when a save sets it, so the hero can only have one answer even if two saves race in sequence. The public API and `load_menu()` carry the flag, and `DrinkOfDay.svelte` reads it from the menu `App.svelte` has already loaded rather than making a second request; a switched-off or unmarked drink renders nothing. There is no date scheduling: “of the day” lasts until the owner changes it. `backend/tests/test_api_menu.py` and `frontend/src/lib/drinkOfDay.test.js` cover the one-at-a-time rule and the hero copy.
+
+## Generic content tables (#17)
+**Shipped** — `content_sections` and `content_items` hold generic bilingual content: a slug, title and body per language, an optional price, image URL, inclusive date window, sort order and active flag. `GET /api/content` and `GET /api/content/{slug}` publish only live sections with live rows and drop a heading with nothing under it; `GET /api/content/all` is session-guarded and keeps switched-off and expired rows editable. `/admin/content` edits sections and rows in place, including reorder, and every write lands in the new content log (`/api/logs/content`, fourth tab on `/admin/logs`). Images are URLs because the upload pipeline (#50) is not built, and there is no public layout for these rows yet. `backend/tests/test_content.py` covers the public/admin split, date windows, URL validation, slug conflicts, cascade delete and audit rows.
+
+## Newsletter signup (#12)
+**Shipped** — A `subscribers` table stores a lower-cased unique address, optional name, consent timestamp, IP and user agent. `POST /api/newsletter` requires the consent checkbox, uses the contact form's honeypot and a separate per-IP rate limiter, and returns the same success shape for a duplicate address without creating a second row. `/admin/subscribers` lists subscribers with active/total counts, unsubscribes or re-subscribes without deleting, deletes, and exports only the active list as CSV. There is no delivery provider, double opt-in or emailed unsubscribe link yet — the CSV export is the handoff. `backend/tests/test_newsletter.py` and `frontend/src/lib/newsletter.test.js` cover the guards and the form payload.
+
+## Reservation requests (#14)
+**Shipped** — A `reservations` table stores a bar-local date, time, party size, name, contact and notes. `POST /api/reservations` accepts today through 90 days ahead and 1–20 guests, uses a honeypot and a per-IP limiter, and always creates a `pending` row — this is a request, not a booking. `/admin/reservations` filters by status, confirms, declines, returns to pending and deletes; the dashboard shows a pending badge. No guest notification is sent because #51 is still blocked on provider credentials. `backend/tests/test_reservations.py` and `frontend/src/lib/reservation.test.js` cover validation, the queue and the request-not-booking copy.
+
+## Open Graph and social preview tags (#3)
+**Shipped** — Static `og:*` and Twitter card tags on `index.html` and `menu.html`, plus generated 1200×630 preview images. `frontend/src/seo.test.js` guards the tags and assets.
+
+## Favicon and app icons (#9)
+**Shipped** — A branded SVG, 16/32/180/192/512 PNGs and a multi-size `.ico`. The old emoji data-URI favicon is gone from the public pages and every admin template, and `backend/tests/test_assets.py` keeps the icon set and templates in step.
+
+## Happy hour and daily promos (#7)
+**Shipped** — `menu_item_promos` gained weekday, time (including overnight), date and active windows. Public API/SSR and the SPA publish only live offers; the admin read keeps every offer with `is_live`, and `/admin/menu` edits each window. Tests: `test_api_menu.py`, `test_migrations.py`, `test_ssr.py`, `menu.test.js`.
+
+## Contact form and shared admin inbox (#15)
+**Shipped** — Public `POST /api/contact` with sanitisation, a 1,000-character cap, honeypot and per-IP rate limiting; messages land in the shared `/admin/inbox` with read/unread, delete and a dashboard unread badge. Tests: `test_contact.py`, `contact.test.js`.
+
+## Dated and special events (#53)
+**Shipped** — `special_events` stores one-off dated events with bilingual title/description, optional time window, image URL and active switch. Upcoming live events render alongside the weekly schedule in the API and SSR; `/admin/events` edits everything, and writes are audited in the schedule area. Tests: `test_special_events.py`, `App.test.js`, `api.test.js`.
 
 ## Security headers: HSTS and CSP (#45)
 **Shipped** — `app/main.py` generates a fresh `secrets.token_urlsafe(16)` nonce for every response, stores it on `request.state.csp_nonce`, and sends a CSP with `default-src 'self'`, no `'unsafe-inline'` or `'unsafe-eval'` in `script-src`, and explicit allowlists for Google Fonts (`style-src`, `font-src`) and both Open-Meteo hosts (`connect-src`). Every inline `<script>` in the login and admin templates, plus the server-rendered data seed and menu JSON-LD, carries that nonce; `ssr.render_index` and `ssr.render_menu` take it as an argument. `Permissions-Policy` turns off camera, microphone, geolocation, payment, USB and the other device APIs the site does not use. HSTS (`max-age=31536000; includeSubDomains`) is sent only when `ENVIRONMENT=production`, so a plain-HTTP development server cannot poison localhost. Swagger UI is exempt from the CSP in development because it loads from a CDN, and is disabled in production anyway. `backend/tests/test_security_headers.py` asserts the header set, the script policy, the external allowlists, a fresh nonce per response, matching nonces on the homepage, menu JSON-LD and every admin page, the production-only HSTS, and the docs exemption.

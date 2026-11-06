@@ -18,7 +18,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session as DBSession
 
 from app import audit
@@ -135,6 +135,7 @@ ITEM_FIELDS = (
     "price",
     "sort_order",
     "is_available",
+    "is_drink_of_day",
 )
 
 
@@ -727,6 +728,7 @@ def _item_response(item: MenuItem) -> MenuItemResponse:
         price=item.price,
         sort_order=item.sort_order,
         is_available=bool(item.is_available),
+        is_drink_of_day=bool(item.is_drink_of_day),
         promos=[
             {
                 "id": promo.id,
@@ -933,6 +935,19 @@ def _get_item(db: DBSession, item_id: int) -> MenuItem:
     return item
 
 
+def _clear_drink_of_day(db: DBSession, keep_id: int | None = None) -> None:
+    """Unset the featured flag on every drink except ``keep_id``.
+
+    SQLite has no partial unique index in this schema, so the one-at-a-time rule
+    lives in the write path. Running it in the same transaction as the save means
+    the menu never has two heroes, even for a moment.
+    """
+    query = update(MenuItem).where(MenuItem.is_drink_of_day.is_(True))
+    if keep_id is not None:
+        query = query.where(MenuItem.id != keep_id)
+    db.execute(query.values(is_drink_of_day=False))
+
+
 def _apply_promos(item: MenuItem, promos: list) -> None:
     """Replace an item's promos with exactly the list that was submitted.
 
@@ -978,6 +993,9 @@ async def create_menu_item(
         .order_by(MenuItem.sort_order.desc())
     ).first()
 
+    if data.is_drink_of_day:
+        _clear_drink_of_day(db)
+
     item = MenuItem(
         category_id=category.id,
         name_en=data.name_en,
@@ -989,6 +1007,7 @@ async def create_menu_item(
         price=data.price,
         sort_order=(last[0] + 1) if last else 0,
         is_available=data.is_available,
+        is_drink_of_day=data.is_drink_of_day,
     )
     _apply_promos(item, data.promos)
     db.add(item)
@@ -1029,6 +1048,9 @@ async def update_menu_item(
 
     before = _item_fields(item)
 
+    if data.is_drink_of_day:
+        _clear_drink_of_day(db, keep_id=item.id)
+
     item.category_id = data.category_id
     item.name_en = data.name_en
     item.name_es = data.name_es
@@ -1038,6 +1060,7 @@ async def update_menu_item(
     item.ingredients_es = data.ingredients_es
     item.price = data.price
     item.is_available = data.is_available
+    item.is_drink_of_day = data.is_drink_of_day
     if data.sort_order is not None:
         item.sort_order = data.sort_order
     _apply_promos(item, data.promos)

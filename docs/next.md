@@ -10,6 +10,31 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#16 Shared navigation** — one `Nav.svelte` now renders the header on `/` and
+  `/menu`. The homepage links are in-page anchors; the menu page points back at
+  `/#…`, drops the “Menu” item it is already on, and keeps the language selector.
+  Tests: `nav.test.js`.
+- **#10 Drink of the Day** — `menu_items.is_drink_of_day` is set from the menu
+  admin page; write handlers clear every other row so only one drink is featured.
+  The homepage hero renders `DrinkOfDay.svelte` from the already-loaded menu, so
+  there is no extra request. Tests: `test_api_menu.py`, `drinkOfDay.test.js`.
+- **#17 Generic content tables** — `content_sections` / `content_items` with
+  bilingual title/body, optional price, image URL, date window, sort order and
+  active flag. Public `GET /api/content` and `/api/content/{slug}` hide inactive,
+  expired and empty sections; `/api/content/all` is the admin read. `/admin/content`
+  edits sections and rows in place, and changes are logged in a fourth content tab
+  on `/admin/logs`. Tests: `test_content.py`.
+- **#12 Newsletter signup** — `subscribers` table, public `POST /api/newsletter`
+  with explicit consent, honeypot, per-IP rate limiting and a duplicate-safe
+  response, plus `/admin/subscribers` to unsubscribe/delete and export the active
+  list as CSV. There is no delivery provider or double opt-in yet. Tests:
+  `test_newsletter.py`, `newsletter.test.js`.
+- **#14 Reservation requests** — `reservations` table and public
+  `POST /api/reservations` (today to 90 days out, 1–20 guests, pending always).
+  `/admin/reservations` filters, confirms, declines, resets and deletes; the
+  dashboard shows a pending badge. No guest notification is sent — that is #51.
+  Tests: `test_reservations.py`, `reservation.test.js`.
+
 - **#3 Open Graph / social preview tags** — static `og:*` and Twitter card tags on
   `/` and `/menu`, plus generated 1200×630 preview images. Tests: `seo.test.js`.
 - **#9 Favicon and app icons** — SVG, 16/32/180/192/512 PNGs and a multi-size
@@ -37,12 +62,7 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 | # | Ticket | Notes |
 |---|--------|-------|
-| 10 | Drink of the Day hero banner | Featured/daily menu item plus admin control. |
-| 12 | Newsletter signup | `subscribers` table, public endpoint, admin list, abuse protection. |
-| 14 | Reservation / booking system | `reservations` table, request endpoint, admin confirm/decline. |
-| 16 | Multi-page navigation (remaining) | Shared cross-document navigation between `/` and `/menu`. |
-| 17 | Generic content tables | Bilingual content sections/items plus one admin page. |
-| 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. |
+| 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
 | 25 | Event RSVP | After #53: RSVP table, endpoint, admin guest count. |
 | 26 | Live music calendar | After #53: calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend quiz resolving against `/api/menu`. |
@@ -85,4 +105,9 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#10** Drink of the Day hero banner
+1. **#50** Image upload pipeline — it unblocks the gallery (#8), signature drinks
+   (#30) and real package/photos content, and is the largest remaining buildable
+   dependency.
+2. **#25** Event RSVP — the dated-events table (#53) now exists to attach it to.
+3. **#21** Loyalty program — buildable, but only useful once the owner decides
+   punches, rewards and expiry.

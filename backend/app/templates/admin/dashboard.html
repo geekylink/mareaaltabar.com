@@ -155,6 +155,27 @@
                 <span class="badge">{{ unread_submissions }} <span data-i18n="inbox_unread">unread</span></span>
                 {% endif %}
             </a>
+            <a href="/admin/reservations" class="card">
+                <div class="icon">🍽️</div>
+                <h3 data-i18n="card_reservations_title">Reservations</h3>
+                <p data-i18n="card_reservations_body">Table requests from the site. Confirm or decline them here, then reply to the guest.</p>
+                {% if pending_reservations %}
+                <span class="badge">{{ pending_reservations }} <span data-i18n="reservation_pending">Pending</span></span>
+                {% endif %}
+            </a>
+            <a href="/admin/subscribers" class="card">
+                <div class="icon">✉️</div>
+                <h3 data-i18n="card_subscribers_title">Newsletter</h3>
+                <p data-i18n="card_subscribers_body">Email addresses collected from the site, with a CSV export for your email provider.</p>
+                {% if active_subscribers %}
+                <span class="badge">{{ active_subscribers }} <span data-i18n="subscriber_active_label">Active</span></span>
+                {% endif %}
+            </a>
+            <a href="/admin/content" class="card">
+                <div class="icon">📝</div>
+                <h3 data-i18n="card_content_title">Site Content</h3>
+                <p data-i18n="card_content_body">Editable sections for the About box, packages, a gallery list and other copy the site will show.</p>
+            </a>
             <a href="/admin/logs" class="card">
                 <div class="icon">🧾</div>
                 <h3 data-i18n="card_logs_title">Logs</h3>

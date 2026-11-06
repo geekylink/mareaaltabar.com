@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh; background: #f5f5f5; color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 1rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.5rem 1rem; border-radius: 0.4rem; font-size: 0.875rem; cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        .lang-switch {
+            display: flex; gap: 0.25rem; background: rgba(255,255,255,0.12);
+            padding: 0.25rem; border-radius: 999px;
+        }
+        .lang-switch button {
+            background: none; border: none; color: rgba(255,255,255,0.85);
+            padding: 0.35rem 0.8rem; border-radius: 999px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: #fff; color: #0B3C49; }
+
+        main { max-width: 68rem; margin: 2rem auto; padding: 0 1rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;
+        }
+        .toolbar h2 { font-size: 1.35rem; color: #0B3C49; }
+        .status { font-size: 0.875rem; color: #2E7D32; opacity: 0; transition: opacity 0.3s; }
+        .status.visible { opacity: 1; }
+        .status.error { color: #991B1B; }
+        .intro { font-size: .875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+
+        .btn-primary {
+            background: #0B3C49; color: #fff; border: none;
+            padding: 0.7rem 1.3rem; border-radius: 0.5rem;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-primary:hover { background: #0E4E5E; }
+        .btn-quiet {
+            background: #fff; color: #0B3C49; border: 1.5px solid #0B3C49;
+            padding: 0.35rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-quiet:hover { background: #0B3C49; color: #fff; }
+        .btn-quiet:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-remove {
+            background: #FEE2E2; color: #991B1B; border: none;
+            padding: 0.35rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; cursor: pointer; white-space: nowrap;
+        }
+        .btn-remove:hover { background: #FECACA; }
+
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.25rem;
+            margin-bottom: 1rem; border: 2px solid transparent;
+        }
+        .section.is-off { background: #FAFAFA; }
+        .section-head {
+            display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+            margin-bottom: 0.85rem;
+        }
+        .section-head h3 { font-size: 1.1rem; color: #0B3C49; margin-right: auto; }
+        .section-tools { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+
+        .fields { display: grid; gap: 0.75rem; }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .field label {
+            display: block; font-size: 0.7rem; font-weight: 700; color: #888;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
+        }
+        .field input, .field textarea, .field select {
+            width: 100%; padding: 0.55rem 0.7rem; border: 1.5px solid #ddd;
+            border-radius: 0.4rem; font-size: 0.9rem; font-family: inherit;
+        }
+        .field textarea { resize: vertical; min-height: 2.6rem; }
+        .field input:focus, .field textarea:focus { outline: none; border-color: #0B3C49; }
+        .field input.filled-es, .field textarea.filled-es { border-left: 3px solid #FF6B2C; }
+        .field input.filled-en, .field textarea.filled-en { border-left: 3px solid #0B3C49; }
+        .toggle {
+            display: flex; align-items: center; gap: 0.4rem;
+            font-size: 0.8rem; color: #333; font-weight: 600;
+        }
+
+        .items { list-style: none; margin: 1rem 0 0; }
+        .item { border-top: 1px solid #eee; padding: 0.75rem 0; }
+        .item-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+        .item-head .name { font-weight: 700; color: #0B3C49; }
+        .item-head .flag {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #991B1B; background: #FEE2E2;
+            border-radius: 999px; padding: 0.1rem 0.5rem;
+        }
+        .item .body { display: grid; gap: 0.75rem; margin-top: 0.6rem; }
+        .item-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .hint { font-size: 0.75rem; color: #888; }
+        .add-item {
+            display: grid; gap: 0.75rem; margin-top: 1rem;
+            padding-top: 1rem; border-top: 1px solid #eee;
+        }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.5rem 0; }
+
+        .add-section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem; margin-top: 1.5rem;
+        }
+        .add-section h3 { font-size: 1.15rem; color: #0B3C49; margin-bottom: 1rem; }
+        .add-section .row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; align-items: end;
+        }
+        .loading { padding: 3rem 0; text-align: center; color: #666; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            .field-pair, .add-section .row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+        <div id="alert-slot"></div>
+
+        <div class="toolbar">
+            <h2 data-i18n="content_heading">Site content</h2>
+            <span class="status" id="global-status"></span>
+        </div>
+        <p class="intro" data-i18n="content_intro">Sections and their rows. Leave a translation blank to fall back to English. Images are links; uploads are coming later.</p>
+
+        <div id="content"><div class="loading" data-i18n="loading">Loading...</div></div>
+
+        <div class="add-section">
+            <h3 data-i18n="content_add_section">Add section</h3>
+            <div class="row">
+                <div class="field">
+                    <label data-i18n="content_section_title_en">Section title (English)</label>
+                    <input type="text" id="new-section-en">
+                </div>
+                <div class="field">
+                    <label data-i18n="content_section_title_es">Section title (Spanish)</label>
+                    <input type="text" id="new-section-es">
+                </div>
+            </div>
+            <div class="row" style="margin-top:.75rem;">
+                <div class="field">
+                    <label data-i18n="content_section_slug">Slug / anchor</label>
+                    <input type="text" id="new-section-slug" placeholder="about">
+                </div>
+                <button class="btn-primary" id="add-section" data-i18n="content_add_section">Add section</button>
+            </div>
+        </div>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var sections = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf() },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+        function t(key) { return AdminI18n.t(key); }
+
+        function setStatus(message, isError) {
+            var el = document.getElementById('global-status');
+            el.textContent = message;
+            el.classList.toggle('error', !!isError);
+            el.classList.add('visible');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(function () { el.classList.remove('visible'); }, 3000);
+        }
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+        function markFilled(input, lang) {
+            input.classList.toggle('filled-' + lang, !!String(input.value).trim());
+        }
+        function watchLanguage(node, lang) {
+            markFilled(node, lang);
+            node.addEventListener('input', function () { markFilled(node, lang); });
+        }
+
+        function itemHtml(item, index, count) {
+            return '' +
+            '<li class="item" data-id="' + item.id + '">' +
+                '<div class="item-head">' +
+                    '<span class="name">' + esc(item.title_en || item.title_es || '—') + '</span>' +
+                    (item.is_active ? '' : '<span class="flag">' + esc(t('content_item_off')) + '</span>') +
+                    '<span class="hint" style="margin-left:auto;">#' + item.sort_order + '</span>' +
+                '</div>' +
+                '<div class="body">' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>EN</label><input type="text" data-field="title_en" value="' + esc(item.title_en) + '"></div>' +
+                        '<div class="field"><label>ES</label><input type="text" data-field="title_es" value="' + esc(item.title_es) + '"></div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>' + esc(t('content_item_body_en')) + '</label><textarea rows="2" data-field="body_en">' + esc(item.body_en) + '</textarea></div>' +
+                        '<div class="field"><label>' + esc(t('content_item_body_es')) + '</label><textarea rows="2" data-field="body_es">' + esc(item.body_es) + '</textarea></div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>' + esc(t('content_item_price')) + '</label><input type="text" data-field="price" value="' + esc(item.price) + '"></div>' +
+                        '<div class="field"><label>' + esc(t('content_item_image_url')) + '</label><input type="text" data-field="image_url" value="' + esc(item.image_url) + '" placeholder="' + esc(t('content_item_image_hint')) + '"></div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>' + esc(t('content_item_starts')) + '</label><input type="date" data-field="starts_on" value="' + esc(item.starts_on) + '"></div>' +
+                        '<div class="field"><label>' + esc(t('content_item_ends')) + '</label><input type="date" data-field="ends_on" value="' + esc(item.ends_on) + '"></div>' +
+                    '</div>' +
+                    '<p class="hint">' + esc(t('content_item_window_hint')) + '</p>' +
+                    '<div class="item-actions">' +
+                        '<label class="toggle"><input type="checkbox" data-field="is_active"' + (item.is_active ? ' checked' : '') + '> ' + esc(t('content_item_active')) + '</label>' +
+                        '<button type="button" class="btn-quiet" data-action="save-item">' + esc(t('save')) + '</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-item-up"' + (index === 0 ? ' disabled' : '') + '>↑</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-item-down"' + (index === count - 1 ? ' disabled' : '') + '>↓</button>' +
+                        '<button type="button" class="btn-remove" data-action="remove-item" style="margin-left:auto;">' + esc(t('remove')) + '</button>' +
+                    '</div>' +
+                '</div>' +
+            '</li>';
+        }
+
+        function addItemHtml() {
+            return '' +
+            '<div class="add-item">' +
+                '<div class="field-pair">' +
+                    '<div class="field"><label>EN</label><input type="text" data-new-field="title_en" placeholder="' + esc(t('content_item_title_en')) + '"></div>' +
+                    '<div class="field"><label>ES</label><input type="text" data-new-field="title_es" placeholder="' + esc(t('content_item_title_es')) + '"></div>' +
+                '</div>' +
+                '<div class="field-pair">' +
+                    '<div class="field"><label>' + esc(t('content_item_body_en')) + '</label><textarea rows="2" data-new-field="body_en"></textarea></div>' +
+                    '<div class="field"><label>' + esc(t('content_item_body_es')) + '</label><textarea rows="2" data-new-field="body_es"></textarea></div>' +
+                '</div>' +
+                '<div class="field-pair">' +
+                    '<div class="field"><label>' + esc(t('content_item_price')) + '</label><input type="text" data-new-field="price"></div>' +
+                    '<div class="field"><label>' + esc(t('content_item_image_url')) + '</label><input type="text" data-new-field="image_url"></div>' +
+                '</div>' +
+                '<div class="field-pair">' +
+                    '<div class="field"><label>' + esc(t('content_item_starts')) + '</label><input type="date" data-new-field="starts_on"></div>' +
+                    '<div class="field"><label>' + esc(t('content_item_ends')) + '</label><input type="date" data-new-field="ends_on"></div>' +
+                '</div>' +
+                '<div class="item-actions">' +
+                    '<label class="toggle"><input type="checkbox" data-new-field="is_active" checked> ' + esc(t('content_item_active')) + '</label>' +
+                    '<button type="button" class="btn-quiet" data-action="add-item">' + esc(t('content_add_item')) + '</button>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function sectionHtml(section, index) {
+            var items = section.items.map(function (item, i) {
+                return itemHtml(item, i, section.items.length);
+            }).join('');
+            return '' +
+            '<section class="section' + (section.is_active ? '' : ' is-off') + '" data-id="' + section.id + '">' +
+                '<div class="section-head">' +
+                    '<h3>' + esc(section.title_en || section.title_es || '—') + '</h3>' +
+                    (section.is_active ? '' : '<span class="flag">' + esc(t('content_section_off')) + '</span>') +
+                    '<div class="section-tools">' +
+                        '<button type="button" class="btn-quiet" data-action="move-section-up"' + (index === 0 ? ' disabled' : '') + '>↑</button>' +
+                        '<button type="button" class="btn-quiet" data-action="move-section-down"' + (index === sections.length - 1 ? ' disabled' : '') + '>↓</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="fields">' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>EN</label><input type="text" data-section-field="title_en" value="' + esc(section.title_en) + '"></div>' +
+                        '<div class="field"><label>ES</label><input type="text" data-section-field="title_es" value="' + esc(section.title_es) + '"></div>' +
+                    '</div>' +
+                    '<div class="field-pair">' +
+                        '<div class="field"><label>' + esc(t('content_section_body_en')) + '</label><textarea rows="2" data-section-field="body_en">' + esc(section.body_en) + '</textarea></div>' +
+                        '<div class="field"><label>' + esc(t('content_section_body_es')) + '</label><textarea rows="2" data-section-field="body_es">' + esc(section.body_es) + '</textarea></div>' +
+                    '</div>' +
+                    '<div class="field"><label>' + esc(t('content_section_slug')) + '</label><input type="text" data-section-field="slug" value="' + esc(section.slug) + '"></div>' +
+                '</div>' +
+                '<div class="item-actions" style="margin-top:.85rem;">' +
+                    '<label class="toggle"><input type="checkbox" data-section-field="is_active"' + (section.is_active ? ' checked' : '') + '> ' + esc(t('content_section_active')) + '</label>' +
+                    '<button type="button" class="btn-quiet" data-action="save-section">' + esc(t('save')) + '</button>' +
+                    '<button type="button" class="btn-remove" data-action="remove-section" style="margin-left:auto;">' + esc(t('remove')) + '</button>' +
+                '</div>' +
+                '<ul class="items">' + (items || '<li class="empty-note">' + esc(t('content_no_items')) + '</li>') + '</ul>' +
+                addItemHtml() +
+            '</section>';
+        }
+
+        function render() {
+            var container = document.getElementById('content');
+            container.innerHTML = sections.length
+                ? sections.map(sectionHtml).join('')
+                : '<p class="empty-note">' + esc(t('content_no_sections')) + '</p>';
+            bind();
+        }
+
+        function collectSection(node) {
+            var payload = { slug: '', title_en: '', title_es: '', body_en: '', body_es: '', is_active: true };
+            node.querySelectorAll('[data-section-field]').forEach(function (input) {
+                var field = input.dataset.sectionField;
+                payload[field] = field === 'is_active' ? input.checked : input.value;
+            });
+            return payload;
+        }
+
+        function collectItem(node) {
+            var payload = {
+                section_id: parseInt(node.closest('.section').dataset.id, 10),
+                title_en: '', title_es: '', body_en: '', body_es: '', price: '', image_url: '',
+                starts_on: '', ends_on: '', is_active: true
+            };
+            node.querySelectorAll('[data-field]').forEach(function (input) {
+                var field = input.dataset.field;
+                payload[field] = field === 'is_active' ? input.checked : input.value;
+            });
+            return payload;
+        }
+
+        function collectNewItem(node) {
+            var payload = {
+                section_id: parseInt(node.closest('.section').dataset.id, 10),
+                title_en: '', title_es: '', body_en: '', body_es: '', price: '', image_url: '',
+                starts_on: '', ends_on: '', is_active: true
+            };
+            node.querySelectorAll('[data-new-field]').forEach(function (input) {
+                var field = input.dataset.newField;
+                payload[field] = field === 'is_active' ? input.checked : input.value;
+            });
+            return payload;
+        }
+
+        function reload() {
+            return api('/api/content/all').then(function (data) {
+                sections = data || [];
+                render();
+            });
+        }
+
+        function findSection(id) {
+            for (var i = 0; i < sections.length; i++) {
+                if (String(sections[i].id) === String(id)) return { section: sections[i], index: i };
+            }
+            return null;
+        }
+
+        function saveSection(node) {
+            var id = node.dataset.id;
+            setStatus(t('saving'), false);
+            return api('/api/content/sections/' + id, { method: 'PUT', body: collectSection(node) })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function removeSection(id) {
+            if (!window.confirm(t('content_confirm_delete_section'))) return Promise.resolve();
+            return api('/api/content/sections/' + id, { method: 'DELETE' })
+                .then(reload)
+                .catch(function (err) { showAlert(err.message || t('delete_failed')); });
+        }
+
+        function saveItem(node) {
+            var id = node.dataset.id;
+            setStatus(t('saving'), false);
+            return api('/api/content/items/' + id, { method: 'PUT', body: collectItem(node) })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function addItem(node) {
+            var payload = collectNewItem(node);
+            if (!payload.title_en.trim() && !payload.title_es.trim()) {
+                setStatus(t('required_field'), true);
+                return Promise.resolve();
+            }
+            setStatus(t('saving'), false);
+            return api('/api/content/items', { method: 'POST', body: payload })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function removeItem(id) {
+            if (!window.confirm(t('content_confirm_delete_item'))) return Promise.resolve();
+            return api('/api/content/items/' + id, { method: 'DELETE' })
+                .then(reload)
+                .catch(function (err) { showAlert(err.message || t('delete_failed')); });
+        }
+
+        function moveSection(id, direction) {
+            var found = findSection(id);
+            if (!found) return Promise.resolve();
+            var target = found.index + direction;
+            if (target < 0 || target >= sections.length) return Promise.resolve();
+            var a = collectSection(document.querySelector('.section[data-id="' + id + '"]'));
+            var b = {
+                slug: sections[target].slug, title_en: sections[target].title_en,
+                title_es: sections[target].title_es, body_en: sections[target].body_en,
+                body_es: sections[target].body_es, is_active: sections[target].is_active
+            };
+            a.sort_order = sections[target].sort_order;
+            b.sort_order = sections[found.index].sort_order;
+            setStatus(t('saving'), false);
+            return api('/api/content/sections/' + sections[found.index].id, { method: 'PUT', body: a })
+                .then(function () {
+                    return api('/api/content/sections/' + sections[target].id, { method: 'PUT', body: b });
+                })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function moveItem(sectionNode, id, direction) {
+            var found = findSection(sectionNode.dataset.id);
+            if (!found) return Promise.resolve();
+            var index = found.section.items.findIndex(function (item) { return String(item.id) === String(id); });
+            var target = index + direction;
+            if (index < 0 || target < 0 || target >= found.section.items.length) return Promise.resolve();
+            var aNode = sectionNode.querySelector('.item[data-id="' + id + '"]');
+            var a = collectItem(aNode);
+            var b = {
+                section_id: found.section.items[target].section_id,
+                title_en: found.section.items[target].title_en,
+                title_es: found.section.items[target].title_es,
+                body_en: found.section.items[target].body_en,
+                body_es: found.section.items[target].body_es,
+                price: found.section.items[target].price,
+                image_url: found.section.items[target].image_url,
+                starts_on: found.section.items[target].starts_on,
+                ends_on: found.section.items[target].ends_on,
+                is_active: found.section.items[target].is_active
+            };
+            a.sort_order = found.section.items[target].sort_order;
+            b.sort_order = found.section.items[index].sort_order;
+            setStatus(t('saving'), false);
+            return api('/api/content/items/' + found.section.items[index].id, { method: 'PUT', body: a })
+                .then(function () {
+                    return api('/api/content/items/' + found.section.items[target].id, { method: 'PUT', body: b });
+                })
+                .then(reload)
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function addSection() {
+            var en = document.getElementById('new-section-en');
+            var es = document.getElementById('new-section-es');
+            var slug = document.getElementById('new-section-slug');
+            if (!en.value.trim() && !es.value.trim()) {
+                setStatus(t('required_field'), true);
+                return Promise.resolve();
+            }
+            setStatus(t('saving'), false);
+            return api('/api/content/sections', {
+                method: 'POST',
+                body: { title_en: en.value, title_es: es.value, slug: slug.value, is_active: true }
+            })
+                .then(function () {
+                    en.value = '';
+                    es.value = '';
+                    slug.value = '';
+                    return reload();
+                })
+                .then(function () { setStatus(t('saved'), false); })
+                .catch(function (err) { setStatus(err.message, true); });
+        }
+
+        function bind() {
+            document.querySelectorAll('.section').forEach(function (sectionNode) {
+                var id = sectionNode.dataset.id;
+
+                sectionNode.querySelectorAll('[data-action]').forEach(function (button) {
+                    if (button.closest('.item')) return;
+                    button.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        var action = button.dataset.action;
+                        if (action === 'save-section') return saveSection(sectionNode);
+                        if (action === 'remove-section') return removeSection(id);
+                        if (action === 'move-section-up') return moveSection(id, -1);
+                        if (action === 'move-section-down') return moveSection(id, 1);
+                        if (action === 'add-item') return addItem(sectionNode.querySelector('.add-item'));
+                    });
+                });
+
+                sectionNode.querySelectorAll('[data-section-field]').forEach(function (input) {
+                    if (input.dataset.sectionField.endsWith('_en') || input.dataset.sectionField.endsWith('_es')) {
+                        watchLanguage(input, input.dataset.sectionField.slice(-2));
+                    }
+                });
+
+                sectionNode.querySelectorAll('.item').forEach(function (itemNode) {
+                    var itemId = itemNode.dataset.id;
+                    itemNode.querySelectorAll('[data-action]').forEach(function (button) {
+                        button.addEventListener('click', function (event) {
+                            event.stopPropagation();
+                            var action = button.dataset.action;
+                            if (action === 'save-item') return saveItem(itemNode);
+                            if (action === 'remove-item') return removeItem(itemId);
+                            if (action === 'move-item-up') return moveItem(sectionNode, itemId, -1);
+                            if (action === 'move-item-down') return moveItem(sectionNode, itemId, 1);
+                        });
+                    });
+                    itemNode.querySelectorAll('[data-field]').forEach(function (input) {
+                        if (input.dataset.field.endsWith('_en') || input.dataset.field.endsWith('_es')) {
+                            watchLanguage(input, input.dataset.field.slice(-2));
+                        }
+                    });
+                });
+            });
+        }
+
+        document.getElementById('add-section').addEventListener('click', addSection);
+        ['new-section-en', 'new-section-es', 'new-section-slug'].forEach(function (id) {
+            document.getElementById(id).addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    addSection();
+                }
+            });
+        });
+
+        document.addEventListener('admin:langchange', render);
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+
+        reload().catch(function (err) { showAlert(err.message); });
+    })();
+    </script>
+</body>
+</html>

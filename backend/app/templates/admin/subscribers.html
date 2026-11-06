@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh; background: #f5f5f5; color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer; display: inline-block;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 60rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .section-head {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap; margin-bottom: 0.35rem;
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1rem; line-height: 1.5; }
+        .counts { font-size: 0.8rem; color: #777; margin-bottom: 1rem; }
+        .btn-primary {
+            background: #0B3C49; color: #fff; border: none; text-decoration: none;
+            padding: 0.55rem 1rem; border-radius: 0.4rem; font-size: 0.82rem;
+            font-weight: 600; cursor: pointer; display: inline-block; white-space: nowrap;
+        }
+        .btn-primary:hover { background: #0E4E5E; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th {
+            text-align: left; font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #888; padding: 0.6rem 0.5rem;
+            border-bottom: 2px solid #eee; white-space: nowrap;
+        }
+        td { padding: 0.7rem 0.5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+        td.email { font-weight: 600; color: #0B3C49; word-break: break-word; }
+        .muted { color: #888; font-size: 0.8rem; }
+        .badge {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; padding: 0.18rem 0.45rem; border-radius: 999px;
+            white-space: nowrap;
+        }
+        .badge.active { background: #DCFCE7; color: #166534; }
+        .badge.inactive { background: #E5E7EB; color: #4B5563; }
+        .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .btn-small {
+            border: none; padding: 0.35rem 0.65rem; border-radius: 0.35rem;
+            font-size: 0.75rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-toggle { background: #E0F2FE; color: #075985; }
+        .btn-toggle:hover { background: #BAE6FD; }
+        .btn-delete { background: #FEE2E2; color: #991B1B; }
+        .btn-delete:hover { background: #FECACA; }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            th:nth-child(4), td:nth-child(4) { display: none; }
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr { border: 1px solid #eee; border-radius: 0.6rem; padding: 0.5rem; margin-bottom: 0.7rem; }
+            td { border: none; padding: 0.25rem 0.4rem; }
+            td::before { content: attr(data-label); display: inline-block; min-width: 5.5rem; color: #888; font-size: 0.72rem; text-transform: uppercase; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+        <div id="alert-slot"></div>
+
+        <section class="section">
+            <div class="section-head">
+                <h2 data-i18n="subscribers_heading">Newsletter</h2>
+                <a class="btn-primary" href="/api/subscribers/export.csv" data-i18n="export_csv">Export active as CSV</a>
+            </div>
+            <p class="intro" data-i18n="subscribers_intro">Addresses people submitted with consent. There is no email provider connected yet: export the active list and import it where you send from.</p>
+            <p class="counts" id="counts"></p>
+            <div id="subscribers"><p class="empty-note" data-i18n="loading">Loading...</p></div>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var subscribers = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf()
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function t(key, args) {
+            var template = AdminI18n.t(key);
+            if (!args) return template;
+            return template.replace(/\{(\w+)\}/g, function (match, name) {
+                return args[name] != null ? args[name] : match;
+            });
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        function when(iso) {
+            if (!iso) return '';
+            var date = new Date(iso);
+            return isNaN(date.getTime()) ? esc(iso) : esc(date.toLocaleString());
+        }
+
+        function render() {
+            var box = document.getElementById('subscribers');
+            var active = subscribers.filter(function (row) { return row.is_active; }).length;
+
+            document.getElementById('counts').textContent =
+                t('subscriber_counts', { total: subscribers.length, active: active });
+
+            if (!subscribers.length) {
+                box.innerHTML = '<p class="empty-note">' + esc(t('no_subscribers')) + '</p>';
+                return;
+            }
+
+            box.innerHTML = '<table><thead><tr>' +
+                '<th data-i18n="subscriber_email">' + esc(t('subscriber_email')) + '</th>' +
+                '<th data-i18n="subscriber_name">' + esc(t('subscriber_name')) + '</th>' +
+                '<th data-i18n="subscriber_status">' + esc(t('subscriber_status')) + '</th>' +
+                '<th data-i18n="subscriber_created">' + esc(t('subscriber_created')) + '</th>' +
+                '<th>' + esc(t('subscriber_col_ip')) + '</th>' +
+                '</tr></thead><tbody>' +
+                subscribers.map(function (row) {
+                    return '<tr data-id="' + row.id + '">' +
+                        '<td class="email" data-label="' + esc(t('subscriber_email')) + '">' + esc(row.email) + '</td>' +
+                        '<td data-label="' + esc(t('subscriber_name')) + '">' + (row.name ? esc(row.name) : '<span class="muted">—</span>') + '</td>' +
+                        '<td data-label="' + esc(t('subscriber_status')) + '">' +
+                            '<span class="badge ' + (row.is_active ? 'active' : 'inactive') + '">' +
+                                esc(row.is_active ? t('subscriber_active_label') : t('subscriber_inactive_label')) +
+                            '</span>' +
+                            '<div class="muted">' + esc(t('subscriber_consented')) + ': ' + when(row.consented_at) + '</div>' +
+                        '</td>' +
+                        '<td data-label="' + esc(t('subscriber_created')) + '">' + when(row.created_at) + '</td>' +
+                        '<td data-label="' + esc(t('subscriber_col_ip')) + '" class="muted">' + esc(row.ip) + '</td>' +
+                        '<td><div class="actions">' +
+                            '<button type="button" class="btn-small btn-toggle" data-action="toggle">' +
+                                esc(row.is_active ? t('subscriber_unsubscribe') : t('subscriber_resubscribe')) +
+                            '</button>' +
+                            '<button type="button" class="btn-small btn-delete" data-action="delete">' +
+                                esc(t('subscriber_delete')) +
+                            '</button>' +
+                        '</div></td>' +
+                    '</tr>';
+                }).join('') +
+                '</tbody></table>';
+        }
+
+        function refresh() {
+            return api('/api/subscribers').then(function (data) {
+                subscribers = data.subscribers || [];
+                render();
+            }).catch(function (err) {
+                showAlert(err.message || t('subscriber_update_failed'));
+            });
+        }
+
+        document.getElementById('subscribers').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var row = button.closest('tr');
+            var id = Number(row.dataset.id);
+            var item = subscribers.find(function (entry) { return entry.id === id; });
+            if (!item) return;
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm(t('confirm_delete_subscriber'))) return;
+                button.disabled = true;
+                api('/api/subscribers/' + id, { method: 'DELETE' }).then(refresh).catch(function (err) {
+                    showAlert(err.message || t('subscriber_delete_failed'));
+                    button.disabled = false;
+                });
+                return;
+            }
+
+            if (button.dataset.action === 'toggle') {
+                button.disabled = true;
+                api('/api/subscribers/' + id, {
+                    method: 'PATCH',
+                    body: { is_active: !item.is_active }
+                }).then(refresh).catch(function (err) {
+                    showAlert(err.message || t('subscriber_update_failed'));
+                    button.disabled = false;
+                });
+            }
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                render();
+            });
+        });
+        document.addEventListener('admin:langchange', render);
+        syncLangButtons();
+        refresh();
+    })();
+    </script>
+</body>
+</html>

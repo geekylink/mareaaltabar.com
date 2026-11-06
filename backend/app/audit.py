@@ -38,6 +38,7 @@ OUTCOME_RATE_LIMITED = "rate_limited"
 # area, so this is the only thing separating Friday's hours from a cocktail price.
 AREA_MENU = "menu"
 AREA_SCHEDULE = "schedule"
+AREA_CONTENT = "content"
 
 ACTION_CREATE = "create"
 ACTION_UPDATE = "update"
@@ -54,6 +55,8 @@ TARGET_MENU_ITEM = "menu_item"
 # and a fourth tab on /admin/logs would separate two halves of the same job.
 TARGET_NOTICE = "notice"
 TARGET_SPECIAL_EVENT = "special_event"
+TARGET_CONTENT_SECTION = "content_section"
+TARGET_CONTENT_ITEM = "content_item"
 
 # 07:00 at the bar, which is when the retention purge runs.
 PURGE_HOUR_BAR = 7

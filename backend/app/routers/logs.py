@@ -119,6 +119,28 @@ async def get_menu_change_log(
     )
 
 
+@router.get("/api/logs/content", response_model=AuditLogResponse)
+async def get_content_change_log(
+    response: Response,
+    limit: int = Query(DEFAULT_LIMIT, ge=1),
+    offset: int = Query(0, ge=0),
+    db: DBSession = Depends(get_db),
+):
+    """Admin: every change to the generic content sections and their items."""
+    response.headers.update(READ_CACHE_CONTROL)
+    limit, offset = _page(limit, offset)
+    return AuditLogResponse(
+        area=audit.AREA_CONTENT,
+        entries=[
+            _audit_response(row)
+            for row in audit.list_audit_entries(
+                db, area=audit.AREA_CONTENT, limit=limit, offset=offset
+            )
+        ],
+        total=audit.count_audit_entries(db, audit.AREA_CONTENT),
+    )
+
+
 @router.get("/api/logs/schedule", response_model=AuditLogResponse)
 async def get_schedule_change_log(
     response: Response,

@@ -141,6 +141,11 @@
             border-radius: 999px; padding: 0.1rem 0.5rem;
         }
         .item .hint { font-size: 0.8rem; color: #888; margin-left: auto; }
+        .item .star-flag {
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #92400E; background: #FEF3C7;
+            border-radius: 999px; padding: 0.1rem 0.5rem;
+        }
         .item .body { display: grid; gap: 0.75rem; padding: 0.75rem 0 0.25rem; }
         .item-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
@@ -436,6 +441,7 @@
                     '<span class="name">' + esc(item.name_en || item.name_es || '—') + '</span>' +
                     '<span class="price">' + esc(item.price ? '$' + item.price : '') + '</span>' +
                     (item.is_available ? '' : '<span class="flag">' + esc(t('hide_item')) + '</span>') +
+                    (item.is_drink_of_day ? '<span class="star-flag">' + esc(t('drink_of_day')) + '</span>' : '') +
                     (item.promos.length
                         ? '<span class="hint">' + esc(item.promos.length + ' ' + t('promos_label')) + '</span>'
                         : '') +
@@ -489,6 +495,11 @@
                                 (item.is_available ? ' checked' : '') + '>' +
                             esc(t('available')) +
                         '</label>' +
+                        '<label class="toggle" title="' + esc(t('drink_of_day_hint')) + '">' +
+                            '<input type="checkbox" data-field="is_drink_of_day"' +
+                                (item.is_drink_of_day ? ' checked' : '') + '>' +
+                            esc(t('drink_of_day_flag')) +
+                        '</label>' +
                         '<button type="button" class="btn-quiet" data-action="save-item">' + esc(t('save')) + '</button>' +
                         '<button type="button" class="btn-quiet" data-action="move-up"' +
                             (index === 0 ? ' disabled' : '') + '>↑</button>' +
@@ -538,6 +549,10 @@
                     '<label class="toggle">' +
                         '<input type="checkbox" data-new-field="is_available" checked>' +
                         esc(t('available')) +
+                    '</label>' +
+                    '<label class="toggle" title="' + esc(t('drink_of_day_hint')) + '">' +
+                        '<input type="checkbox" data-new-field="is_drink_of_day">' +
+                        esc(t('drink_of_day_flag')) +
                     '</label>' +
                     '<button type="button" class="btn-primary" data-action="add-item">' + esc(t('add_item')) + '</button>' +
                 '</div>' +
@@ -637,12 +652,13 @@
         function collectItem(node) {
             var payload = {
                 category_id: 0, name_en: '', name_es: '', description_en: '', description_es: '',
-                ingredients_en: '', ingredients_es: '', price: '', is_available: true, promos: []
+                ingredients_en: '', ingredients_es: '', price: '', is_available: true,
+                is_drink_of_day: false, promos: []
             };
             node.querySelectorAll('[data-field]').forEach(function (input) {
                 var field = input.dataset.field;
-                if (field === 'is_available') {
-                    payload.is_available = input.checked;
+                if (field === 'is_available' || field === 'is_drink_of_day') {
+                    payload[field] = input.checked;
                 } else if (field === 'category_id') {
                     payload.category_id = parseInt(input.value, 10);
                 } else {
@@ -676,12 +692,12 @@
             var payload = {
                 category_id: categoryId, name_en: '', name_es: '', description_en: '',
                 description_es: '', ingredients_en: '', ingredients_es: '', price: '',
-                is_available: true, promos: []
+                is_available: true, is_drink_of_day: false, promos: []
             };
             addBox.querySelectorAll('[data-new-field]').forEach(function (input) {
                 var field = input.dataset.newField;
-                if (field === 'is_available') {
-                    payload.is_available = input.checked;
+                if (field === 'is_available' || field === 'is_drink_of_day') {
+                    payload[field] = input.checked;
                 } else {
                     payload[field] = input.value;
                 }
@@ -860,6 +876,7 @@
                 ingredients_es: item.ingredients_es,
                 price: item.price,
                 is_available: item.is_available,
+                is_drink_of_day: !!item.is_drink_of_day,
                 promos: item.promos.map(function (promo) {
                     return {
                         label_en: promo.label_en,

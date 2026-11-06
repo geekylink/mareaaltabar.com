@@ -45,6 +45,44 @@ export default {
   // Estas cuatro etiquetas están duplicadas en backend/app/public_i18n.py para el
   // bloque renderizado en el servidor, y publicI18n.test.js falla si se separan.
   menu: { title: 'Menú de bebidas', subtitle: 'Cerveza fría, cocteles y lo que más haya en la barra.', ingredients: 'Ingredientes', promo: 'Promo', empty: 'Estamos actualizando el menú. Pregúntanos los precios de hoy.', all: 'Todos los precios en dólares.' },
+  // La bebida que el dueño marca en el menú del panel. Se muestra en el hero.
+  drinkOfDay: { eyebrow: 'Bebida del día', cta: 'Ver el menú completo' },
+  // Solicitar una mesa. El backend la guarda como pendiente; nada queda
+  // confirmado hasta que el bar responde, por eso el texto dice «solicitud».
+  reservation: {
+    title: 'Reserva una mesa',
+    subtitle: 'Dinos cuándo vienes y te confirmaremos con el contacto que dejes.',
+    note: 'Esto es una solicitud, no una reserva confirmada. Te responderemos.',
+    date: 'Fecha',
+    time: 'Hora',
+    partySize: 'Personas',
+    name: 'Tu nombre',
+    contact: 'Correo o teléfono',
+    notes: '¿Algo que debamos saber? (opcional)',
+    send: 'Solicitar mesa',
+    sending: 'Enviando solicitud...',
+    sent: 'Solicitud recibida. Te confirmaremos pronto.',
+    required: 'Completa la fecha, la hora, el nombre y el contacto.',
+    error: 'No se pudo enviar tu solicitud. Inténtalo de nuevo o escríbenos.',
+    honeypot: 'Deja este campo vacío',
+  },
+  // Suscripción al boletín. La dirección se guarda con la casilla de
+  // consentimiento; todavía no hay proveedor conectado ni enlace de baja.
+  newsletter: {
+    title: 'Mantente al tanto',
+    subtitle: 'Reportes de surf, fiestas y algún especial de última hora. Sin spam.',
+    email: 'Correo',
+    name: 'Nombre (opcional)',
+    consent: 'Acepto recibir correos ocasionales de Marea Alta.',
+    send: 'Suscribirme',
+    sending: 'Suscribiendo...',
+    sent: 'Ya estás en la lista. Nos vemos en el bar.',
+    emailError: 'Escribe un correo válido.',
+    consentError: 'Marca la casilla de consentimiento.',
+    error: 'No se pudo suscribir. Inténtalo de nuevo.',
+    privacy: 'Solo usamos tu dirección para enviar estos correos.',
+    honeypot: 'Deja este campo vacío',
+  },
   // El formulario de contacto envía a /api/contact. El límite se muestra aquí
   // para que se vea antes de escribir, y se vuelve a aplicar en el servidor.
   contact: {

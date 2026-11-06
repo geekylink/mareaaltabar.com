@@ -7,7 +7,7 @@ blank, so a partially-translated schedule still renders.
 
 import re
 import unicodedata
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -392,6 +392,9 @@ class MenuItemWrite(BaseModel):
     ingredients_es: str = Field(default="", max_length=500)
     price: str = Field(default="", max_length=32)
     is_available: bool = True
+    # At most one drink carries this at a time. The menu write handlers clear it
+    # on every other row when a save sets it, so the hero has one answer.
+    is_drink_of_day: bool = False
     promos: list[MenuPromoWrite] = Field(default_factory=list)
     # None means "keep the current position", so editing a price cannot reorder
     # the list; the reorder buttons send an explicit value.
@@ -502,6 +505,305 @@ class SubmissionUpdate(BaseModel):
     """The only editable property of a submission is whether it has been read."""
 
     is_read: bool
+
+
+# --- Generic content tables (ticket #17) ----------------------------------
+#
+# One section (a heading and its shared copy) with any number of items beneath
+# it. The same rows back the About box, the package lists and the gallery, so the
+# write models are deliberately generic: a title, body, optional price, optional
+# image URL and an optional date window. The public read filters on the window;
+# the admin read keeps everything so an expired item can be edited and reused.
+
+CONTENT_TITLE_MAX = 255
+CONTENT_BODY_MAX = 4000
+CONTENT_PRICE_MAX = 32
+CONTENT_IMAGE_MAX = 500
+
+
+def _check_optional_url(value: str, field: str) -> str:
+    """Trim a URL and reject anything that could not go into ``src``/``href``."""
+    url = (value or "").strip()
+    if url and not (
+        url.startswith("https://")
+        or url.startswith("http://")
+        or url.startswith("/")
+    ):
+        raise ValueError(f"{field} must be an http(s) or site-relative URL")
+    return url
+
+
+def _check_optional_date(value: str, field: str) -> str:
+    """Normalise an optional ISO date, rejecting impossible ones."""
+    text = (value or "").strip()
+    if text:
+        if not _ISO_DATE_RE.fullmatch(text):
+            raise ValueError(f"{field} must be YYYY-MM-DD")
+        try:
+            date.fromisoformat(text)
+        except ValueError as exc:
+            raise ValueError(f"{field} is not a valid date") from exc
+    return text
+
+
+class ContentSectionWrite(BaseModel):
+    """Admin write payload for one content section.
+
+    A blank slug is derived from the English title (or Spanish when English is
+    blank), exactly as a menu category's slug is, so publishing never requires
+    the owner to understand what a slug is.
+    """
+
+    slug: str = Field(default="", max_length=80)
+    title_en: str = Field(default="", max_length=CONTENT_TITLE_MAX)
+    title_es: str = Field(default="", max_length=CONTENT_TITLE_MAX)
+    body_en: str = Field(default="", max_length=CONTENT_BODY_MAX)
+    body_es: str = Field(default="", max_length=CONTENT_BODY_MAX)
+    is_active: bool = True
+    sort_order: int | None = None
+
+    @model_validator(mode="after")
+    def _clean_and_derive(self):
+        for name in ("title_en", "title_es", "body_en", "body_es"):
+            setattr(self, name, getattr(self, name).strip())
+
+        if not (self.title_en or self.title_es):
+            raise ValueError("a title is required in at least one language")
+
+        self.slug = (self.slug or "").strip()
+        if not self.slug:
+            self.slug = slugify(self.title_en or self.title_es, fallback="section")
+        else:
+            self.slug = slugify(self.slug, fallback="section")
+        return self
+
+
+class ContentSectionResponse(BaseModel):
+    id: int
+    slug: str
+    title_en: str
+    title_es: str
+    body_en: str
+    body_es: str
+    sort_order: int
+    is_active: bool
+    items: list["ContentItemResponse"] = Field(default_factory=list)
+
+
+class ContentItemWrite(BaseModel):
+    """Admin write payload for one row inside a section.
+
+    ``section_id`` is on the item rather than the URL because moving an item
+    between sections is an ordinary edit, not a delete and re-create.
+    """
+
+    section_id: int
+    title_en: str = Field(default="", max_length=CONTENT_TITLE_MAX)
+    title_es: str = Field(default="", max_length=CONTENT_TITLE_MAX)
+    body_en: str = Field(default="", max_length=CONTENT_BODY_MAX)
+    body_es: str = Field(default="", max_length=CONTENT_BODY_MAX)
+    price: str = Field(default="", max_length=CONTENT_PRICE_MAX)
+    image_url: str = Field(default="", max_length=CONTENT_IMAGE_MAX)
+    starts_on: str = Field(default="", max_length=10)
+    ends_on: str = Field(default="", max_length=10)
+    is_active: bool = True
+    sort_order: int | None = None
+
+    @model_validator(mode="after")
+    def _clean_and_check(self):
+        for name in ("title_en", "title_es", "body_en", "body_es"):
+            setattr(self, name, getattr(self, name).strip())
+        if not (self.title_en or self.title_es):
+            raise ValueError("a title is required in at least one language")
+
+        self.price = (self.price or "").strip()
+        self.image_url = _check_optional_url(self.image_url, "image_url")
+        self.starts_on = _check_optional_date(self.starts_on, "starts_on")
+        self.ends_on = _check_optional_date(self.ends_on, "ends_on")
+        if self.starts_on and self.ends_on and self.ends_on < self.starts_on:
+            raise ValueError("ends_on must be on or after starts_on")
+        return self
+
+
+class ContentItemResponse(BaseModel):
+    id: int
+    section_id: int
+    title_en: str
+    title_es: str
+    body_en: str
+    body_es: str
+    price: str
+    image_url: str
+    starts_on: str
+    ends_on: str
+    sort_order: int
+    is_active: bool
+    # Public reads only return rows that are live; the admin read uses this to
+    # explain why an active-looking row is not on the site.
+    is_live: bool = True
+
+
+ContentSectionResponse.model_rebuild()
+
+
+# --- Newsletter (ticket #12) ----------------------------------------------
+
+NEWSLETTER_NAME_MAX = 120
+NEWSLETTER_EMAIL_MAX = 254
+
+# Deliberately loose: the address is stored for a human to use, not verified by
+# an SMTP round trip (there is no provider yet). This catches typos and refusal
+# without pretending to be RFC 5322.
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class NewsletterWrite(BaseModel):
+    """One public newsletter signup.
+
+    ``consent`` is required rather than inferred. A checkbox that must be ticked
+    is the explicit signal a privacy policy can point at; an address typed into
+    an email field is not. ``website`` is the same honeypot the contact form uses.
+    """
+
+    email: str = Field(default="", max_length=NEWSLETTER_EMAIL_MAX)
+    name: str = Field(default="", max_length=NEWSLETTER_NAME_MAX)
+    consent: bool = False
+    website: str = Field(default="", max_length=200)
+
+    @model_validator(mode="after")
+    def _clean_and_require(self):
+        self.email = clean_text(self.email, max_length=NEWSLETTER_EMAIL_MAX).lower()
+        self.name = clean_text(self.name, max_length=NEWSLETTER_NAME_MAX)
+        self.website = (self.website or "").strip()
+
+        if not self.consent:
+            raise ValueError("consent is required")
+        if not self.email:
+            raise ValueError("email is required")
+        if not _EMAIL_RE.fullmatch(self.email):
+            raise ValueError("email is not a valid address")
+        return self
+
+
+class NewsletterResponse(BaseModel):
+    """The public endpoint never reveals whether an address was already stored."""
+
+    ok: bool = True
+
+
+class SubscriberResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    consented_at: datetime | None
+    ip: str
+    user_agent: str
+    is_active: bool
+    created_at: datetime
+
+
+class SubscriberListResponse(BaseModel):
+    subscribers: list[SubscriberResponse]
+    total: int
+    active: int
+
+
+class SubscriberUpdate(BaseModel):
+    is_active: bool
+
+
+# --- Reservation requests (ticket #14) ------------------------------------
+
+RESERVATION_MAX_GUESTS = 20
+RESERVATION_MAX_DAYS_AHEAD = 90
+RESERVATION_STATUSES = ("pending", "confirmed", "declined")
+
+
+class ReservationWrite(BaseModel):
+    """A table-booking request from the public site.
+
+    This is a request, not a confirmation. The date must be today or later at
+    the bar and no more than 90 days out, the time must be a real ``HH:MM``, and
+    the party size is capped so the form cannot be used to book out the whole
+    bar without a conversation.
+    """
+
+    date: date
+    time: str = Field(default="", max_length=5)
+    party_size: int = Field(default=2, ge=1, le=RESERVATION_MAX_GUESTS)
+    name: str = Field(default="", max_length=CONTACT_NAME_MAX)
+    contact: str = Field(default="", max_length=CONTACT_DETAIL_MAX)
+    notes: str = Field(default="", max_length=CONTACT_MESSAGE_MAX)
+    website: str = Field(default="", max_length=200)
+
+    @field_validator("date")
+    @classmethod
+    def _check_date(cls, v: date) -> date:
+        today = date.fromisoformat(bar_today()[1])
+        if v < today:
+            raise ValueError("date cannot be in the past")
+        if v > today + timedelta(days=RESERVATION_MAX_DAYS_AHEAD):
+            raise ValueError(
+                f"date cannot be more than {RESERVATION_MAX_DAYS_AHEAD} days ahead"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def _clean_and_require(self):
+        self.time = (self.time or "").strip()
+        if not _HHMM_RE.fullmatch(self.time):
+            raise ValueError("time must be HH:MM")
+        self.name = clean_text(self.name, max_length=CONTACT_NAME_MAX)
+        self.contact = clean_text(self.contact, max_length=CONTACT_DETAIL_MAX)
+        self.notes = clean_text(
+            self.notes, max_length=CONTACT_MESSAGE_MAX, multiline=True
+        )
+        self.website = (self.website or "").strip()
+
+        if not self.name:
+            raise ValueError("name is required")
+        if not self.contact:
+            raise ValueError("contact is required")
+        return self
+
+
+class ReservationCreated(BaseModel):
+    """The public endpoint acknowledges a request without exposing the row."""
+
+    ok: bool = True
+
+
+class ReservationResponse(BaseModel):
+    id: int
+    date: str
+    time: str
+    party_size: int
+    name: str
+    contact: str
+    notes: str
+    status: str
+    ip: str
+    user_agent: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ReservationListResponse(BaseModel):
+    reservations: list[ReservationResponse]
+    pending: int
+
+
+class ReservationUpdate(BaseModel):
+    """The only editable property of a request is its outcome."""
+
+    status: str = Field(default="pending", max_length=16)
+
+    @field_validator("status")
+    @classmethod
+    def _known_status(cls, v: str) -> str:
+        if v not in RESERVATION_STATUSES:
+            raise ValueError("status must be pending, confirmed or declined")
+        return v
 
 
 # --- Logs ---

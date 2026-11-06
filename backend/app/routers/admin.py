@@ -22,7 +22,7 @@ from app.admin_i18n import SUPPORTED, strings_for
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_admin, get_current_session
-from app.models import Admin, Submission
+from app.models import Admin, Reservation, Submission, Subscriber
 
 router = APIRouter()
 
@@ -84,12 +84,20 @@ async def admin_dashboard(
     unread = db.scalar(
         select(func.count(Submission.id)).where(Submission.is_read.is_(False))
     ) or 0
+    pending_reservations = db.scalar(
+        select(func.count(Reservation.id)).where(Reservation.status == "pending")
+    ) or 0
+    active_subscribers = db.scalar(
+        select(func.count(Subscriber.id)).where(Subscriber.is_active.is_(True))
+    ) or 0
     return templates.TemplateResponse(
         request=request,
         name="admin/dashboard.html",
         context={
             "admin": admin,
             "unread_submissions": unread,
+            "pending_reservations": pending_reservations,
+            "active_subscribers": active_subscribers,
             **_i18n_payload(),
         },
     )
@@ -153,6 +161,49 @@ async def admin_inbox(request: Request, admin=Depends(get_current_admin)):
     return templates.TemplateResponse(
         request=request,
         name="admin/inbox.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/content", response_class=HTMLResponse)
+async def admin_content(request: Request, admin=Depends(get_current_admin)):
+    """Generic content sections: an About box, packages, a gallery list.
+
+    The rows come from ``/api/content/all`` so switched-off and expired items
+    stay visible and editable; the public read hides them.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/content.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/subscribers", response_class=HTMLResponse)
+async def admin_subscribers(request: Request, admin=Depends(get_current_admin)):
+    """Newsletter signups, with deactivate/delete and a CSV export.
+
+    There is no delivery provider yet: this page is the list, and the export is
+    how it reaches whatever provider the owner chooses.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/subscribers.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/reservations", response_class=HTMLResponse)
+async def admin_reservations(request: Request, admin=Depends(get_current_admin)):
+    """Reservation requests, with pending/confirmed/declined filters.
+
+    A request is not a booking: confirm or decline here, then answer the guest
+    through the contact details they left. Notifications are #51 and are not
+    built, so nothing is sent from this page.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/reservations.html",
         context={"admin": admin, **_i18n_payload()},
     )
 

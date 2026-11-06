@@ -164,6 +164,22 @@ def migrate_menu_schema(engine: Engine) -> None:
     log.debug("Menu schema ready")
 
 
+def migrate_menu_drink_of_day(engine: Engine) -> None:
+    """Add the featured-drink flag to an existing ``menu_items`` table (#10).
+
+    Defaults to off, so an existing menu publishes no hero drink until the owner
+    picks one. The one-at-a-time rule is enforced by the write handlers rather
+    than by a constraint, because a partial unique index would have to be
+    dropped and recreated on every SQLite rebuild for no extra safety here.
+    """
+    if not _table_exists(engine, "menu_items"):
+        return
+
+    _add_column(engine, "menu_items", "is_drink_of_day", "BOOLEAN NOT NULL DEFAULT 0")
+
+    log.debug("Menu drink-of-the-day flag ready")
+
+
 def migrate_menu_promos_to_scheduled(engine: Engine) -> None:
     """Add the happy-hour window columns to an existing ``menu_item_promos``.
 
@@ -188,6 +204,7 @@ MIGRATIONS = (
     migrate_closed_days_to_bilingual,
     migrate_hours_to_24h,
     migrate_menu_schema,
+    migrate_menu_drink_of_day,
     migrate_menu_promos_to_scheduled,
 )
 

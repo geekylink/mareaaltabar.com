@@ -526,3 +526,68 @@ def test_an_invalid_promo_window_is_rejected(client, edit_as_admin, window):
         json={**item, "promos": [{"label_en": "Offer", "label_es": "Oferta", **window}]},
     )
     assert resp.status_code == 422
+
+# --- Drink of the day (ticket #10) -----------------------------------------
+
+
+def test_a_menu_item_starts_without_a_featured_flag(client):
+    _, can = find_item(client, "Pilsener Can")
+    assert can["is_drink_of_day"] is False
+
+
+def test_featuring_a_drink_reaches_the_public_read(client, edit_as_admin):
+    _, can = find_item(client, "Pilsener Can")
+    resp = edit_as_admin(
+        "PUT",
+        f"/api/menu/items/{can['id']}",
+        json={**can, "is_drink_of_day": True},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["is_drink_of_day"] is True
+    assert find_item(client, "Pilsener Can")[1]["is_drink_of_day"] is True
+
+
+def test_only_one_drink_can_be_featured(client, edit_as_admin):
+    """The hero has one answer even if the panel saves two flags in a row."""
+    _, can = find_item(client, "Pilsener Can")
+    _, corona = find_item(client, "Corona")
+
+    edit_as_admin("PUT", f"/api/menu/items/{can['id']}", json={**can, "is_drink_of_day": True})
+    edit_as_admin("PUT", f"/api/menu/items/{corona['id']}", json={**corona, "is_drink_of_day": True})
+
+    assert find_item(client, "Corona")[1]["is_drink_of_day"] is True
+    assert find_item(client, "Pilsener Can")[1]["is_drink_of_day"] is False
+
+
+def test_featuring_a_new_drink_clears_the_previous_one(client, edit_as_admin):
+    _, can = find_item(client, "Pilsener Can")
+    edit_as_admin("PUT", f"/api/menu/items/{can['id']}", json={**can, "is_drink_of_day": True})
+
+    category, _ = find_item(client, "Corona")
+    resp = edit_as_admin(
+        "POST",
+        "/api/menu/items",
+        json={
+            "category_id": category["id"],
+            "name_en": "Feature Test",
+            "name_es": "Prueba destacada",
+            "price": "5.00",
+            "is_drink_of_day": True,
+            "promos": [],
+        },
+    )
+    assert resp.status_code == 201
+    assert resp.json()["is_drink_of_day"] is True
+    assert find_item(client, "Pilsener Can")[1]["is_drink_of_day"] is False
+
+
+def test_the_loader_publishes_the_featured_flag(db_session):
+    can = db_session.execute(
+        select(MenuItem).where(MenuItem.name_en == "Pilsener Can")
+    ).scalar_one()
+    can.is_drink_of_day = True
+    db_session.commit()
+
+    menu = load_menu(db_session)
+    public_can = next(i for c in menu for i in c["items"] if i["name_en"] == "Pilsener Can")
+    assert public_can["is_drink_of_day"] is True

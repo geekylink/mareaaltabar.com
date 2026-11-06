@@ -39,6 +39,8 @@ from sqlalchemy.orm import Session as DBSession
 from app.config import BACKEND_DIR
 from app.models import (
     ClosedDay,
+    ContentItem,
+    ContentSection,
     Event,
     Hours,
     MenuCategory,
@@ -261,6 +263,88 @@ def load_special_events(
     ]
 
 
+def content_item_is_live(item: ContentItem, today: str | None = None) -> bool:
+    """True when a content row is switched on and inside its optional date window.
+
+    The window is inclusive at both ends and blank at either end means open. The
+    date is the bar's, not the server's, so an item that starts "today" does so
+    for the people standing in the bar rather than five hours early.
+    """
+    if not item.is_active:
+        return False
+    today = today or bar_today()[1]
+    if item.starts_on and today < item.starts_on:
+        return False
+    if item.ends_on and today > item.ends_on:
+        return False
+    return True
+
+
+def load_content(
+    db: DBSession,
+    include_inactive: bool = False,
+    today: str | None = None,
+) -> list[dict]:
+    """Content sections in order, each with its items, in the API's shape.
+
+    ``include_inactive`` is the public/admin split used by the menu and notices:
+    the site gets only live sections and live items, while the panel gets every
+    row (plus ``is_live``) so an expired or switched-off item can be edited and
+    brought back. A section with no visible items is dropped from the public
+    read, because a heading with nothing under it is worse than no heading.
+    """
+    today = today or bar_today()[1]
+    sections = db.execute(
+        select(ContentSection).order_by(ContentSection.sort_order, ContentSection.id)
+    ).scalars().all()
+    items = db.execute(
+        select(ContentItem).order_by(ContentItem.sort_order, ContentItem.id)
+    ).scalars().all()
+
+    items_by_section: dict[int, list[dict]] = {}
+    for item in items:
+        live = content_item_is_live(item, today)
+        if not include_inactive and not live:
+            continue
+        items_by_section.setdefault(item.section_id, []).append(
+            {
+                "id": item.id,
+                "section_id": item.section_id,
+                "title_en": item.title_en,
+                "title_es": item.title_es,
+                "body_en": item.body_en,
+                "body_es": item.body_es,
+                "price": item.price,
+                "image_url": item.image_url,
+                "starts_on": item.starts_on,
+                "ends_on": item.ends_on,
+                "sort_order": item.sort_order,
+                "is_active": bool(item.is_active),
+                "is_live": live,
+            }
+        )
+
+    result = []
+    for section in sections:
+        section_items = items_by_section.get(section.id, [])
+        if not include_inactive and (not section.is_active or not section_items):
+            continue
+        result.append(
+            {
+                "id": section.id,
+                "slug": section.slug,
+                "title_en": section.title_en,
+                "title_es": section.title_es,
+                "body_en": section.body_en,
+                "body_es": section.body_es,
+                "sort_order": section.sort_order,
+                "is_active": bool(section.is_active),
+                "items": section_items,
+            }
+        )
+    return result
+
+
 def load_menu(
     db: DBSession,
     include_unavailable: bool = False,
@@ -336,6 +420,7 @@ def load_menu(
                 "price": item.price,
                 "sort_order": item.sort_order,
                 "is_available": bool(item.is_available),
+                "is_drink_of_day": bool(item.is_drink_of_day),
                 "promos": item_promos,
             }
         )

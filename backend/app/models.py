@@ -148,6 +148,10 @@ class MenuItem(Base):
     price: Mapped[str] = mapped_column(String(32), nullable=False, default="")
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # At most one available drink carries this flag; the menu write handlers
+    # clear it on every other row when it is set. The hero reads it rather than
+    # storing the day's drink in code, so changing it is an admin edit.
+    is_drink_of_day: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
@@ -389,3 +393,130 @@ class Submission(Base):
 # The inbox asks for "unread first, then newest"; the badge asks for a count of
 # unread rows. This index serves both without scanning the table.
 Index("ix_submissions_unread_created", Submission.is_read, Submission.created_at)
+
+
+class ContentSection(Base):
+    """A named block of editable site content — a package list, an About box, a gallery.
+
+    The section is the heading and the shared copy; its items are the rows the
+    owner adds underneath it. Keeping both in the database means #19, #20, #22
+    and #8 can be filled in from the panel instead of from a deploy. The slug is
+    what a future public component (or a link) uses to ask for one section.
+    """
+
+    __tablename__ = "content_sections"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, default="")
+    title_en: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    title_es: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    body_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    items: Mapped[list["ContentItem"]] = relationship(
+        back_populates="section", cascade="all, delete-orphan", order_by="ContentItem.sort_order"
+    )
+
+
+class ContentItem(Base):
+    """One row inside a :class:`ContentSection`.
+
+    ``price`` is text for the same reason a menu price is: it is displayed, never
+    calculated with. ``starts_on`` / ``ends_on`` are optional ISO dates, inclusive;
+    both blank means the item is permanent. ``image_url`` is a link rather than an
+    upload because #50 is not built, and is restricted by the write schema.
+    """
+
+    __tablename__ = "content_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    section_id: Mapped[int] = mapped_column(
+        ForeignKey("content_sections.id", ondelete="CASCADE"), nullable=False
+    )
+    title_en: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    title_es: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    body_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    price: Mapped[str] = mapped_column(String(32), nullable=False, default="")
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    starts_on: Mapped[str] = mapped_column(String(10), nullable=False, default="")  # YYYY-MM-DD
+    ends_on: Mapped[str] = mapped_column(String(10), nullable=False, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+    section: Mapped["ContentSection"] = relationship(back_populates="items")
+
+
+# The public read is "active sections in order"; the panel and the API also ask
+# for one section's items, which the cascade index already serves.
+Index("ix_content_sections_active_order", ContentSection.is_active, ContentSection.sort_order)
+Index("ix_content_items_section_order", ContentItem.section_id, ContentItem.sort_order)
+
+
+class Subscriber(Base):
+    """One newsletter signup from the public site.
+
+    ``email`` is stored lower-cased and unique, so signing up twice updates
+    nothing and never creates a duplicate. ``consented_at`` records the explicit
+    checkbox rather than assuming consent from the address alone. There is no
+    delivery provider in the app yet, so the admin list/CSV is how the list is
+    used; ``is_active`` is the unsubscribe switch until a provider supplies one.
+    """
+
+    __tablename__ = "subscribers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True, default="")
+    name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    consented_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+Index("ix_subscribers_active_created", Subscriber.is_active, Subscriber.created_at)
+
+
+class Reservation(Base):
+    """A table-booking request from the public site.
+
+    This is a request, not a confirmed booking: the row starts ``pending`` and an
+    admin confirms or declines it in the panel. ``date`` and ``time`` are the
+    bar-local date and clock the visitor asked for, stored as strings for the
+    same reason closures are. There is deliberately no payment or deposit column
+    — the policy for those is an owner decision, not code.
+    """
+
+    __tablename__ = "reservations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    date: Mapped[str] = mapped_column(String(10), nullable=False, default="")  # YYYY-MM-DD
+    time: Mapped[str] = mapped_column(String(5), nullable=False, default="")  # HH:MM
+    party_size: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    contact: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # pending | confirmed | declined
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+# The panel asks for "pending first, then nearest date"; the dashboard counts
+# pending rows. This index serves both.
+Index("ix_reservations_status_date", Reservation.status, Reservation.date)

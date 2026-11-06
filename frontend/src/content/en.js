@@ -45,6 +45,44 @@ export default {
   // These four labels are duplicated in backend/app/public_i18n.py for the
   // server-rendered block, and publicI18n.test.js fails if the two drift apart.
   menu: { title: 'Drinks menu', subtitle: 'Cold beer, cocktails and whatever else the bar is pouring.', ingredients: 'Ingredients', promo: 'Promo', empty: 'The menu is being updated. Ask us for today\'s prices.', all: 'All prices in US dollars.' },
+  // The one drink the owner marks in the admin menu. It renders in the hero.
+  drinkOfDay: { eyebrow: 'Drink of the day', cta: 'See the full menu' },
+  // Requesting a table. The backend stores it as pending; nothing is confirmed
+  // until the bar replies, which is why the copy says "request" everywhere.
+  reservation: {
+    title: 'Reserve a table',
+    subtitle: 'Tell us when you are coming and we will confirm with the contact you leave.',
+    note: 'This is a request, not a confirmed booking. We will get back to you.',
+    date: 'Date',
+    time: 'Time',
+    partySize: 'Guests',
+    name: 'Your name',
+    contact: 'Email or phone',
+    notes: 'Anything we should know? (optional)',
+    send: 'Request a table',
+    sending: 'Sending request...',
+    sent: 'Request received. We will confirm with you soon.',
+    required: 'Please fill in the date, time, name and contact.',
+    error: 'Could not send your request. Please try again, or message us.',
+    honeypot: 'Leave this field blank',
+  },
+  // Newsletter signup. The address is stored with the consent checkbox; there
+  // is no provider connected yet and no unsubscribe link in an email.
+  newsletter: {
+    title: 'Stay in the loop',
+    subtitle: 'Surf reports, parties and the odd last-minute special. No spam.',
+    email: 'Email',
+    name: 'Name (optional)',
+    consent: 'I agree to receive occasional emails from Marea Alta.',
+    send: 'Sign up',
+    sending: 'Signing up...',
+    sent: 'You are on the list. See you at the bar.',
+    emailError: 'Enter a valid email address.',
+    consentError: 'Please tick the consent box.',
+    error: 'Could not sign you up. Please try again.',
+    privacy: 'We only use your address to send these emails.',
+    honeypot: 'Leave this field blank',
+  },
   // The contact form posts to /api/contact. The message cap is enforced here so
   // a visitor sees it before typing, and again on the server.
   contact: {

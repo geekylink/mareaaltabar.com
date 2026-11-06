@@ -5,8 +5,9 @@ account, a credential, real business content, a decision) or something that
 could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
-Status at the time of writing: tickets **#3, #9, #7, #15, #53** are complete and
-committed. See [`docs/next.md`](docs/next.md) for what was built and
+Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
+#12 and #14** are complete and committed. See [`docs/next.md`](docs/next.md) for
+what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
 ---
@@ -61,9 +62,13 @@ in this repo.
       **#13** is not built; only static profile links exist today.
 - [ ] **Google Business Profile** — create/claim it and keep hours, photos and
       the website URL in sync. Ticket **#47** is external, non-code work.
-- [ ] **Email delivery for contact notifications** — SMTP host, port, username,
-      password and the destination address. Ticket **#51** currently stops at
-      the shared `/admin/inbox`; there is no email or WhatsApp notification.
+- [ ] **Email delivery for contact and reservation notifications** — SMTP host,
+      port, username, password and the destination address. Ticket **#51**
+      currently stops at the shared `/admin/inbox` and the `/admin/reservations`
+      queue; there is no email or WhatsApp notification.
+- [ ] **Newsletter provider** — Mailchimp/Buttondown/other account and API key if
+      you want signups to go anywhere automatically. For now the only path is
+      the CSV export from `/admin/subscribers`. Ticket **#12**.
 - [ ] **WhatsApp notifications/business number** — if you want submission or
       booking alerts by WhatsApp, provide the number and a provider/API token.
 - [ ] **Domain/DNS access** — needed for the site, email (SPF/DKIM/DMARC) and any
@@ -91,11 +96,18 @@ fill in.
       the code has no food section yet, and this is data entry once it exists.
 - [ ] **Drink descriptions** — ticket **#18**. The admin panel already supports
       them; the text is missing.
+- [ ] **Drink of the Day selection and copy** — pick the drink in
+      `/admin/menu` and write its one-line description. The code supports one
+      featured drink at a time; no drink is marked in the seed. Ticket **#10**.
 - [ ] **Photos** — venue, drinks, events, gallery. Tickets **#8**, **#30** and
       **#50** need real images. The image **upload pipeline (#50)** is not built,
-      so #53 currently accepts an image **URL** only.
+      so #53 and the generic content rows (#17) accept an image **URL** only.
 - [ ] **“About Us” story** — the bar's history, founders, dates and tone.
-      Ticket **#19**.
+      Ticket **#19**. The generic content tables are ready; only the copy is
+      missing.
+- [ ] **Package and gallery content** — real package tiers/prices and the first
+      gallery rows for the #17 content tables. Tickets **#22**, **#8** and
+      **#19**.
 - [ ] **Signature drinks list** — which drinks go in “Drinks We're Known For”
       (and their photos). Ticket **#30**.
 - [ ] **Birthday/package tiers** — real inclusions and prices. Ticket **#22**.
@@ -109,8 +121,13 @@ fill in.
       to republish, and how entrants consent. Ticket **#28**.
 - [ ] **Loyalty programme rules** — punches per reward, expiry, whether rewards
       stack, and staff instructions. Ticket **#21**.
-- [ ] **Reservation policy** — party size limits, lead time, deposits, no-show
-      rules and whether staff confirm manually. Ticket **#14**.
+- [ ] **Reservation policy** — the code currently allows 1–20 guests, today to
+      90 days ahead, always starts as `pending`, and has no deposit or no-show
+      rule. Confirm or replace those defaults. Ticket **#14**.
+- [ ] **Newsletter consent wording and unsubscribe route** — the form requires a
+      ticked consent box and stores a consent timestamp, but there is no double
+      opt-in, no unsubscribe link (the admin switch is the only one) and no
+      privacy notice. Have the wording reviewed. Ticket **#12**.
 - [ ] **Event RSVP/ticketing decision** — free RSVP vs paid tickets, capacity,
       and whether one-off events own reservations. Ticket **#25** depends on
       this, and #53 deliberately left the question open.
@@ -129,7 +146,9 @@ fill in.
       `tests/docker_smoke_test.sh`.
 - [ ] **Real-browser / device pass** — tests use jsdom, not a real browser. Check
       the public site and admin panel on a phone, Safari and Firefox, including
-      the contact form, the events editor and the inbox.
+      the shared navigation (homepage and `/menu`), the Drink of the Day hero,
+      the newsletter and reservation forms, the content editor, the subscriber
+      list and the reservation queue.
 - [ ] **Production HTTPS/cookie check** — confirm login works with
       `COOKIE_SECURE=true` and that the session survives a normal navigation.
 - [ ] **Real notification test** — once SMTP/WhatsApp exists, submit the contact
@@ -150,11 +169,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 
 | # | Ticket | Note |
 |---|--------|------|
-| 10 | Drink of the Day hero banner | Next up in `docs/next.md`. |
-| 12 | Newsletter signup | Needs a sending provider eventually. |
-| 14 | Reservation / booking system | Needs your reservation policy to be useful. |
-| 16 | Multi-page navigation (remaining) | Shared nav between `/` and `/menu`. |
-| 17 | Generic content tables | Bilingual sections/items plus admin page. |
 | 21 | Loyalty program | Needs programme rules. |
 | 25 | Event RSVP | After #53; needs the RSVP/ticketing decision. |
 | 26 | Live music calendar | After #53; calendar over dated events. |
@@ -191,10 +205,32 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 - **Audit logging (#53)** — dated-event create/update/delete are logged in the
   schedule area as `special_event:<id>`. Inbox actions (read/delete) are **not**
   audited.
-- **No push** — all five commits are local only. Nothing has been pushed to a
+- **Shared navigation (#16)** — one `Nav.svelte` renders both headers. The
+  homepage uses in-page anchors; `/menu` links back to `/#surf`, `/#party`,
+  `/#contact` and `/#visit`, and omits the menu link it is already on.
+- **Drink of the Day (#10)** — the owner marks one menu item with
+  `is_drink_of_day`; the write path clears every other row. There is no date
+  scheduling and no automatic rotation, so “of the day” means “until someone
+  changes it”.
+- **Generic content (#17)** — sections and items are generic, not menu- or
+  package-specific: bilingual title/body, optional price, image **URL**, optional
+  date window and an active flag. There is no public layout for these rows yet;
+  #8/#19/#20/#22 will decide how they render. Writes are audited as
+  `content_section:<id>` / `content_item:<id>`.
+- **Newsletter (#12)** — signup requires the consent checkbox and stores the
+  timestamp, IP and user agent; the honeypot and per-IP limiter mirror the
+  contact form. Duplicate addresses return the same success response and create
+  no second row. There is no double opt-in, no delivery and no unsubscribe link
+  in an email; the admin switch and CSV export are the whole flow.
+- **Reservations (#14)** — a request is always created `pending`; the admin
+  confirm/decline/reset actions do not notify the guest. Defaults are 1–20
+  guests and today to 90 days ahead. Subscriber and reservation admin actions are
+  **not** audited (matching inbox actions); content and menu writes are.
+- **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 
 ---
 
-_Last updated after ticket #53. Keep this file honest: delete a line when it is
-actually done, and add one when a new external dependency appears._
+_Last updated after tickets #16, #10, #17, #12 and #14. Keep this file honest:
+delete a line when it is actually done, and add one when a new external
+dependency appears._

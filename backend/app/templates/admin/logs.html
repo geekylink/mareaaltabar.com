@@ -197,6 +197,7 @@
             <a href="#logins" role="tab" id="tab-logins" data-tab="logins" aria-controls="panel-logins" aria-selected="true"><span data-i18n="tab_logins">Logins</span></a>
             <a href="#menu" role="tab" id="tab-menu" data-tab="menu" aria-controls="panel-menu" aria-selected="false"><span data-i18n="tab_menu_changes">Menu changes</span></a>
             <a href="#schedule" role="tab" id="tab-schedule" data-tab="schedule" aria-controls="panel-schedule" aria-selected="false"><span data-i18n="tab_schedule_changes">Schedule changes</span></a>
+            <a href="#content" role="tab" id="tab-content" data-tab="content" aria-controls="panel-content" aria-selected="false"><span data-i18n="tab_content_changes">Content changes</span></a>
         </nav>
 
         <section class="panel" id="panel-logins" role="tabpanel" aria-labelledby="tab-logins" tabindex="0">
@@ -275,6 +276,32 @@
                 <button class="btn-more" id="more-schedule" data-i18n="logs_load_more" hidden>Load more</button>
             </div>
         </section>
+
+        <section class="panel" id="panel-content" role="tabpanel" aria-labelledby="tab-content" tabindex="0" hidden>
+            <div class="panel-head">
+                <h3 data-i18n="tab_content_changes">Content changes</h3>
+                <span class="count" id="count-content"></span>
+            </div>
+            <div class="table-wrap" id="wrap-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="col_when">When</th>
+                            <th data-i18n="col_who">Who</th>
+                            <th data-i18n="col_ip">IP</th>
+                            <th data-i18n="col_action">Action</th>
+                            <th data-i18n="col_what">What</th>
+                            <th data-i18n="col_changes">Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rows-content"></tbody>
+                </table>
+            </div>
+            <div id="empty-content" hidden class="empty-note" data-i18n="no_content_entries">No content changes recorded yet.</div>
+            <div class="panel-foot">
+                <button class="btn-more" id="more-content" data-i18n="logs_load_more" hidden>Load more</button>
+            </div>
+        </section>
     </main>
 
     <script nonce="{{ request.state.csp_nonce }}">
@@ -292,8 +319,13 @@
             es: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
         };
 
-        var ENDPOINTS = { logins: '/api/logs/logins', menu: '/api/logs/menu', schedule: '/api/logs/schedule' };
-        var TABS = ['logins', 'menu', 'schedule'];
+        var ENDPOINTS = {
+            logins: '/api/logs/logins',
+            menu: '/api/logs/menu',
+            schedule: '/api/logs/schedule',
+            content: '/api/logs/content'
+        };
+        var TABS = ['logins', 'menu', 'schedule', 'content'];
         var PAGE = 200;
 
         // Rows are fetched a page at a time and kept, so "Load more" appends and
@@ -462,7 +494,7 @@
 
         // The column counts differ between the login log and the two change
         // logs, so the placeholder row needs to know which table it is in.
-        var COLSPANS = { logins: 5, menu: 6, schedule: 6 };
+        var COLSPANS = { logins: 5, menu: 6, schedule: 6, content: 6 };
 
         function render(tab) {
             var data = state[tab];

@@ -16,7 +16,16 @@ from app.database import SessionLocal, engine, get_db
 from app.migrate import run_migrations
 from app.models import Base
 from app.public_i18n import DEFAULT_LANG, resolve_lang
-from app.routers import admin, api, auth as auth_router, contact, logs
+from app.routers import (
+    admin,
+    api,
+    auth as auth_router,
+    contact,
+    content,
+    logs,
+    newsletter,
+    reservations,
+)
 from app.seed import seed_menu, seed_schedule
 from app.ssr import FRONTEND_DIST, INDEX_HTML, MENU_HTML, render_index, render_menu
 
@@ -176,6 +185,9 @@ app.include_router(auth_router.router)
 app.include_router(admin.router)
 app.include_router(api.router)
 app.include_router(contact.router)
+app.include_router(content.router)
+app.include_router(newsletter.router)
+app.include_router(reservations.router)
 app.include_router(logs.router)
 
 # Serve the built frontend from the same origin, so the site and the API that
