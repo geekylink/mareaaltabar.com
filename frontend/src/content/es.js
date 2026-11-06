@@ -40,7 +40,7 @@ export default {
     retry: 'Recargar reporte',
     credit: 'Datos: Open-Meteo modelo marino. Los tiempos de marea son aproximados. Siempre verifica el agua tú mismo.',
   },
-  party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', closedDays: 'Días cerrados', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
+  party: { title: 'Programación de fiestas', tonight: 'Esta noche', closedToday: 'Cerrado hoy', closedDays: 'Días cerrados', specialEvents: 'Eventos especiales', noEvent: 'Sin evento programado', cacheNotice: 'Mostrando datos en caché (sin conexión)' },
   // Menú de bebidas. Los precios y las promos vienen de la API, aquí solo el texto.
   // Estas cuatro etiquetas están duplicadas en backend/app/public_i18n.py para el
   // bloque renderizado en el servidor, y publicI18n.test.js falla si se separan.

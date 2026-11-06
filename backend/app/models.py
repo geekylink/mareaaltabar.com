@@ -270,6 +270,43 @@ Index("ix_login_attempts_created", LoginAttempt.created_at)
 Index("ix_audit_log_area_created", AuditEntry.area, AuditEntry.created_at)
 
 
+class SpecialEvent(Base):
+    """A dated, one-off event: "Friday the 26th — DJ Sol".
+
+    ``events`` is the recurring weekly pattern; this is the exception to it. The
+    date is an ISO ``YYYY-MM-DD`` string so it sorts and compares as text, as
+    ``closed_days`` does. ``start_time`` and ``end_time`` are bar-local ``HH:MM``
+    and optional: a blank pair means "during opening hours". ``image_url`` is a
+    link rather than an upload because the upload pipeline is #50; it is
+    restricted to http(s) and site-relative paths by the write schema.
+
+    ``is_active`` is the immediate off switch, separate from the date, so an
+    event can be hidden while it is being planned and brought back unchanged.
+    """
+
+    __tablename__ = "special_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    date: Mapped[str] = mapped_column(String(10), nullable=False, default="")  # YYYY-MM-DD
+    title_en: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    title_es: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    description_en: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    description_es: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    start_time: Mapped[str] = mapped_column(String(5), nullable=False, default="")
+    end_time: Mapped[str] = mapped_column(String(5), nullable=False, default="")
+    image_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+# The public read is "upcoming events, soonest first"; the admin read adds past
+# and switched-off rows. This index serves the public query directly.
+Index("ix_special_events_date_active", SpecialEvent.date, SpecialEvent.is_active)
+
+
 class ClosedDay(Base):
     """A one-off closure (holiday, private booking) with a bilingual reason."""
 

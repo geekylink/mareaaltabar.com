@@ -53,6 +53,7 @@ TARGET_MENU_ITEM = "menu_item"
 # Notices are logged in the schedule area: a closure notice is schedule news,
 # and a fourth tab on /admin/logs would separate two halves of the same job.
 TARGET_NOTICE = "notice"
+TARGET_SPECIAL_EVENT = "special_event"
 
 # 07:00 at the bar, which is when the retention purge runs.
 PURGE_HOUR_BAR = 7

@@ -97,23 +97,26 @@ async function load() {
       closedDays: upcomingClosedDays(seed.closedDays || [], today),
       menu: seed.menu || [],
       notices: seed.notices || [],
+      specialEvents: seed.specialEvents || [],
       error: null,
     };
     setCache(result);
     return result;
   }
   try {
-    const [schedule, closedDays, menu, notices] = await Promise.all([
+    const [schedule, closedDays, menu, notices, specialEvents] = await Promise.all([
       fetchJSON('/api/schedule'),
       fetchJSON('/api/closed-days'),
       fetchJSON('/api/menu'),
       fetchJSON('/api/notices'),
+      fetchJSON('/api/special-events'),
     ]);
     const result = {
       schedule,
       closedDays: upcomingClosedDays(closedDays, today),
       menu: (menu && menu.categories) || [],
       notices: notices || [],
+      specialEvents: specialEvents || [],
       error: null,
     };
     setCache(result);
@@ -126,6 +129,7 @@ async function load() {
         closedDays: upcomingClosedDays(cached.closedDays || [], today),
         menu: cached.menu || [],
         notices: cached.notices || [],
+        specialEvents: cached.specialEvents || [],
         error: 'Backend unreachable, showing cached data',
       };
     }
@@ -134,6 +138,7 @@ async function load() {
       closedDays: [],
       menu: [],
       notices: [],
+      specialEvents: [],
       error: 'Failed to load the schedule',
     };
   }
@@ -166,6 +171,27 @@ export function formatHours(day, lang, closedLabel) {
   if (day.is_closed) return closedLabel;
   if (!day.open_time || !day.close_time) return '';
   return `${formatTime(day.open_time, lang)} - ${formatTime(day.close_time, lang)}`;
+}
+
+// A dated event's ISO day as "Fri, Nov 6" (or "vie, 6 nov"). Parsed at noon so
+// a daylight-saving change at midnight cannot move it to the day before.
+export function formatEventDate(iso, lang) {
+  if (!iso) return '';
+  const value = new Date(`${iso}T12:00:00`);
+  if (Number.isNaN(value.getTime())) return String(iso);
+  return value.toLocaleDateString(lang === 'es' ? 'es-EC' : 'en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// An event's optional time range, or blank when it has none.
+export function formatEventTime(event, lang) {
+  const start = formatTime(event?.start_time, lang);
+  const end = formatTime(event?.end_time, lang);
+  if (start && end) return `${start} - ${end}`;
+  return start;
 }
 
 // A stored price as displayed: "2.50" -> "$2.50". The amount is whatever the bar

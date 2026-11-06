@@ -33,6 +33,25 @@
     {% endfor %}
   </ul>
 
+  {% if special_events %}
+  <div class="ms-special">
+    <h3 class="ms-eyebrow">{{ labels.special_events }}</h3>
+    <ul>
+      {% for event in special_events %}
+      <li>
+        <time datetime="{{ event.date }}">{{ event.date_label }}</time>
+        <div class="ms-event-main">
+          <b>{{ event.title }}</b>
+          {% if event.time %}<span class="ms-event-time">{{ event.time }}</span>{% endif %}
+          {% if event.description %}<p>{{ event.description }}</p>{% endif %}
+          {% if event.image_url %}<img src="{{ event.image_url }}" alt="" loading="lazy" />{% endif %}
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   {% if closed_days %}
   <div class="ms-closed-days">
     <h3 class="ms-eyebrow">{{ labels.closed_days }}</h3>

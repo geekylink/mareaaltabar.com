@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 56rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+        .field { margin-bottom: 0.9rem; }
+        .field label {
+            display: block; font-size: 0.7rem; font-weight: 700; color: #777;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem;
+        }
+        .field input, .field textarea {
+            width: 100%; padding: 0.6rem 0.7rem; border: 1.5px solid #ddd;
+            border-radius: 0.4rem; font-size: 0.9rem; font-family: inherit;
+        }
+        .field textarea { resize: vertical; min-height: 3.5rem; }
+        .field input:focus, .field textarea:focus { outline: none; border-color: #0B3C49; }
+        .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .hint { font-size: 0.78rem; color: #888; margin: -0.25rem 0 1rem; }
+        .checkline { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+        .checkline input { width: auto; }
+        .form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-primary {
+            background: #FF6B2C; color: #fff; border: none; padding: 0.65rem 1.2rem;
+            border-radius: 0.45rem; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-primary:hover { background: #e85a1c; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-quiet {
+            background: #E5E7EB; color: #374151; border: none; padding: 0.65rem 1.1rem;
+            border-radius: 0.45rem; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-quiet:hover { background: #D1D5DB; }
+        .event-row {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #eee;
+        }
+        .event-row:last-child { border-bottom: none; }
+        .event-main { flex: 1; min-width: 0; }
+        .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
+        .badge {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; padding: 0.18rem 0.45rem; border-radius: 999px;
+        }
+        .status-upcoming { background: #D1FAE5; color: #065F46; }
+        .status-past, .status-off { background: #E5E7EB; color: #4B5563; }
+        .event-date { font-size: 0.78rem; font-weight: 700; color: #0B3C49; }
+        .event-title { font-size: 1rem; font-weight: 700; margin-top: 0.15rem; }
+        .event-time { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
+        .event-description { font-size: 0.9rem; line-height: 1.45; white-space: pre-wrap; margin-top: 0.4rem; }
+        .event-image { max-width: 8rem; max-height: 5rem; border-radius: 0.4rem; object-fit: cover; }
+        .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .btn-small {
+            border: none; padding: 0.4rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-edit { background: #E0F2FE; color: #075985; }
+        .btn-edit:hover { background: #BAE6FD; }
+        .btn-delete { background: #FEE2E2; color: #991B1B; }
+        .btn-delete:hover { background: #FECACA; }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        .success-banner {
+            background: #D1FAE5; color: #065F46; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            .field-pair { grid-template-columns: 1fr; }
+            .event-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <section class="section">
+            <h2 data-i18n="events_heading">Special events</h2>
+            <p class="intro" data-i18n="events_intro">One-off dated parties. They appear in the schedule on the site until their date passes.</p>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="event-date" data-i18n="event_date">Date</label>
+                    <input type="date" id="event-date">
+                </div>
+                <div class="field">
+                    <label class="checkline" style="margin-top:1.5rem;">
+                        <input type="checkbox" id="event-active" checked>
+                        <span data-i18n="event_active">Show on the site</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="event-title-en" data-i18n="event_title_en">Title (English)</label>
+                    <input type="text" id="event-title-en" maxlength="255">
+                </div>
+                <div class="field">
+                    <label for="event-title-es" data-i18n="event_title_es">Title (Spanish)</label>
+                    <input type="text" id="event-title-es" maxlength="255">
+                </div>
+            </div>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="event-description-en" data-i18n="event_description_en">Description (English)</label>
+                    <textarea id="event-description-en" rows="3" maxlength="2000"></textarea>
+                </div>
+                <div class="field">
+                    <label for="event-description-es" data-i18n="event_description_es">Description (Spanish)</label>
+                    <textarea id="event-description-es" rows="3" maxlength="2000"></textarea>
+                </div>
+            </div>
+
+            <div class="field-pair">
+                <div class="field">
+                    <label for="event-start" data-i18n="event_start">Starts (optional)</label>
+                    <input type="time" id="event-start">
+                </div>
+                <div class="field">
+                    <label for="event-end" data-i18n="event_end">Ends (optional)</label>
+                    <input type="time" id="event-end">
+                </div>
+            </div>
+            <p class="hint" data-i18n="event_time_hint">Bar time. Leave both blank for an event during opening hours.</p>
+
+            <div class="field">
+                <label for="event-image" data-i18n="event_image_url">Image URL (optional)</label>
+                <input type="url" id="event-image" maxlength="500" placeholder="https://">
+            </div>
+            <p class="hint" data-i18n="event_image_hint">A link to a photo, or a path on this site.</p>
+
+            <div class="form-actions">
+                <button class="btn-primary" id="save-event" data-i18n="add_event">Add event</button>
+                <button class="btn-quiet" id="cancel-edit" data-i18n="cancel_edit" hidden>Cancel</button>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 data-i18n="events_heading">Special events</h2>
+            <div id="events"><p class="empty-note" data-i18n="loading">Loading...</p></div>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var events = [];
+        var editingId = null;
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf()
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function titleFor(event) {
+            if (AdminI18n.lang === 'es') return event.title_es || event.title_en;
+            return event.title_en || event.title_es;
+        }
+
+        function descriptionFor(event) {
+            if (AdminI18n.lang === 'es') return event.description_es || event.description_en;
+            return event.description_en || event.description_es;
+        }
+
+        function timeFor(event) {
+            if (!event.start_time) return '';
+            return event.end_time ? event.start_time + ' - ' + event.end_time : event.start_time;
+        }
+
+        function statusOf(event) {
+            if (!event.is_active) return 'off';
+            return event.is_past ? 'past' : 'upcoming';
+        }
+
+        function showAlert(message, isSuccess) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="' + (isSuccess ? 'success-banner' : 'error-banner') + '"></div>';
+            slot.querySelector('div').textContent = message;
+            clearTimeout(slot._timer);
+            slot._timer = setTimeout(function () { slot.innerHTML = ''; }, 4000);
+        }
+
+        function render() {
+            var container = document.getElementById('events');
+            if (!events.length) {
+                container.innerHTML = '<p class="empty-note">' + esc(AdminI18n.t('no_events')) + '</p>';
+                return;
+            }
+
+            container.innerHTML = events.map(function (event) {
+                var status = statusOf(event);
+                var statusKey = 'event_' + status;
+                var title = titleFor(event) || AdminI18n.t('event_no_title');
+                var description = descriptionFor(event);
+                var time = timeFor(event);
+                return '' +
+                '<div class="event-row" data-id="' + event.id + '">' +
+                    '<div class="event-main">' +
+                        '<div class="badges">' +
+                            '<span class="badge status-' + esc(status) + '">' + esc(AdminI18n.t(statusKey)) + '</span>' +
+                        '</div>' +
+                        '<div class="event-date">' + esc(event.date) + '</div>' +
+                        '<div class="event-title">' + esc(title) + '</div>' +
+                        (time ? '<div class="event-time">' + esc(time) + '</div>' : '') +
+                        (description ? '<p class="event-description">' + esc(description) + '</p>' : '') +
+                    '</div>' +
+                    (event.image_url ? '<img class="event-image" src="' + esc(event.image_url) + '" alt="">' : '') +
+                    '<div class="actions">' +
+                        '<button type="button" class="btn-small btn-edit" data-action="edit">' + esc(AdminI18n.t('edit_event')) + '</button>' +
+                        '<button type="button" class="btn-small btn-delete" data-action="delete">' + esc(AdminI18n.t('event_delete')) + '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function refresh() {
+            return api('/api/special-events/all').then(function (rows) {
+                events = rows || [];
+                render();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('event_save_failed') + ' (' + err.message + ')', false);
+            });
+        }
+
+        function payloadFromForm() {
+            return {
+                date: document.getElementById('event-date').value,
+                title_en: document.getElementById('event-title-en').value,
+                title_es: document.getElementById('event-title-es').value,
+                description_en: document.getElementById('event-description-en').value,
+                description_es: document.getElementById('event-description-es').value,
+                start_time: document.getElementById('event-start').value,
+                end_time: document.getElementById('event-end').value,
+                image_url: document.getElementById('event-image').value,
+                is_active: document.getElementById('event-active').checked
+            };
+        }
+
+        function fillForm(event) {
+            document.getElementById('event-date').value = event.date;
+            document.getElementById('event-title-en').value = event.title_en;
+            document.getElementById('event-title-es').value = event.title_es;
+            document.getElementById('event-description-en').value = event.description_en;
+            document.getElementById('event-description-es').value = event.description_es;
+            document.getElementById('event-start').value = event.start_time;
+            document.getElementById('event-end').value = event.end_time;
+            document.getElementById('event-image').value = event.image_url;
+            document.getElementById('event-active').checked = event.is_active;
+        }
+
+        function resetForm() {
+            editingId = null;
+            document.getElementById('event-date').value = '';
+            document.getElementById('event-title-en').value = '';
+            document.getElementById('event-title-es').value = '';
+            document.getElementById('event-description-en').value = '';
+            document.getElementById('event-description-es').value = '';
+            document.getElementById('event-start').value = '';
+            document.getElementById('event-end').value = '';
+            document.getElementById('event-image').value = '';
+            document.getElementById('event-active').checked = true;
+            var button = document.getElementById('save-event');
+            button.setAttribute('data-i18n', 'add_event');
+            button.textContent = AdminI18n.t('add_event');
+            document.getElementById('cancel-edit').hidden = true;
+        }
+
+        function startEdit(event) {
+            editingId = event.id;
+            fillForm(event);
+            var button = document.getElementById('save-event');
+            button.setAttribute('data-i18n', 'update_event');
+            button.textContent = AdminI18n.t('update_event');
+            document.getElementById('cancel-edit').hidden = false;
+            document.getElementById('event-date').focus();
+        }
+
+        document.getElementById('save-event').addEventListener('click', function () {
+            var button = this;
+            var payload = payloadFromForm();
+            if (!payload.date) {
+                showAlert(AdminI18n.t('required_field'), false);
+                return;
+            }
+            button.disabled = true;
+            var request = editingId
+                ? api('/api/special-events/' + editingId, { method: 'PUT', body: payload })
+                : api('/api/special-events', { method: 'POST', body: payload });
+            request.then(function () {
+                var wasEditing = editingId !== null;
+                resetForm();
+                showAlert(AdminI18n.t(wasEditing ? 'event_updated' : 'event_created'), true);
+                return refresh();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('event_save_failed') + ' (' + err.message + ')', false);
+            }).finally(function () {
+                button.disabled = false;
+            });
+        });
+
+        document.getElementById('cancel-edit').addEventListener('click', resetForm);
+
+        document.getElementById('events').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var row = button.closest('.event-row');
+            var id = Number(row.dataset.id);
+            var item = events.find(function (row) { return row.id === id; });
+            if (!item) return;
+
+            if (button.dataset.action === 'edit') {
+                startEdit(item);
+                return;
+            }
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm(AdminI18n.t('confirm_delete_event'))) return;
+                button.disabled = true;
+                api('/api/special-events/' + id, { method: 'DELETE' }).then(function () {
+                    if (editingId === id) resetForm();
+                    return refresh();
+                }).catch(function (err) {
+                    showAlert(AdminI18n.t('event_save_failed') + ' (' + err.message + ')', false);
+                    button.disabled = false;
+                });
+            }
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                render();
+                var button = document.getElementById('save-event');
+                button.textContent = AdminI18n.t(button.getAttribute('data-i18n'));
+            });
+        });
+        document.addEventListener('admin:langchange', render);
+        syncLangButtons();
+        refresh();
+    })();
+    </script>
+</body>
+</html>

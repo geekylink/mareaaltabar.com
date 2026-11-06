@@ -25,12 +25,16 @@ const MENU = [
 const NOTICES = [
   { id: 1, message_en: 'Closed tonight.', message_es: 'Cerrado esta noche.', severity: 'warning', is_active: true, is_live: true },
 ];
+const SPECIAL_EVENTS = [
+  { id: 1, date: '2030-12-31', title_en: 'New Year', title_es: 'Año Nuevo', start_time: '21:00', end_time: '02:00' },
+];
 
 function jsonResponse(body) {
   return vi.fn(async (url) => {
     const path = String(url);
     const data = path.includes('closed-days') ? CLOSED
       : path.includes('/api/notices') ? NOTICES
+      : path.includes('/api/special-events') ? SPECIAL_EVENTS
       : path.includes('/api/menu') ? { categories: MENU }
       : SCHEDULE;
     return { ok: true, status: 200, json: async () => data };
@@ -49,7 +53,7 @@ describe('load() and the server-rendered payload', () => {
   });
 
   it('uses the embedded payload without calling the API', async () => {
-    window.__MAREA_ALTA_DATA__ = { schedule: SCHEDULE, closedDays: CLOSED, menu: MENU, notices: NOTICES };
+    window.__MAREA_ALTA_DATA__ = { schedule: SCHEDULE, closedDays: CLOSED, menu: MENU, notices: NOTICES, specialEvents: SPECIAL_EVENTS };
     const fetchMock = jsonResponse();
     global.fetch = fetchMock;
 
@@ -60,6 +64,7 @@ describe('load() and the server-rendered payload', () => {
     expect(result.closedDays).toEqual(CLOSED);
     expect(result.menu).toEqual(MENU);
     expect(result.notices).toEqual(NOTICES);
+    expect(result.specialEvents).toEqual(SPECIAL_EVENTS);
     expect(result.error).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -86,12 +91,13 @@ describe('load() and the server-rendered payload', () => {
     // Stands in for the hourly timer and the Refresh button.
     const refreshed = await load();
 
-    // The refresh fetches the schedule, the closures, the menu and the notices.
-    // The seeded first paint fetches nothing.
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    // The refresh fetches the schedule, the closures, the menu, the notices and
+    // the dated events. The seeded first paint fetches nothing.
+    expect(fetchMock).toHaveBeenCalledTimes(5);
     expect(refreshed.schedule).toEqual(SCHEDULE);
     expect(refreshed.menu).toEqual(MENU);
     expect(refreshed.notices).toEqual(NOTICES);
+    expect(refreshed.specialEvents).toEqual(SPECIAL_EVENTS);
   });
 
   it('ignores an empty payload rather than showing a blank schedule', async () => {
@@ -111,10 +117,11 @@ describe('load() and the server-rendered payload', () => {
     const load = await freshLoad();
     const result = await load();
 
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(5);
     expect(result.schedule).toEqual(SCHEDULE);
     expect(result.menu).toEqual(MENU);
     expect(result.notices).toEqual(NOTICES);
+    expect(result.specialEvents).toEqual(SPECIAL_EVENTS);
   });
 
   it('survives a seed written before the menu existed', async () => {

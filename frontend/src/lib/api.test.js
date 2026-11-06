@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { pick, formatTime, formatHours, barToday, isClosedOn, upcomingClosedDays } from './api.js';
+import {
+  pick, formatTime, formatHours, formatEventDate, formatEventTime,
+  barToday, isClosedOn, upcomingClosedDays,
+} from './api.js';
 
 const day = {
   day: 4,
@@ -72,6 +75,30 @@ describe('formatHours', () => {
 
   it('returns an empty string when times are missing but the day is open', () => {
     expect(formatHours({ ...day, open_time: '', close_time: '' }, 'en', 'Closed')).toBe('');
+  });
+});
+
+describe('formatEventDate', () => {
+  it('formats an ISO date for each language', () => {
+    expect(formatEventDate('2030-12-31', 'en')).toBe('Tue, Dec 31');
+    expect(formatEventDate('2030-12-31', 'es')).toBe('mar, 31 dic');
+  });
+
+  it('returns the raw value when the date is malformed', () => {
+    expect(formatEventDate('not-a-date', 'en')).toBe('not-a-date');
+    expect(formatEventDate('', 'en')).toBe('');
+  });
+});
+
+describe('formatEventTime', () => {
+  it('formats a time range', () => {
+    expect(formatEventTime({ start_time: '21:00', end_time: '02:00' }, 'en'))
+      .toBe('9:00 PM - 2:00 AM');
+  });
+
+  it('returns a single start time, or blank when there is none', () => {
+    expect(formatEventTime({ start_time: '21:00', end_time: '' }, 'en')).toBe('9:00 PM');
+    expect(formatEventTime({}, 'en')).toBe('');
   });
 });
 

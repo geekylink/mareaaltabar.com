@@ -25,6 +25,7 @@ const SHARED_LABELS = {
   tonight: (c) => c.party.tonight,
   closed_today: (c) => c.party.closedToday,
   closed_days: (c) => c.party.closedDays,
+  special_events: (c) => c.party.specialEvents,
   no_event: (c) => c.party.noEvent,
   menu_heading: (c) => c.menu.title,
   menu_ingredients: (c) => c.menu.ingredients,

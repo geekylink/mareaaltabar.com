@@ -128,6 +128,20 @@ async def admin_notices(request: Request, admin=Depends(get_current_admin)):
     )
 
 
+@router.get("/admin/events", response_class=HTMLResponse)
+async def admin_events(request: Request, admin=Depends(get_current_admin)):
+    """Dated-event control: add one-off parties alongside the weekly schedule.
+
+    The rows come from ``/api/special-events/all`` so past and switched-off
+    events stay editable, which the public read hides.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/events.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
 @router.get("/admin/inbox", response_class=HTMLResponse)
 async def admin_inbox(request: Request, admin=Depends(get_current_admin)):
     """The shared contact-form inbox, visible to every signed-in admin.

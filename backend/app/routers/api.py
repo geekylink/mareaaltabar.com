@@ -25,7 +25,16 @@ from app import audit
 from app.audit import ChangeAuthor
 from app.database import get_db
 from app.dependencies import change_author, csrf_protect, get_current_admin
-from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo, Notice
+from app.models import (
+    ClosedDay,
+    Event,
+    Hours,
+    MenuCategory,
+    MenuItem,
+    MenuItemPromo,
+    Notice,
+    SpecialEvent,
+)
 from app.schemas import (
     ClosedDayCreate,
     ClosedDayResponse,
@@ -39,14 +48,19 @@ from app.schemas import (
     MenuResponse,
     NoticeResponse,
     NoticeWrite,
+    SpecialEventCreate,
+    SpecialEventResponse,
+    SpecialEventUpdate,
 )
 from app.ssr import (
     bar_now,
+    bar_today,
     day_payload,
     load_closed_days,
     load_menu,
     load_notices,
     load_schedule,
+    load_special_events,
     promo_is_live,
 )
 
@@ -96,6 +110,17 @@ NOTICE_FIELDS = (
     "severity",
     "starts_at",
     "ends_at",
+    "is_active",
+)
+SPECIAL_EVENT_FIELDS = (
+    "date",
+    "title_en",
+    "title_es",
+    "description_en",
+    "description_es",
+    "start_time",
+    "end_time",
+    "image_url",
     "is_active",
 )
 CATEGORY_FIELDS = ("slug", "name_en", "name_es", "sort_order", "is_available")
@@ -342,6 +367,170 @@ async def delete_closed_day(
     )
 
     db.delete(closed_day)
+    db.commit()
+
+
+# --- Dated / special events (ticket #53) ----------------------------------
+#
+# The weekly `events` table repeats forever; this is the one-off exception the
+# schedule needs for "Friday the 26th — DJ Sol". The public read drops past and
+# switched-off rows; the admin read keeps both so an event can be edited or
+# brought back. Writes are logged in the schedule area as `special_event:<id>`.
+
+
+def _special_event_response(row: SpecialEvent, today: str | None = None) -> SpecialEventResponse:
+    """One saved event, with whether its date has already passed at the bar."""
+    today = today or bar_today()[1]
+    return SpecialEventResponse(
+        id=row.id,
+        date=row.date,
+        title_en=row.title_en,
+        title_es=row.title_es,
+        description_en=row.description_en,
+        description_es=row.description_es,
+        start_time=row.start_time,
+        end_time=row.end_time,
+        image_url=row.image_url,
+        is_active=bool(row.is_active),
+        is_past=row.date < today,
+    )
+
+
+@router.get("/api/special-events", response_model=list[SpecialEventResponse])
+async def list_special_events(response: Response, db: DBSession = Depends(get_db)):
+    """Public: upcoming dated events, soonest first."""
+    response.headers.update(READ_CACHE_CONTROL)
+    return [SpecialEventResponse(**event) for event in load_special_events(db)]
+
+
+@router.get(
+    "/api/special-events/all",
+    response_model=list[SpecialEventResponse],
+    dependencies=[Depends(get_current_admin)],
+)
+async def list_all_special_events(
+    response: Response, db: DBSession = Depends(get_db)
+):
+    """Admin: every dated event, including past and switched-off rows."""
+    response.headers.update(READ_CACHE_CONTROL)
+    return [
+        SpecialEventResponse(**event)
+        for event in load_special_events(
+            db, include_past=True, include_inactive=True
+        )
+    ]
+
+
+@router.post(
+    "/api/special-events",
+    response_model=SpecialEventResponse,
+    status_code=201,
+    dependencies=write_guard,
+)
+async def create_special_event(
+    data: SpecialEventCreate,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: add a dated event."""
+    event = SpecialEvent(
+        date=data.date.isoformat(),
+        title_en=data.title_en,
+        title_es=data.title_es,
+        description_en=data.description_en,
+        description_es=data.description_es,
+        start_time=data.start_time,
+        end_time=data.end_time,
+        image_url=data.image_url,
+        is_active=data.is_active,
+    )
+    db.add(event)
+
+    # Flushed so the log can name the event by its id.
+    db.flush()
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_CREATE,
+        author=author,
+        target=audit.format_target(audit.TARGET_SPECIAL_EVENT, event.id),
+        target_name=_display_name(event.title_en, event.title_es),
+        details=audit.snapshot(event, SPECIAL_EVENT_FIELDS),
+    )
+
+    db.commit()
+    db.refresh(event)
+    return _special_event_response(event)
+
+
+@router.put(
+    "/api/special-events/{event_id}",
+    response_model=SpecialEventResponse,
+    dependencies=write_guard,
+)
+async def update_special_event(
+    event_id: int,
+    data: SpecialEventUpdate,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: edit an event, including moving its date or switching it off."""
+    event = db.get(SpecialEvent, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    before = audit.snapshot(event, SPECIAL_EVENT_FIELDS)
+
+    event.date = data.date.isoformat()
+    event.title_en = data.title_en
+    event.title_es = data.title_es
+    event.description_en = data.description_en
+    event.description_es = data.description_es
+    event.start_time = data.start_time
+    event.end_time = data.end_time
+    event.image_url = data.image_url
+    event.is_active = data.is_active
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_UPDATE,
+        author=author,
+        target=audit.format_target(audit.TARGET_SPECIAL_EVENT, event.id),
+        target_name=_display_name(event.title_en, event.title_es),
+        details=audit.diff(before, audit.snapshot(event, SPECIAL_EVENT_FIELDS)),
+    )
+
+    db.commit()
+    db.refresh(event)
+    return _special_event_response(event)
+
+
+@router.delete(
+    "/api/special-events/{event_id}", status_code=204, dependencies=write_guard
+)
+async def delete_special_event(
+    event_id: int,
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Admin: remove a dated event."""
+    event = db.get(SpecialEvent, event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    audit.log_change(
+        db,
+        area=audit.AREA_SCHEDULE,
+        action=audit.ACTION_DELETE,
+        author=author,
+        target=audit.format_target(audit.TARGET_SPECIAL_EVENT, event.id),
+        target_name=_display_name(event.title_en, event.title_es),
+        details=audit.snapshot(event, SPECIAL_EVENT_FIELDS),
+    )
+
+    db.delete(event)
     db.commit()
 
 

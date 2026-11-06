@@ -57,6 +57,7 @@ function mockFetch() {
     const path = String(url);
     if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
     if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
+    if (path.includes('/api/special-events')) return { ok: true, status: 200, json: async () => [] };
     if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
     return { ok: true, status: 200, json: async () => SCHEDULE };
   });
@@ -68,7 +69,7 @@ function mockFetchWithClosures(closedDays, schedule = WEEK) {
     const path = String(url);
     const body = path.includes('closed-days')
       ? closedDays
-      : path.includes('/api/notices')
+      : path.includes('/api/notices') || path.includes('/api/special-events')
         ? []
         : path.includes('/api/menu')
           ? { categories: MENU }
@@ -290,6 +291,34 @@ describe('App menu section', () => {
 
     await waitFor(() => expect(screen.getByText('Cuba Libre')).toBeTruthy());
     expect(screen.getByText('$4.00')).toBeTruthy();
+  });
+
+  it('renders upcoming dated events alongside the weekly schedule', async () => {
+    global.fetch = vi.fn(async (url) => {
+      const path = String(url);
+      if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
+      if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
+      if (path.includes('/api/special-events')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [{
+            id: 1, date: '2030-12-31', title_en: 'Beach party', title_es: 'Fiesta en la playa',
+            description_en: 'Bonfire at sunset.', description_es: 'Fogata al atardecer.',
+            start_time: '21:00', end_time: '02:00', image_url: '',
+          }],
+        };
+      }
+      if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
+      return { ok: true, status: 200, json: async () => SCHEDULE };
+    });
+    render(App);
+
+    await waitFor(() => expect(screen.getByText('Beach party')).toBeTruthy());
+    expect(screen.getByText('Special events')).toBeTruthy();
+    expect(screen.getByText('Tue, Dec 31')).toBeTruthy();
+    expect(screen.getByText('9:00 PM - 2:00 AM')).toBeTruthy();
+    expect(screen.getByText('Bonfire at sunset.')).toBeTruthy();
   });
 
   it('links to the standalone menu route', async () => {

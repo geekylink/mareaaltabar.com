@@ -70,6 +70,91 @@ class ClosedDayResponse(BaseModel):
     reason_es: str
 
 
+# --- Dated / special events ---
+
+EVENT_TITLE_MAX = 255
+EVENT_DESCRIPTION_MAX = 2000
+EVENT_IMAGE_MAX = 500
+
+
+class SpecialEventBase(BaseModel):
+    """The editable half of a dated event, shared by write and read.
+
+    Times are optional and must arrive as a pair; an end before the start is an
+    overnight event, exactly as a happy-hour promo can be. ``image_url`` is a
+    link, not an upload (#50 owns uploads), and is restricted to http(s) or a
+    site-relative path so an admin cannot paste a ``javascript:`` URL into an
+    ``<img src>``.
+    """
+
+    title_en: str = Field(default="", max_length=EVENT_TITLE_MAX)
+    title_es: str = Field(default="", max_length=EVENT_TITLE_MAX)
+    description_en: str = Field(default="", max_length=EVENT_DESCRIPTION_MAX)
+    description_es: str = Field(default="", max_length=EVENT_DESCRIPTION_MAX)
+    start_time: str = Field(default="", max_length=5)
+    end_time: str = Field(default="", max_length=5)
+    image_url: str = Field(default="", max_length=EVENT_IMAGE_MAX)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def _clean(self):
+        for name in ("title_en", "title_es", "description_en", "description_es"):
+            setattr(self, name, getattr(self, name).strip())
+
+        start = self.start_time.strip()
+        end = self.end_time.strip()
+        for name, value in (("start_time", start), ("end_time", end)):
+            if value and not _HHMM_RE.fullmatch(value):
+                raise ValueError(f"{name} must be HH:MM")
+        if bool(start) != bool(end):
+            raise ValueError("set both start_time and end_time, or neither")
+        if start and start == end:
+            raise ValueError("start_time and end_time must be different")
+        self.start_time, self.end_time = start, end
+
+        image = self.image_url.strip()
+        if image and not (
+            image.startswith("https://")
+            or image.startswith("http://")
+            or image.startswith("/")
+        ):
+            raise ValueError("image_url must be an http(s) or site-relative URL")
+        self.image_url = image
+
+        if not self.title_en and not self.title_es:
+            raise ValueError("a title is required in at least one language")
+        return self
+
+
+class SpecialEventCreate(SpecialEventBase):
+    date: date
+
+    @field_validator("date")
+    @classmethod
+    def _reject_past(cls, v: date) -> date:
+        """A new event is for today or later, at the bar's clock.
+
+        Edits are exempt (:class:`SpecialEventUpdate`): an admin must be able to
+        fix the wording on an event that has already happened without first
+        moving its date into the future.
+        """
+        if v < date.fromisoformat(bar_today()[1]):
+            raise ValueError("date cannot be in the past")
+        return v
+
+
+class SpecialEventUpdate(SpecialEventBase):
+    date: date
+
+
+class SpecialEventResponse(SpecialEventBase):
+    """One event as read back, with its date and whether it has passed."""
+
+    id: int
+    date: str
+    is_past: bool = False
+
+
 # --- Emergency notices ---
 
 NOTICE_SEVERITIES = ("info", "warning", "critical")
@@ -153,10 +238,10 @@ def slugify(text: str, fallback: str = "menu") -> str:
     return slug or fallback
 
 
-# Happy-hour windows are bar-local, so the stored strings are the same shape an
+# Windows and dates are bar-local, so the stored strings are the same shape an
 # `<input type="time">` and `<input type="date">` emit.
-_PROMO_TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
-_PROMO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_HHMM_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+_ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def normalize_promo_days(value: str) -> str:
@@ -204,7 +289,7 @@ class MenuPromoWrite(MenuPromoBase):
         start = self.start_time.strip()
         end = self.end_time.strip()
         for name, value in (("start_time", start), ("end_time", end)):
-            if value and not _PROMO_TIME_RE.fullmatch(value):
+            if value and not _HHMM_RE.fullmatch(value):
                 raise ValueError(f"{name} must be HH:MM")
         # Half a window is ambiguous: it could mean "from 6pm" or a forgotten
         # end. Both blank is the explicit "all day" spelling.
@@ -217,7 +302,7 @@ class MenuPromoWrite(MenuPromoBase):
         for name in ("starts_on", "ends_on"):
             value = getattr(self, name).strip()
             if value:
-                if not _PROMO_DATE_RE.fullmatch(value):
+                if not _ISO_DATE_RE.fullmatch(value):
                     raise ValueError(f"{name} must be YYYY-MM-DD")
                 try:
                     date.fromisoformat(value)

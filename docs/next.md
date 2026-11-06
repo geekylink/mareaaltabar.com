@@ -24,12 +24,17 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
   `/admin/inbox`, shared by every admin, with read/unread and delete. The
   dashboard shows an unread badge. Tests: `backend/tests/test_contact.py`,
   `frontend/src/lib/contact.test.js`.
+- **#53 Dated / special events** — `special_events` table with date, bilingual
+  title and description, optional time window (overnight supported), optional
+  image URL and active switch. Public API and SSR render upcoming events
+  alongside the weekly schedule; the admin read keeps past/hidden rows, and
+  `/admin/events` adds, edits and deletes them. Tests:
+  `backend/tests/test_special_events.py`, `App.test.js`, `api.test.js`.
 
 ## Remaining, ready to build here
 
 | # | Ticket | Notes |
 |---|--------|-------|
-| 53 | Dated / special events | `special_events` table, public/admin API, SSR, frontend section, `/admin/events`. |
 | 10 | Drink of the Day hero banner | Featured/daily menu item plus admin control. |
 | 12 | Newsletter signup | `subscribers` table, public endpoint, admin list, abuse protection. |
 | 14 | Reservation / booking system | `reservations` table, request endpoint, admin confirm/decline. |
@@ -78,4 +83,4 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 
 ## Next up
 
-1. **#53** Dated / special events
+1. **#10** Drink of the Day hero banner

@@ -29,7 +29,7 @@ loaders.
 
 import json
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 
 from fastapi.templating import Jinja2Templates
@@ -37,7 +37,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
 from app.config import BACKEND_DIR
-from app.models import ClosedDay, Event, Hours, MenuCategory, MenuItem, MenuItemPromo, Notice
+from app.models import (
+    ClosedDay,
+    Event,
+    Hours,
+    MenuCategory,
+    MenuItem,
+    MenuItemPromo,
+    Notice,
+    SpecialEvent,
+)
 from app.public_i18n import strings_for
 
 FRONTEND_DIST = BACKEND_DIR.parent / "frontend" / "dist"
@@ -200,6 +209,55 @@ def load_closed_days(db: DBSession, from_date: str | None = None) -> list[dict]:
     return [
         {"id": d.id, "date": d.date, "reason_en": d.reason_en, "reason_es": d.reason_es}
         for d in days
+    ]
+
+
+def load_special_events(
+    db: DBSession,
+    include_past: bool = False,
+    include_inactive: bool = False,
+    from_date: str | None = None,
+) -> list[dict]:
+    """Dated events, soonest first, in the shape ``/api/special-events`` returns.
+
+    The public read drops rows that have already happened and rows an admin has
+    switched off; the admin read keeps both so an event can be edited or brought
+    back. ``is_past`` is computed against the same bar date the filter uses, so
+    the two cannot disagree across the five-hour gap with UTC.
+
+    ``start_time`` sorts as text, which is why it is stored zero-padded. Blank
+    times sort first, so an all-day event heads its date rather than trailing it.
+    """
+    if from_date is None:
+        from_date = bar_today()[1]
+
+    query = select(SpecialEvent)
+    if not include_past:
+        query = query.where(SpecialEvent.date >= from_date)
+    if not include_inactive:
+        query = query.where(SpecialEvent.is_active.is_(True))
+    rows = db.execute(
+        query.order_by(
+            SpecialEvent.date,
+            SpecialEvent.start_time,
+            SpecialEvent.id,
+        )
+    ).scalars().all()
+    return [
+        {
+            "id": row.id,
+            "date": row.date,
+            "title_en": row.title_en,
+            "title_es": row.title_es,
+            "description_en": row.description_en,
+            "description_es": row.description_es,
+            "start_time": row.start_time,
+            "end_time": row.end_time,
+            "image_url": row.image_url,
+            "is_active": bool(row.is_active),
+            "is_past": row.date < from_date,
+        }
+        for row in rows
     ]
 
 
@@ -374,6 +432,42 @@ def format_time(hhmm: str | None, lang: str) -> str:
     return f"{hour % 12 or 12}:{minute} {display}"
 
 
+# Short names only, and only for the two languages the site supports: the
+# rendered block needs a human date, and pulling in a full locale table for six
+# month abbreviations would be the wrong trade.
+_WEEKDAYS_SHORT = {
+    "en": ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"),
+    "es": ("dom", "lun", "mar", "mié", "jue", "vie", "sáb"),
+}
+_MONTHS_SHORT = {
+    "en": ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"),
+    "es": ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"),
+}
+
+
+def format_event_date(iso: str, lang: str) -> str:
+    """``2026-11-06`` as ``Fri 6 Nov`` (or ``vie 6 nov``), or the raw value."""
+    try:
+        value = date.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return str(iso or "")
+
+    weekdays = _WEEKDAYS_SHORT.get(lang, _WEEKDAYS_SHORT["en"])
+    months = _MONTHS_SHORT.get(lang, _MONTHS_SHORT["en"])
+    # Python counts Monday as 0; the site and database count Sunday as 0.
+    weekday = weekdays[(value.weekday() + 1) % 7]
+    return f"{weekday} {value.day} {months[value.month - 1]}"
+
+
+def format_event_time(event: dict, lang: str) -> str:
+    """An event's optional time range, or blank when it has none."""
+    start = format_time(event.get("start_time"), lang)
+    end = format_time(event.get("end_time"), lang)
+    if start and end:
+        return f"{start} - {end}"
+    return start
+
+
 def format_hours(day: dict | None, lang: str, closed_label: str) -> str:
     """An opening-hours range, or the closed label."""
     if not day:
@@ -440,6 +534,7 @@ def build_payload(db: DBSession, lang: str) -> dict:
 
     menu = load_menu(db)
     notices = load_notices(db)
+    special_events = load_special_events(db)
     return {
         "lang": lang,
         "labels": labels,
@@ -451,6 +546,18 @@ def build_payload(db: DBSession, lang: str) -> dict:
             {"date": d["date"], "reason": pick(d, lang, "reason")}
             for d in closed_days
         ],
+        "special_events": [
+            {
+                "id": event["id"],
+                "date": event["date"],
+                "date_label": format_event_date(event["date"], lang),
+                "title": pick(event, lang, "title"),
+                "description": pick(event, lang, "description"),
+                "time": format_event_time(event, lang),
+                "image_url": event["image_url"],
+            }
+            for event in special_events
+        ],
         "menu": menu_display(menu, lang, labels),
         "notices": notice_display(notices, lang),
         # Handed to the SPA so the first paint needs no fetch.
@@ -459,6 +566,7 @@ def build_payload(db: DBSession, lang: str) -> dict:
             "closedDays": closed_days,
             "menu": menu,
             "notices": notices,
+            "specialEvents": special_events,
         },
     }
 
