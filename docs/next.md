@@ -10,6 +10,12 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#26 Live music calendar** — a month grid over the dated events (#53)
+  replaces the flat special-events list on the homepage. It opens on the soonest
+  event's month, marks event days, pages between months and shows the selected
+  day's title, time, description, image and RSVP form. Artist names and genres
+  use the event title and description; there is no Bandsintown sync or separate
+  social-link field. Tests: `frontend/src/lib/calendar.test.js`.
 - **#31 PWA support** — `/manifest.json` and a service worker make the site
   installable. The worker precaches the shell (`/`, `/menu` and an offline
   fallback), uses network-first for navigations and the five public API reads,
@@ -87,7 +93,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | # | Ticket | Notes |
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
-| 26 | Live music calendar | After #53: calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend quiz resolving against `/api/menu`. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted preference. |
@@ -126,7 +131,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#21** Loyalty program — buildable, but only useful once the owner decides
-   punches, rewards and expiry.
-2. **#26** Live music calendar — a calendar view over the dated events (#53).
-3. **#27** “Perfect Drink” quiz — frontend-only, resolving against `/api/menu`.
+1. **#27** “Perfect Drink” quiz — frontend-only, resolving against `/api/menu`.
+2. **#56** CSV import/export — the admin backup/edit path for menu, content,
+   events and reservations.
+3. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
+   backend.

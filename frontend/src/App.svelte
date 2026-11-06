@@ -8,13 +8,13 @@
   import DrinkOfDay from './lib/DrinkOfDay.svelte';
   import Newsletter from './lib/Newsletter.svelte';
   import Reservation from './lib/Reservation.svelte';
-  import EventRsvp from './lib/EventRsvp.svelte';
   import InstallPrompt from './lib/InstallPrompt.svelte';
+  import Calendar from './lib/Calendar.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
   import {
-    load, pick, formatHours, formatEventDate, formatEventTime, barToday, isClosedOn,
+    load, pick, formatHours, barToday, isClosedOn,
   } from './lib/api.js';
 
   let schedule = [];
@@ -168,25 +168,7 @@
     {#if specialEvents.length > 0}
       <div class="special-events">
         <h3>{$t.party.specialEvents}</h3>
-        <ul>
-          {#each specialEvents as event (event.id)}
-            {@const eventTitle = pick(event, lang, 'title')}
-            {@const eventDescription = pick(event, lang, 'description')}
-            {@const eventTime = formatEventTime(event, lang)}
-            <li>
-              <time datetime={event.date}>{formatEventDate(event.date, lang)}</time>
-              <div class="event-main">
-                <b>{eventTitle}</b>
-                {#if eventTime}<span class="event-time">{eventTime}</span>{/if}
-                {#if eventDescription}<p>{eventDescription}</p>{/if}
-                {#if event.image_url}
-                  <img src={event.image_url} alt="" loading="lazy" />
-                {/if}
-                <EventRsvp eventId={event.id} />
-              </div>
-            </li>
-          {/each}
-        </ul>
+        <Calendar events={specialEvents} {lang} />
       </div>
     {/if}
     {#if closedDays.length > 0}
@@ -300,14 +282,6 @@
 
   .special-events { margin-top: 1.5rem; padding: 1.25rem; border-radius: 1rem; background: rgba(11, 60, 73, .06); }
   .special-events h3 { font-size: 1rem; color: var(--deep); margin-bottom: .5rem; }
-  .special-events ul { list-style: none; padding: 0; }
-  .special-events li { display: grid; grid-template-columns: 7rem 1fr; gap: .75rem; padding: .8rem 0; border-bottom: 1px solid rgba(29, 26, 23, .1); }
-  .special-events li:last-child { border-bottom: none; }
-  .special-events time { font-weight: 700; color: var(--deep); }
-  .special-events .event-main { font-size: .95rem; }
-  .special-events .event-time { display: block; font-size: .85rem; color: #666; margin-top: .15rem; }
-  .special-events p { margin-top: .35rem; }
-  .special-events img { display: block; max-width: 12rem; max-height: 8rem; object-fit: cover; border-radius: .5rem; margin-top: .5rem; }
   .closed-days { margin-top: 1.5rem; padding: 1.25rem; border-radius: 1rem; background: rgba(255, 107, 44, .08); }
   .closed-days h3 { font-size: 1rem; color: var(--deep); margin-bottom: .5rem; }
   .closed-days ul { list-style: none; }

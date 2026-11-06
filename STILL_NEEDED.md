@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50, #25 and #31** are complete and committed. See [`docs/next.md`](docs/next.md)
+#12, #14, #50, #25, #31 and #26** are complete and committed. See [`docs/next.md`](docs/next.md)
 for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -108,6 +108,10 @@ fill in.
       ready, but there are still no real photographs. Tickets **#8**, **#30**,
       #53 and the generic content rows (#17) need images; a content row can use
       an uploaded URL or an external link.
+- [ ] **Live music dates and artist copy** — add each gig in `/admin/events`
+      with the artist/act as the title and the genre/set details in the
+      description. Ticket **#26**. The calendar and RSVP are ready; the real
+      dates and names are not.
 - [ ] **“About Us” story** — the bar's history, founders, dates and tone.
       Ticket **#19**. The generic content tables are ready; only the copy is
       missing.
@@ -154,9 +158,10 @@ fill in.
 - [ ] **Real-browser / device pass** — tests use jsdom, not a real browser. Check
       the public site and admin panel on a phone, Safari and Firefox, including
       the shared navigation (homepage and `/menu`), the Drink of the Day hero,
-      the newsletter and reservation forms, the event RSVP form, the content
-      editor, the subscriber list, the reservation queue, the event guest list
-      and the image uploader (including a real phone photo and a large photo).
+      the newsletter and reservation forms, the event RSVP form, the live music
+      calendar, the content editor, the subscriber list, the reservation queue,
+      the event guest list and the image uploader (including a real phone photo
+      and a large photo).
 - [ ] **PWA install and offline check** — install the app on a real Android and
       iPhone, confirm the manifest icons and standalone window, then load `/`
       and `/menu` offline. The service worker is not exercised by jsdom tests.
@@ -181,7 +186,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | # | Ticket | Note |
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
-| 26 | Live music calendar | After #53; calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend only, resolves against `/api/menu`. |
 | 29 | Referral program | After #21; needs referral rules. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted choice. |
@@ -207,9 +211,13 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 - **Promo windows (#7)** — weekdays are comma-separated integers with
   `0 = Sunday`; times are bar-local `HH:MM`; blank start/end means all day;
   blank dates mean no bound; an end earlier than the start crosses midnight.
-- **Dated events (#53)** — image is a URL, not an upload, because #50 is not
-  built; new events reject past dates but edits allow them; the public read
-  hides past and switched-off events; the admin read keeps everything.
+- **Dated events (#53)** — the image can be an uploaded URL (#50) or an
+  external link; new events reject past dates but edits allow them; the public
+  read hides past and switched-off events; the admin read keeps everything.
+- **Live music calendar (#26)** — a month grid over the same dated events. The
+  event title is the artist/act name and the description holds genre and set
+  details; there is no separate artist table, social-link field or Bandsintown
+  sync. The calendar starts on the soonest event's month.
 - **Audit logging (#53)** — dated-event create/update/delete are logged in the
   schedule area as `special_event:<id>`. Inbox actions (read/delete) are **not**
   audited.

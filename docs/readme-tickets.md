@@ -564,7 +564,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 13 | Embed Instagram feed | 🟠 | 🟡 | Social Media |
 | ✅ | 53 | Dated / special events | 🟠 | 🟡 | Functionality |
 | ✅ | 25 | Add event ticketing / RSVP | 🟡 | 🟡 | Functionality |
-| | 26 | Add live music calendar | 🟡 | 🟡 | Functionality |
+| ✅ | 26 | Add live music calendar | 🟡 | 🟡 | Functionality |
 | | 21 | Add loyalty program | 🟠 | 🟡 | Retention |
 | | 24 | Add blog / news section | 🟡 | 🟡 | SEO |
 | | 28 | Add photo contest / UGC | 🟡 | 🟡 | Social Media |
@@ -642,6 +642,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## PWA support (#31)
 **Shipped** — `frontend/public/manifest.json` makes the site installable with the existing 192 and 512 icons, standalone display and the brand colours. `frontend/public/sw.js` precaches the shell and an `offline.html` fallback, then uses network-first for navigations and the five public API reads (`/api/schedule`, `/api/closed-days`, `/api/menu`, `/api/notices`, `/api/special-events`), cache-first for hashed assets and `/uploads/`, and leaves `/admin` and every admin API read alone. Both entry points register the worker in production only. `InstallPrompt.svelte` shows a strip only when Chromium fires `beforeinstallprompt` and then uses the browser's own prompt. Installation requires HTTPS (or localhost); TLS comes from the deploy step. Bump `VERSION` in `sw.js` when the shell changes so the old cache is dropped. `frontend/src/pwa.test.js` and `frontend/src/lib/installPrompt.test.js` cover the manifest, the cache rules and the prompt.
+
+## Live music calendar (#26)
+**Shipped** — The homepage's flat special-events list is now a month calendar over the dated events from #53. It opens on the soonest event's month (not necessarily today), marks event days, pages forwards and backwards, and shows the selected day's bilingual title, time, description, optional image and RSVP form. The week starts on Sunday to match the schedule. Artist names and genres live in the event title and description; there is no separate artist table, social-link field or Bandsintown sync. `frontend/src/lib/calendar.test.js` covers the initial month, day selection, month paging, the empty month and Spanish.
 
 ## Image upload pipeline (#50)
 **Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.

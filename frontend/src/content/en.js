@@ -41,6 +41,9 @@ export default {
     credit: 'Data: Open-Meteo marine model. Tide times are approximate. Always check the water yourself.',
   },
   party: { title: 'Party schedule', tonight: 'Tonight', closedToday: 'Closed today', closedDays: 'Closed days', specialEvents: 'Special events', noEvent: 'No event scheduled', cacheNotice: 'Showing cached data (offline)' },
+  // Month view over the dated events. The week starts on Sunday to match the
+  // schedule's `days` array and the bar's own week.
+  calendar: { prev: 'Previous month', next: 'Next month', empty: 'No events this month.' },
   // Drinks menu. Prices and promos come from the API, so only the wording here.
   // These four labels are duplicated in backend/app/public_i18n.py for the
   // server-rendered block, and publicI18n.test.js fails if the two drift apart.
