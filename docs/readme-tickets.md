@@ -578,7 +578,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 33 | Accessibility pass | ⚪ | 🟡 | Design |
 | | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
 | ✅ | 31 | Add PWA support | 🟠 | 🟡 | UX |
-| | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
+| ✅ | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
 | | 40 | Add CDN in front of the server | ⚪ | 🟡 | Efficiency |
 | | 32 | Add dark mode toggle | ⚪ | 🟢 | Design |
 
@@ -613,8 +613,8 @@ Tickets 53, 25, 26, 21, 24, 28, 29, ~~27~~, 23.
 *Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
-Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
-*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. Do the rest before high season, not during.*
+Tickets 37, ~~54~~, 55, 33, 34, 31, ~~56~~, 40, 32.
+*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. Do the rest before high season, not during.*
 
 ---
 
@@ -648,6 +648,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## “Perfect Drink” quiz (#27)
 **Shipped** — A three-question quiz on the homepage asks mood (cold and easy, cocktail, wine, surprise), taste (sweet, strong, fresh, no preference) and how the night is going. `frontend/src/lib/quizRules.js` scores the menu the visitor already loaded: a matching category is a strong signal, bilingual name/description/ingredient keywords break ties, and the cigarette category is excluded. Because it resolves against `GET /api/menu` data, a drink the owner hides or removes stops being recommended without a second list to maintain. The result shows the drink's name, category, price, description and ingredients, can be restarted, and shares through the Web Share API with a clipboard fallback. Answers and results are not stored. Rules are a plain module rather than a table so the copy can change without a migration. `frontend/src/lib/quizRules.test.js` and `frontend/src/lib/quiz.test.js` cover the scoring, the cigarette exclusion, the empty menu, the full flow, sharing and Spanish.
+
+## CSV export and import (#56)
+**Shipped** — `/admin/data` downloads seven CSV tables: menu categories, menu items, menu promos, content sections, content items, special events and reservations. The export carries a UTF-8 BOM so Excel reads Spanish accents correctly. Import is all-or-nothing: every row is validated with the same Pydantic models as the admin forms, and a file with one bad row changes nothing. Rows update by id (or by slug for categories and sections), a blank id creates a new row, and a row missing from the file is never deleted. Menu items resolve their category by slug, content items their section by slug, and promos their item by id. Setting `is_drink_of_day` on one row clears every other row, matching the menu editor. Every created or changed row is written to the same audit log as a panel edit. Reservations are export-only because they are public requests, not editable content. `backend/tests/test_csv_data.py` covers the page and access guards, every export shape, round-trips, creation, invalid-row rollback, missing columns, unknown ids and slugs, the drink-of-day rule, past-event correction and audit rows.
 
 ## Image upload pipeline (#50)
 **Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.

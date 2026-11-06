@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh; background: #f5f5f5; color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer; display: inline-block;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 64rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.25rem;
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1rem; line-height: 1.5; }
+        .success-banner {
+            background: #DCFCE7; color: #166534; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        .error-banner ul { margin: 0.5rem 0 0 1.1rem; }
+        .error-banner li { margin-top: 0.2rem; }
+        .import-form { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+        .field { display: flex; flex-direction: column; gap: 0.3rem; min-width: 12rem; }
+        .field label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #666; }
+        select, input[type="file"] {
+            font: inherit; font-size: 0.875rem; padding: 0.5rem 0.6rem;
+            border: 1px solid #d5d5d5; border-radius: 0.4rem; background: #fff;
+        }
+        .btn-primary {
+            background: #0B3C49; color: #fff; border: none; text-decoration: none;
+            padding: 0.55rem 1rem; border-radius: 0.4rem; font-size: 0.82rem;
+            font-weight: 600; cursor: pointer; display: inline-block; white-space: nowrap;
+        }
+        .btn-primary:hover { background: #0E4E5E; }
+        .note { font-size: 0.8rem; color: #777; line-height: 1.5; margin-top: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th {
+            text-align: left; font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 0.04em; color: #888; padding: 0.6rem 0.5rem;
+            border-bottom: 2px solid #eee; white-space: nowrap;
+        }
+        td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+        td.name strong { color: #0B3C49; }
+        .muted { color: #888; font-size: 0.8rem; margin-top: 0.2rem; }
+        .columns { color: #aaa; font-size: 0.72rem; margin-top: 0.3rem; word-break: break-word; }
+        @media (max-width: 720px) {
+            thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            tr { border: 1px solid #eee; border-radius: 0.6rem; padding: 0.5rem; margin-bottom: 0.7rem; }
+            td { border: none; padding: 0.25rem 0.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        {% if imported %}
+        <div class="success-banner"
+             data-i18n="data_import_success"
+             data-i18n-args='{"dataset": "{{ imported.label }}", "created": {{ created }}, "updated": {{ updated }}}'>
+            Import complete: {{ created }} created, {{ updated }} updated.
+        </div>
+        {% endif %}
+
+        {% if import_errors %}
+        <div class="error-banner">
+            <strong data-i18n="data_import_failed">Nothing was imported. Fix these rows and upload the file again.</strong>
+            <ul>
+                {% for error in import_errors %}
+                <li>{% if error.line %}Line {{ error.line }}: {% endif %}{{ error.message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% elif import_message %}
+        <div class="error-banner">{{ import_message }}</div>
+        {% endif %}
+
+        <section class="section">
+            <h2 data-i18n="data_heading">Data export and import</h2>
+            <p class="intro" data-i18n="data_intro">
+                Download a table as CSV, edit it in a spreadsheet, then upload it back. The file keeps the same
+                columns as the export. Import is all-or-nothing: if any row is invalid, nothing changes.
+            </p>
+
+            <form method="POST" action="/admin/data/import" enctype="multipart/form-data" class="import-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="field">
+                    <label for="dataset" data-i18n="data_dataset">Dataset</label>
+                    <select id="dataset" name="dataset" required>
+                        <option value="" data-i18n="data_choose">Choose a table</option>
+                        {% for ds in datasets if ds.importable %}
+                        <option value="{{ ds.key }}" {% if ds.key == import_dataset %}selected{% endif %}
+                                data-i18n="data_label_{{ ds.key | replace('-', '_') }}">{{ ds.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="file" data-i18n="data_file">CSV file</label>
+                    <input id="file" name="file" type="file" accept=".csv,text/csv" required>
+                </div>
+                <button type="submit" class="btn-primary" data-i18n="data_import_submit">Upload and validate</button>
+            </form>
+
+            <p class="note" data-i18n="data_import_note">
+                Import updates rows by id (or slug, for categories and sections) and creates rows with a blank id.
+                It never deletes: removing a row from the file leaves it in the database. Use the panel for
+                deletions. Every change is written to the audit log.
+            </p>
+        </section>
+
+        <section class="section">
+            <h2 data-i18n="data_tables_heading">Tables</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="data_dataset">Dataset</th>
+                        <th data-i18n="data_rows">Rows</th>
+                        <th data-i18n="data_download">Download</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ds in datasets %}
+                    <tr>
+                        <td class="name">
+                            <strong data-i18n="data_label_{{ ds.key | replace('-', '_') }}">{{ ds.label }}</strong>
+                            <div class="muted">{{ ds.description }}</div>
+                            <div class="columns">{{ ds.columns | join(', ') }}</div>
+                        </td>
+                        <td>{{ ds.count }}</td>
+                        <td>
+                            <a class="btn-primary" href="/admin/data/{{ ds.key }}.csv" download
+                               data-i18n="data_download_csv">Download CSV</a>
+                            {% if not ds.importable %}
+                            <div class="muted" data-i18n="data_export_only">Export only</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+            });
+        });
+        syncLangButtons();
+    </script>
+</body>
+</html>

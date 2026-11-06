@@ -150,6 +150,7 @@ def test_the_login_page_inline_scripts_use_the_nonce(client):
         "/admin/notices",
         "/admin/logs",
         "/admin/account",
+        "/admin/data",
     ],
 )
 def test_every_admin_page_inline_scripts_use_the_nonce(client, auth_cookies, path):

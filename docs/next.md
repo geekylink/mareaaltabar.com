@@ -10,6 +10,13 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#56 CSV export / import** — `/admin/data` downloads seven tables as CSV:
+  menu categories, items and promos, content sections and items, special events
+  and reservations. Import is all-or-nothing: every row is validated with the
+  same Pydantic rules as the admin forms, and one bad row changes nothing. Rows
+  update by id (or slug for categories/sections); a blank id creates; nothing is
+  deleted. Imports are audited and a new drink of the day clears the others.
+  Reservations are export-only. Tests: `backend/tests/test_csv_data.py`.
 - **#27 “Perfect Drink” quiz** — a three-question frontend quiz (`mood`, `taste`,
   `night`) scores the live `/api/menu` categories and items, so a removed or
   unavailable drink can never be recommended. Cigarettes are excluded. The result
@@ -107,7 +114,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
 | 36 | CI/CD rebuild (CI portion) | Rewrite workflow from `frontend/`, add PR CI and lint/check scripts. Deploy job needs VPS secrets. |
 | 51 | Submission notification (fallback) | Shared inbox/unread count satisfies the useful half; email/WhatsApp needs a provider. |
-| 56 | CSV export / import | Admin export/import with per-row validation. |
 
 ## Buildable, but needs owner content/assets/credentials
 
@@ -137,8 +143,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#56** CSV import/export — the admin backup/edit path for menu, content,
-   events and reservations.
-2. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
+1. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
    backend.
-3. **#33** Accessibility pass — public site and admin panel audit/fixes.
+2. **#33** Accessibility pass — public site and admin panel audit/fixes.
+3. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
+   concurrency test already exists.

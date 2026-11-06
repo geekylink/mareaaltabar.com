@@ -7,21 +7,23 @@ admin session.
 
 import re
 import secrets
+from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
-from app import auth
+from app import auth, csv_data
 from app.admin_i18n import SUPPORTED, strings_for
+from app.audit import ChangeAuthor
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_admin, get_current_session
+from app.dependencies import change_author, get_current_admin, get_current_session
 from app.models import Admin, Reservation, Submission, Subscriber
 
 router = APIRouter()
@@ -254,6 +256,173 @@ async def admin_logs(request: Request, admin=Depends(get_current_admin)):
             "log_retention_days": settings.LOG_RETENTION_DAYS,
             **_i18n_payload(),
         },
+    )
+
+
+# --- CSV export and import (ticket #56) ------------------------------------
+#
+# The content tables are the bar's own data, and the admin panel is the only
+# place they live. These routes are the way out to a spreadsheet and back. The
+# import is all-or-nothing: `csv_data.import_dataset` validates every row before
+# writing anything, so a file with one bad line changes nothing.
+
+
+def _data_page_context(db: DBSession, session, **overrides) -> dict:
+    datasets = [
+        {**asdict(dataset), "count": csv_data.count_dataset(db, dataset.key)}
+        for dataset in csv_data.DATASETS
+    ]
+    context = {
+        "admin": session.admin,
+        "csrf_token": session.csrf_token,
+        "datasets": datasets,
+        "imported": None,
+        "created": 0,
+        "updated": 0,
+        "import_errors": [],
+        "import_message": "",
+        "import_dataset": "",
+        **_i18n_payload(),
+    }
+    context.update(overrides)
+    return context
+
+
+def _data_page(
+    request: Request,
+    db: DBSession,
+    session,
+    *,
+    status_code: int = 200,
+    **overrides,
+):
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/data.html",
+        context=_data_page_context(db, session, **overrides),
+        status_code=status_code,
+    )
+
+
+@router.get("/admin/data", response_class=HTMLResponse)
+async def admin_data(
+    request: Request,
+    imported: str | None = None,
+    created: int = 0,
+    updated: int = 0,
+    session: DBSession = Depends(get_current_session),
+    db: DBSession = Depends(get_db),
+):
+    """Download any content table, or upload one back after editing it."""
+    dataset = csv_data.DATASETS_BY_KEY.get(imported or "")
+    return _data_page(
+        request,
+        db,
+        session,
+        imported=dataset,
+        created=created if dataset else 0,
+        updated=updated if dataset else 0,
+    )
+
+
+@router.get(
+    "/admin/data/{dataset_key}.csv",
+    dependencies=[Depends(get_current_admin)],
+)
+async def admin_data_export(dataset_key: str, db: DBSession = Depends(get_db)):
+    """One dataset as a CSV download, with a BOM so Excel reads UTF-8 correctly."""
+    try:
+        dataset, text = csv_data.export_dataset(db, dataset_key)
+    except csv_data.CsvImportError:
+        raise HTTPException(status_code=404, detail="Unknown dataset")
+
+    return Response(
+        content=text.encode("utf-8-sig"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{dataset.key}.csv"'},
+    )
+
+
+@router.post("/admin/data/import", response_class=HTMLResponse)
+async def admin_data_import(
+    request: Request,
+    dataset: str = Form(""),
+    file: UploadFile = File(...),
+    csrf_token: str = Form(""),
+    session: DBSession = Depends(get_current_session),
+    db: DBSession = Depends(get_db),
+    author: ChangeAuthor = Depends(change_author),
+):
+    """Validate the whole file, then apply it in one transaction or not at all."""
+    _check_form_csrf(csrf_token, session)
+
+    selected = csv_data.DATASETS_BY_KEY.get(dataset)
+    if selected is None:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=400,
+            import_dataset=dataset,
+            import_message="Choose a dataset to import.",
+        )
+    if not selected.importable:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=400,
+            import_dataset=dataset,
+            import_message="This dataset is export-only.",
+        )
+
+    raw = await file.read()
+    if not raw:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=400,
+            import_dataset=dataset,
+            import_message="The uploaded file is empty.",
+        )
+    if len(raw) > csv_data.MAX_IMPORT_BYTES:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=413,
+            import_dataset=dataset,
+            import_message="The file is too large. The limit is 5 MB.",
+        )
+
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=400,
+            import_dataset=dataset,
+            import_message="The file is not valid UTF-8. Save it as CSV UTF-8 and try again.",
+        )
+
+    result = csv_data.import_dataset(db, dataset, text, author)
+    if not result.ok:
+        return _data_page(
+            request,
+            db,
+            session,
+            status_code=400,
+            import_dataset=dataset,
+            import_errors=result.errors,
+            import_message=result.message,
+        )
+
+    return RedirectResponse(
+        f"/admin/data?imported={dataset}&created={result.created}&updated={result.updated}",
+        status_code=303,
     )
 
 

@@ -24,6 +24,7 @@ ADMIN_PAGES = (
     "admin/content.html",
     "admin/subscribers.html",
     "admin/reservations.html",
+    "admin/data.html",
 )
 
 

@@ -6,8 +6,8 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50, #25, #31, #26 and #27** are complete and committed. See [`docs/next.md`](docs/next.md)
-for what was built and
+#12, #14, #50, #25, #31, #26, #27 and #56** are complete and committed. See
+[`docs/next.md`](docs/next.md) for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
 ---
@@ -161,8 +161,9 @@ fill in.
       the newsletter and reservation forms, the event RSVP form, the live music
       calendar, the “Perfect Drink” quiz (including the share sheet on a real
       phone), the content editor, the subscriber list, the reservation queue,
-      the event guest list and the image uploader (including a real phone photo
-      and a large photo).
+      the event guest list, the image uploader (including a real phone photo
+      and a large photo) and the CSV export/import page (download a file, edit
+      it in a real spreadsheet and upload it back).
 - [ ] **PWA install and offline check** — install the app on a real Android and
       iPhone, confirm the manifest icons and standalone window, then load `/`
       and `/menu` offline. The service worker is not exercised by jsdom tests.
@@ -194,7 +195,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
 | 36 | CI/CD rebuild | CI portion buildable; deploy job needs VPS secrets. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
-| 56 | CSV export / import | Admin export/import with per-row validation. |
 
 Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 #23, #24, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
@@ -261,11 +261,19 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   database table, so changing the questions or keywords is a code change. The
   cigarette category is excluded. Answers and results are not stored. The result
   shares via the Web Share API, falling back to copying the current URL.
+- **CSV export / import (#56)** — imports are all-or-nothing and never delete;
+  a row missing from the file stays in the database. Rows update by id, or by
+  slug for categories and sections, and a blank id creates a new row. Menu items
+  reference categories by slug, content items reference sections by slug, and
+  promos reference items by id, so import categories/sections before their
+  children and re-export after creating new items if you need to add promos.
+  Reservations are export-only. There is no import of the weekly schedule or
+  notices yet.
 - **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 
 ---
 
-_Last updated after tickets #50, #25, #31, #26 and #27. Keep this file honest:
-delete a line when it is actually done, and add one when a new external
-dependency appears._
+_Last updated after tickets #26, #27 and #56. Keep this file honest: delete a
+line when it is actually done, and add one when a new external dependency
+appears._
