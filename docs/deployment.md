@@ -22,6 +22,7 @@ so neither secrets nor durable data are in version control.
 ```dotenv
 ENVIRONMENT=production
 DATABASE_PATH=/var/lib/marea-alta/marea_alta.db
+UPLOAD_DIR=/var/lib/marea-alta/uploads
 COOKIE_SECURE=true
 SESSION_TTL_HOURS=8
 RATE_LIMIT_ATTEMPTS=5
@@ -34,6 +35,7 @@ DAILY_LOG_PURGE=true
 |---|---|---|
 | `ENVIRONMENT` | `production` | Disables `/docs` and `/openapi.json`, and turns on HSTS |
 | `DATABASE_PATH` | Absolute path outside the repo | Survives deploys and is easy to back up |
+| `UPLOAD_DIR` | Absolute path outside the repo | Uploaded images are files, not database rows; this directory needs its own backup |
 | `COOKIE_SECURE` | `true` | Session cookies are only sent over HTTPS |
 | `SESSION_TTL_HOURS` | `8` | A shift-length session; lower it if the panel is shared |
 | `RATE_LIMIT_ATTEMPTS` | `5` | Failed logins per IP before a block |
@@ -56,6 +58,7 @@ The database directory should be writable by the service user and nobody else:
 
 ```bash
 sudo install -d -o mareaalta -g mareaalta -m 750 /var/lib/marea-alta
+sudo install -d -o mareaalta -g mareaalta -m 750 /var/lib/marea-alta/uploads
 ```
 
 Do not put the database under the repository. A `git clean`, a new checkout or a
@@ -112,6 +115,8 @@ nginx must:
 - proxy **`/` and `/menu` to uvicorn**, not serve `dist/index.html` or
   `dist/menu.html` from disk. Serving the files directly bypasses server-side
   rendering and puts the hours and menu back out of reach of crawlers;
+- proxy **`/uploads/` to uvicorn** as well. Those files are served by the app
+  with their cache headers, and the upload directory is outside the web root;
 - serve `/assets/` from `frontend/dist/assets/` with a long cache lifetime;
 - pass `Host`, `X-Forwarded-For` and `X-Forwarded-Proto` through, so audit-log
   IPs and any future redirect logic see the real client.
@@ -202,10 +207,17 @@ curl -fsS https://mareaaltabar.com/healthz
 
 ## Backups and restore
 
-The SQLite file is the bar's only copy of the schedule, hours, closures and
-menu. [`scripts/backup.sh`](../scripts/backup.py) copies it with SQLite's own
-backup API — not `cp`, which can capture a torn write — verifies every copy with
-`PRAGMA integrity_check`, and prunes old files by date.
+The SQLite file is the bar's only copy of the schedule, hours, closures, menu,
+content, submissions and reservations. [`scripts/backup.sh`](../scripts/backup.py)
+copies it with SQLite's own backup API — not `cp`, which can capture a torn write
+— verifies every copy with `PRAGMA integrity_check`, and prunes old files by date.
+
+Uploaded images live in `UPLOAD_DIR`, not in the SQLite file. The database backup
+does **not** contain them, so copy that directory off the box as well:
+
+```bash
+rsync -a --delete /var/lib/marea-alta/uploads/ backup@other-host:/srv/marea-alta/uploads/
+```
 
 ```bash
 sudo install -d -o mareaalta -g mareaalta -m 750 /var/backups/marea-alta

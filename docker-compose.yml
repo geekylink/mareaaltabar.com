@@ -30,6 +30,8 @@ services:
       # Database (and sessions and logs) on the volume, so data survives
       # rebuilds and `docker compose down`.
       DATABASE_PATH: /data/marea_alta.db
+      # Uploaded images share the volume, so they survive a rebuild too.
+      UPLOAD_DIR: /data/uploads
       # There is no TLS in this single-container setup, so the session cookies
       # must not be marked Secure or the admin login silently fails over plain
       # HTTP. Set this to "true" once HTTPS terminates in front of the container.

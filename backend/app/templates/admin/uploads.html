@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 62rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+        .upload-form { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+        .upload-form input[type="file"] {
+            flex: 1 1 18rem; min-width: 0; padding: 0.55rem;
+            border: 1.5px dashed #bbb; border-radius: 0.5rem; background: #fafafa;
+            font-size: 0.875rem;
+        }
+        .btn-primary {
+            background: #FF6B2C; color: #fff; border: none; padding: 0.65rem 1.2rem;
+            border-radius: 0.45rem; font-size: 0.9rem; font-weight: 700; cursor: pointer;
+        }
+        .btn-primary:hover { background: #e85a1c; }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .hint { font-size: 0.78rem; color: #888; margin-top: 0.6rem; }
+        .upload-row {
+            display: grid; grid-template-columns: 9rem 1fr auto; gap: 1rem;
+            padding: 1rem 0; border-bottom: 1px solid #eee; align-items: start;
+        }
+        .upload-row:last-child { border-bottom: none; }
+        .thumb {
+            width: 9rem; height: 6.5rem; object-fit: cover; border-radius: 0.5rem;
+            background: #eee; display: block;
+        }
+        .upload-main { min-width: 0; }
+        .upload-original {
+            font-size: 0.78rem; color: #666; word-break: break-all; margin-bottom: 0.2rem;
+        }
+        .upload-meta { font-size: 0.75rem; color: #888; margin-bottom: 0.6rem; }
+        .field { margin-bottom: 0.6rem; }
+        .field label {
+            display: block; font-size: 0.68rem; font-weight: 700; color: #777;
+            text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem;
+        }
+        .field input {
+            width: 100%; padding: 0.5rem 0.6rem; border: 1.5px solid #ddd;
+            border-radius: 0.4rem; font-size: 0.85rem; font-family: inherit;
+        }
+        .field input:focus { outline: none; border-color: #0B3C49; }
+        .actions { display: flex; flex-direction: column; gap: 0.45rem; }
+        .btn-small {
+            border: none; padding: 0.42rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-save { background: #E0F2FE; color: #075985; }
+        .btn-save:hover { background: #BAE6FD; }
+        .btn-copy { background: #E5E7EB; color: #374151; }
+        .btn-copy:hover { background: #D1D5DB; }
+        .btn-delete { background: #FEE2E2; color: #991B1B; }
+        .btn-delete:hover { background: #FECACA; }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        .success-banner {
+            background: #D1FAE5; color: #065F46; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            .upload-row { grid-template-columns: 1fr; }
+            .thumb { width: 100%; height: 12rem; }
+            .actions { flex-direction: row; flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <section class="section">
+            <h2 data-i18n="uploads_heading">Images</h2>
+            <p class="intro" data-i18n="uploads_intro">Upload a JPEG, PNG, WebP or GIF up to 10 MB. It is resized and re-encoded to WebP automatically; the original file is not kept.</p>
+
+            <div class="upload-form">
+                <input type="file" id="upload-file" accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Image file">
+                <button type="button" class="btn-primary" id="upload-button" data-i18n="upload_button">Upload image</button>
+            </div>
+            <p class="hint" data-i18n="upload_hint">JPEG, PNG, WebP or GIF · 10 MB maximum</p>
+        </section>
+
+        <section class="section">
+            <div id="uploads"><p class="empty-note" data-i18n="loading">Loading...</p></div>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var uploads = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            var headers = { 'X-CSRF-Token': csrf() };
+            if (options.body) headers['Content-Type'] = 'application/json';
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: headers,
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function formatSize(bytes) {
+            if (!bytes) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function showAlert(message, isSuccess) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="' + (isSuccess ? 'success-banner' : 'error-banner') + '"></div>';
+            slot.querySelector('div').textContent = message;
+            clearTimeout(slot._timer);
+            slot._timer = setTimeout(function () { slot.innerHTML = ''; }, 4000);
+        }
+
+        function render() {
+            var container = document.getElementById('uploads');
+            if (!uploads.length) {
+                container.innerHTML = '<p class="empty-note">' + esc(AdminI18n.t('upload_empty')) + '</p>';
+                return;
+            }
+
+            container.innerHTML = uploads.map(function (row) {
+                return '' +
+                '<div class="upload-row" data-id="' + row.id + '">' +
+                    '<img class="thumb" src="' + esc(row.thumb_url || row.url) + '" alt="' + esc(row.caption_en || '') + '" loading="lazy">' +
+                    '<div class="upload-main">' +
+                        '<div class="upload-original">' + esc(row.original_name) + '</div>' +
+                        '<div class="upload-meta">' + esc(row.width + ' × ' + row.height) + ' · ' + esc(formatSize(row.size_bytes)) + '</div>' +
+                        '<div class="field">' +
+                            '<label>' + esc(AdminI18n.t('upload_caption_en')) + '</label>' +
+                            '<input type="text" data-caption="caption_en" maxlength="500" value="' + esc(row.caption_en) + '">' +
+                        '</div>' +
+                        '<div class="field">' +
+                            '<label>' + esc(AdminI18n.t('upload_caption_es')) + '</label>' +
+                            '<input type="text" data-caption="caption_es" maxlength="500" value="' + esc(row.caption_es) + '">' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="actions">' +
+                        '<button type="button" class="btn-small btn-save" data-action="save">' + esc(AdminI18n.t('upload_save')) + '</button>' +
+                        '<button type="button" class="btn-small btn-copy" data-action="copy" data-url="' + esc(row.url) + '">' + esc(AdminI18n.t('upload_copy_url')) + '</button>' +
+                        '<button type="button" class="btn-small btn-delete" data-action="delete">' + esc(AdminI18n.t('upload_delete')) + '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function refresh() {
+            return api('/api/uploads').then(function (rows) {
+                uploads = rows || [];
+                render();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('upload_save_failed') + ' (' + err.message + ')', false);
+            });
+        }
+
+        function captionFor(row) {
+            var payload = {};
+            row.querySelectorAll('[data-caption]').forEach(function (input) {
+                payload[input.dataset.caption] = input.value;
+            });
+            return payload;
+        }
+
+        document.getElementById('upload-button').addEventListener('click', function () {
+            var button = this;
+            var input = document.getElementById('upload-file');
+            if (!input.files || !input.files.length) {
+                showAlert(AdminI18n.t('upload_failed'), false);
+                return;
+            }
+
+            var data = new FormData();
+            data.append('file', input.files[0]);
+
+            button.disabled = true;
+            button.textContent = AdminI18n.t('uploading');
+
+            fetch('/api/uploads', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrf() },
+                body: data
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (body) {
+                        throw new Error(body.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.json();
+            }).then(function () {
+                input.value = '';
+                showAlert(AdminI18n.t('upload_created'), true);
+                return refresh();
+            }).catch(function (err) {
+                showAlert(AdminI18n.t('upload_failed') + ' (' + err.message + ')', false);
+            }).finally(function () {
+                button.disabled = false;
+                button.textContent = AdminI18n.t('upload_button');
+            });
+        });
+
+        document.getElementById('uploads').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var row = button.closest('.upload-row');
+            var id = Number(row.dataset.id);
+
+            if (button.dataset.action === 'save') {
+                button.disabled = true;
+                api('/api/uploads/' + id, { method: 'PATCH', body: captionFor(row) }).then(function () {
+                    showAlert(AdminI18n.t('upload_saved'), true);
+                    return refresh();
+                }).catch(function (err) {
+                    showAlert(AdminI18n.t('upload_save_failed') + ' (' + err.message + ')', false);
+                }).finally(function () {
+                    button.disabled = false;
+                });
+                return;
+            }
+
+            if (button.dataset.action === 'copy') {
+                var url = window.location.origin + button.dataset.url;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(function () {
+                        showAlert(AdminI18n.t('upload_copied'), true);
+                    }).catch(function () {
+                        window.prompt(AdminI18n.t('upload_copy_url'), url);
+                    });
+                } else {
+                    window.prompt(AdminI18n.t('upload_copy_url'), url);
+                }
+                return;
+            }
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm(AdminI18n.t('upload_confirm_delete'))) return;
+                button.disabled = true;
+                api('/api/uploads/' + id, { method: 'DELETE' }).then(function () {
+                    showAlert(AdminI18n.t('upload_deleted'), true);
+                    return refresh();
+                }).catch(function (err) {
+                    showAlert(AdminI18n.t('upload_save_failed') + ' (' + err.message + ')', false);
+                    button.disabled = false;
+                });
+            }
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                render();
+                var button = document.getElementById('upload-button');
+                button.textContent = AdminI18n.t('upload_button');
+            });
+        });
+        document.addEventListener('admin:langchange', render);
+        syncLangButtons();
+        refresh();
+    })();
+    </script>
+</body>
+</html>

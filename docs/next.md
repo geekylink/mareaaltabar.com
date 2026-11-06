@@ -10,6 +10,13 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#50 Image upload pipeline** — admin-only `POST /api/uploads` accepts JPEG,
+  PNG, WebP and GIF up to 10 MB, verifies the bytes with Pillow, applies EXIF
+  orientation, resizes to 1600 px and a 480 px thumbnail, and re-encodes both to
+  WebP. Files live under `UPLOAD_DIR` (outside the database) and are served at
+  `/uploads/<random>.webp` with an immutable cache header. `/admin/uploads`
+  uploads, captions and deletes; every action is logged in the content area.
+  Tests: `backend/tests/test_uploads.py`.
 - **#16 Shared navigation** — one `Nav.svelte` now renders the header on `/` and
   `/menu`. The homepage links are in-page anchors; the menu page points back at
   `/#…`, drops the “Menu” item it is already on, and keeps the language selector.
@@ -73,14 +80,13 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
 | 36 | CI/CD rebuild (CI portion) | Rewrite workflow from `frontend/`, add PR CI and lint/check scripts. Deploy job needs VPS secrets. |
-| 50 | Image upload pipeline | Admin upload, resize/WebP, storage outside repo, serving route. |
 | 51 | Submission notification (fallback) | Shared inbox/unread count satisfies the useful half; email/WhatsApp needs a provider. |
 | 56 | CSV export / import | Admin export/import with per-row validation. |
 
 ## Buildable, but needs owner content/assets/credentials
 
-- **#8 Photo gallery** — engine can be built; needs photos and #50.
-- **#30 Signature drinks** — `is_featured` + section; needs photos (#50).
+- **#8 Photo gallery** — engine can be built; needs real photos (upload pipeline #50 is ready).
+- **#30 Signature drinks** — `is_featured` + section; needs photos (upload pipeline #50 is ready).
 - **#22 Birthday / package deals** — needs real package tiers and prices.
 - **#23 Merch / store** — needs products, sizes/colours, photos.
 - **#28 Photo contest / UGC** — needs photos, rules and consent wording.
@@ -105,9 +111,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#50** Image upload pipeline — it unblocks the gallery (#8), signature drinks
-   (#30) and real package/photos content, and is the largest remaining buildable
-   dependency.
-2. **#25** Event RSVP — the dated-events table (#53) now exists to attach it to.
-3. **#21** Loyalty program — buildable, but only useful once the owner decides
+1. **#25** Event RSVP — the dated-events table (#53) now exists to attach it to.
+2. **#21** Loyalty program — buildable, but only useful once the owner decides
    punches, rewards and expiry.
+3. **#31 PWA support** — manifest, service worker and an offline cache now that
+   the icon set (#9) exists.

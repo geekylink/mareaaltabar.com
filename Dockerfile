@@ -52,7 +52,8 @@ RUN useradd --create-home --uid 10001 appuser \
 USER appuser
 
 # The app's database (and therefore sessions and logs) lives on the volume.
-ENV DATABASE_PATH=/data/marea_alta.db
+ENV DATABASE_PATH=/data/marea_alta.db \
+    UPLOAD_DIR=/data/uploads
 VOLUME ["/data"]
 
 EXPOSE 8000

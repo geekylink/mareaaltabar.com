@@ -25,6 +25,7 @@ from app.routers import (
     logs,
     newsletter,
     reservations,
+    uploads,
 )
 from app.seed import seed_menu, seed_schedule
 from app.ssr import FRONTEND_DIST, INDEX_HTML, MENU_HTML, render_index, render_menu
@@ -188,6 +189,7 @@ app.include_router(contact.router)
 app.include_router(content.router)
 app.include_router(newsletter.router)
 app.include_router(reservations.router)
+app.include_router(uploads.router)
 app.include_router(logs.router)
 
 # Serve the built frontend from the same origin, so the site and the API that

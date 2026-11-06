@@ -559,7 +559,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 51 | Notify the bar on new submissions | 🟠 | 🟡 | Operations |
 | ✅ | 14 | Add reservation / booking system | 🟠 | 🟡 | Functionality |
 | ✅ | 52 | Emergency notice banner | 🟠 | 🟡 | Functionality |
-| | 50 | Image upload pipeline | 🟠 | 🟡 | Infrastructure |
+| ✅ | 50 | Image upload pipeline | 🟠 | 🟡 | Infrastructure |
 | | 8 | Add photo gallery | 🟠 | 🟡 | Functionality |
 | | 13 | Embed Instagram feed | 🟠 | 🟡 | Social Media |
 | ✅ | 53 | Dated / special events | 🟠 | 🟡 | Functionality |
@@ -605,8 +605,8 @@ Tickets ~~1~~, 18, 11, ~~49~~, ~~7~~, ~~17~~, ~~16~~, ~~10~~.
 *Goal: The menu exists, the owner can edit it, and it is indexable. ~~#1~~ is done — the menu is a database, an admin page and a `/menu` route — and ~~#49~~ added the `Menu` JSON-LD. ~~#7~~, ~~#17~~, ~~#16~~ and ~~#10~~ are also done. What is left is content (#18, #11).*
 
 **Sprint 4 — "Convert" (2 weeks)**
-Tickets ~~15~~, ~~12~~, 51, ~~14~~, ~~52~~, 50, 8, 13, 22, 19, 20.
-*Goal: Turn visitors into conversations. ~~#15~~, ~~#12~~ and ~~#14~~ are done. #51 is now the missing half — forms without a notification channel are worse than no form. #50 unlocks #8.*
+Tickets ~~15~~, ~~12~~, 51, ~~14~~, ~~52~~, ~~50~~, 8, 13, 22, 19, 20.
+*Goal: Turn visitors into conversations. ~~#15~~, ~~#12~~, ~~#14~~ and ~~#50~~ are done. #51 is now the missing half — forms without a notification channel are worse than no form. #8 still needs real photographs.*
 
 **Sprint 5 — "Events & community" (2–3 weeks)**
 Tickets 53, 25, 26, 21, 24, 28, 29, 27, 23.
@@ -636,6 +636,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## Reservation requests (#14)
 **Shipped** — A `reservations` table stores a bar-local date, time, party size, name, contact and notes. `POST /api/reservations` accepts today through 90 days ahead and 1–20 guests, uses a honeypot and a per-IP limiter, and always creates a `pending` row — this is a request, not a booking. `/admin/reservations` filters by status, confirms, declines, returns to pending and deletes; the dashboard shows a pending badge. No guest notification is sent because #51 is still blocked on provider credentials. `backend/tests/test_reservations.py` and `frontend/src/lib/reservation.test.js` cover validation, the queue and the request-not-booking copy.
+
+## Image upload pipeline (#50)
+**Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.
 
 ## Open Graph and social preview tags (#3)
 **Shipped** — Static `og:*` and Twitter card tags on `index.html` and `menu.html`, plus generated 1200×630 preview images. `frontend/src/seo.test.js` guards the tags and assets.

@@ -179,6 +179,20 @@ async def admin_content(request: Request, admin=Depends(get_current_admin)):
     )
 
 
+@router.get("/admin/uploads", response_class=HTMLResponse)
+async def admin_uploads(request: Request, admin=Depends(get_current_admin)):
+    """Image library: upload, caption and delete photos.
+
+    The files live outside the database (``settings.UPLOAD_DIR``); this page
+    only manages their metadata. Rows come from ``/api/uploads``.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/uploads.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
 @router.get("/admin/subscribers", response_class=HTMLResponse)
 async def admin_subscribers(request: Request, admin=Depends(get_current_admin)):
     """Newsletter signups, with deactivate/delete and a CSV export.

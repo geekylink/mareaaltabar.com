@@ -520,3 +520,36 @@ class Reservation(Base):
 # The panel asks for "pending first, then nearest date"; the dashboard counts
 # pending rows. This index serves both.
 Index("ix_reservations_status_date", Reservation.status, Reservation.date)
+
+
+class Upload(Base):
+    """One image uploaded through the admin panel (ticket #50).
+
+    The database stores metadata and filenames, never the bytes: the SQLite file
+    has to stay small enough for the backup script. ``filename`` and
+    ``thumb_filename`` are generated random names under ``settings.UPLOAD_DIR``,
+    both WebP. ``original_name`` is kept only so the owner can recognise the file
+    in the panel; it is never used as a path.
+
+    The caption is bilingual like every other piece of content. Alt text is the
+    caption for now — a separate field would be the right thing when a public
+    gallery lands (#8).
+    """
+
+    __tablename__ = "uploads"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    filename: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    thumb_filename: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    original_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    mime_type: Mapped[str] = mapped_column(String(64), nullable=False, default="image/webp")
+    width: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    height: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    caption_en: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    caption_es: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# The admin list is "newest first"; this index keeps it off a full scan.
+Index("ix_uploads_created", Upload.created_at)

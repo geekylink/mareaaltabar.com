@@ -806,6 +806,42 @@ class ReservationUpdate(BaseModel):
         return v
 
 
+# --- Uploaded images (ticket #50) -----------------------------------------
+
+UPLOAD_CAPTION_MAX = 500
+
+
+class UploadResponse(BaseModel):
+    """One stored image, with the URLs the panel and a future gallery need."""
+
+    id: int
+    filename: str
+    thumb_filename: str
+    url: str
+    thumb_url: str
+    original_name: str
+    mime_type: str
+    width: int
+    height: int
+    size_bytes: int
+    caption_en: str
+    caption_es: str
+    created_at: datetime
+
+
+class UploadUpdate(BaseModel):
+    """The only editable part of an upload: its bilingual caption."""
+
+    caption_en: str = Field(default="", max_length=UPLOAD_CAPTION_MAX)
+    caption_es: str = Field(default="", max_length=UPLOAD_CAPTION_MAX)
+
+    @model_validator(mode="after")
+    def _clean(self):
+        self.caption_en = clean_text(self.caption_en, max_length=UPLOAD_CAPTION_MAX)
+        self.caption_es = clean_text(self.caption_es, max_length=UPLOAD_CAPTION_MAX)
+        return self
+
+
 # --- Logs ---
 #
 # Read-only. There is no write model for either table and no route that accepts

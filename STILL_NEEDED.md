@@ -6,8 +6,8 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12 and #14** are complete and committed. See [`docs/next.md`](docs/next.md) for
-what was built and
+#12, #14 and #50** are complete and committed. See [`docs/next.md`](docs/next.md)
+for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
 ---
@@ -23,7 +23,8 @@ TLS certificate, DNS record or production database exists yet.
 - [ ] **Create `backend/.env` on the server** from the template in
       [`docs/deployment.md`](docs/deployment.md). At minimum:
       `ENVIRONMENT=production`, an absolute `DATABASE_PATH` outside the repo,
-      and `COOKIE_SECURE=true` **after** HTTPS works.
+      an absolute `UPLOAD_DIR` outside the repo, and `COOKIE_SECURE=true`
+      **after** HTTPS works.
 - [ ] **Install nginx and systemd**, proxy `/`, `/menu`, `/api` and `/admin` to
       uvicorn on `127.0.0.1:8000`, and serve `/assets/` from
       `frontend/dist/assets/`. Do **not** serve `index.html`/`menu.html`
@@ -32,6 +33,10 @@ TLS certificate, DNS record or production database exists yet.
       HSTS is production-only and should stay off until HTTPS is correct.
 - [ ] **Set file permissions**: `chmod 600 backend/.env`, database directory
       owned by the service user with mode `750`.
+- [ ] **Create the upload directory** (`UPLOAD_DIR`, e.g.
+      `/var/lib/marea-alta/uploads`) owned by the service user. Uploaded images
+      are **not** in the SQLite file, so the database backup does not include
+      them: add the directory to the off-site copy as well.
 - [ ] **Create the first admin** on the server:
       `python manage_admin.py create owner` (hidden password prompt).
 - [ ] **Schedule backups** with `scripts/backup.sh` and copy them **off the box**
@@ -99,9 +104,10 @@ fill in.
 - [ ] **Drink of the Day selection and copy** — pick the drink in
       `/admin/menu` and write its one-line description. The code supports one
       featured drink at a time; no drink is marked in the seed. Ticket **#10**.
-- [ ] **Photos** — venue, drinks, events, gallery. Tickets **#8**, **#30** and
-      **#50** need real images. The image **upload pipeline (#50)** is not built,
-      so #53 and the generic content rows (#17) accept an image **URL** only.
+- [ ] **Photos** — venue, drinks, events, gallery. The upload pipeline (#50) is
+      ready, but there are still no real photographs. Tickets **#8**, **#30**,
+      #53 and the generic content rows (#17) need images; a content row can use
+      an uploaded URL or an external link.
 - [ ] **“About Us” story** — the bar's history, founders, dates and tone.
       Ticket **#19**. The generic content tables are ready; only the copy is
       missing.
@@ -148,7 +154,8 @@ fill in.
       the public site and admin panel on a phone, Safari and Firefox, including
       the shared navigation (homepage and `/menu`), the Drink of the Day hero,
       the newsletter and reservation forms, the content editor, the subscriber
-      list and the reservation queue.
+      list, the reservation queue and the image uploader (including a real
+      phone photo and a large photo).
 - [ ] **Production HTTPS/cookie check** — confirm login works with
       `COOKIE_SECURE=true` and that the session survives a normal navigation.
 - [ ] **Real notification test** — once SMTP/WhatsApp exists, submit the contact
@@ -180,7 +187,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
 | 36 | CI/CD rebuild | CI portion buildable; deploy job needs VPS secrets. |
-| 50 | Image upload pipeline | Needed before photos can be uploaded instead of linked. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
 | 56 | CSV export / import | Admin export/import with per-row validation. |
 
@@ -226,6 +232,11 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   confirm/decline/reset actions do not notify the guest. Defaults are 1–20
   guests and today to 90 days ahead. Subscriber and reservation admin actions are
   **not** audited (matching inbox actions); content and menu writes are.
+- **Image uploads (#50)** — JPEG, PNG, WebP and GIF up to 10 MB, re-encoded to
+  WebP at 1600 px plus a 480 px thumbnail; the original is discarded. Filenames
+  are random and served with a one-year immutable cache header. There is no
+  public gallery yet (#8), no cropping/editing, and deleting an upload does not
+  rewrite content rows that already point at its URL.
 - **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 

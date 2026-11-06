@@ -19,6 +19,7 @@ Copy `.env` and adjust values as needed:
 |---|---|---|
 | `ENVIRONMENT` | `development` | Set to `production` to disable `/docs` and `/openapi.json` |
 | `DATABASE_PATH` | `./data/marea_alta.db` | SQLite file. Use an **absolute path outside the repo** in production |
+| `UPLOAD_DIR` | `./data/uploads` | Uploaded images. Use an **absolute path outside the repo** in production and back it up with the database |
 | `SESSION_TTL_HOURS` | `8` | Session lifetime in hours |
 | `COOKIE_SECURE` | `true` | Require HTTPS for the session cookies. Keep `false` only for local HTTP |
 | `RATE_LIMIT_ATTEMPTS` | `5` | Max failed logins per window before an IP is blocked |
@@ -101,6 +102,10 @@ stdin.
 
 Once logged in at `/admin`, you can:
 
+- **Images** (`/admin/uploads`): upload JPEG, PNG, WebP or GIF photos up to 10 MB.
+  Each is resized to 1600 px and re-encoded to WebP with a 480 px thumbnail; the
+  original is discarded. Edit bilingual captions, copy the image URL, or delete
+  the image and its files. Uploaded files live under `UPLOAD_DIR`, not in SQLite.
 - **Party Schedule** (`/admin/schedule`): one card per weekday holding the party
   title and description in **both English and Spanish**, plus that day's opening
   hours and a "closed" switch. Per-day **Save**, or **Save all days** at the top.

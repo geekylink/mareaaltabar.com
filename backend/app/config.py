@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DATABASE_PATH: str = str(BACKEND_DIR / "data" / "marea_alta.db")
 
+    # Uploaded images. Kept beside the database rather than in the checkout, and
+    # set to an absolute path outside the repo in production (see
+    # docs/deployment.md). The default lives under backend/data, which git
+    # ignores, so a development upload never becomes a committed file.
+    UPLOAD_DIR: str = str(BACKEND_DIR / "data" / "uploads")
+
     # Security. There is deliberately no application secret: sessions are
     # cryptographically random tokens stored in the `sessions` table, so there
     # is nothing for a SECRET_KEY to sign and nothing to rotate.
