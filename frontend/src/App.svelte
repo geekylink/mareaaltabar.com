@@ -10,6 +10,7 @@
   import Reservation from './lib/Reservation.svelte';
   import InstallPrompt from './lib/InstallPrompt.svelte';
   import Calendar from './lib/Calendar.svelte';
+  import Quiz from './lib/Quiz.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
@@ -187,6 +188,8 @@
 <!-- The menu renders outside the schedule's loading/error branch: a backend
      hiccup that blanks the week must not blank the drinks too, and vice versa. -->
 <Menu categories={menu} {lang} {loading} />
+
+<Quiz categories={menu} {lang} />
 
 <Reservation />
 

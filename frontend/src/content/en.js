@@ -50,6 +50,49 @@ export default {
   menu: { title: 'Drinks menu', subtitle: 'Cold beer, cocktails and whatever else the bar is pouring.', ingredients: 'Ingredients', promo: 'Promo', empty: 'The menu is being updated. Ask us for today\'s prices.', all: 'All prices in US dollars.' },
   // The one drink the owner marks in the admin menu. It renders in the hero.
   drinkOfDay: { eyebrow: 'Drink of the day', cta: 'See the full menu' },
+  // The "Perfect Drink" quiz. Questions and answers are labels only; the
+  // scoring rules live in lib/quizRules.js and resolve against the live menu.
+  quiz: {
+    title: 'Find your perfect drink',
+    subtitle: 'Three quick questions, one drink from the menu. No wrong answers.',
+    start: 'Start the quiz',
+    question: 'Question {n} of {total}',
+    back: 'Back',
+    retry: 'Try again',
+    resultTitle: 'Your drink is...',
+    resultEmpty: 'The menu is being updated. Ask us at the bar and we will find you something.',
+    share: 'Share result',
+    copied: 'Copied to the clipboard.',
+    questions: {
+      mood: {
+        label: 'What are you in the mood for?',
+        options: {
+          easy: 'Something cold and easy',
+          cocktail: 'A proper cocktail',
+          wine: 'Wine, please',
+          surprise: 'Surprise me',
+        },
+      },
+      taste: {
+        label: 'Sweet or strong?',
+        options: {
+          sweet: 'Sweet and fruity',
+          strong: 'Strong and bitter',
+          fresh: 'Fresh and sour',
+          any: 'No preference',
+        },
+      },
+      night: {
+        label: 'How is the night going?',
+        options: {
+          light: 'Just warming up',
+          long: 'Here for the long haul',
+          one: 'One perfect drink',
+          celebrate: 'Celebrating',
+        },
+      },
+    },
+  },
   // Requesting a table. The backend stores it as pending; nothing is confirmed
   // until the bar replies, which is why the copy says "request" everywhere.
   reservation: {

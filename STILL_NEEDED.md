@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50, #25, #31 and #26** are complete and committed. See [`docs/next.md`](docs/next.md)
+#12, #14, #50, #25, #31, #26 and #27** are complete and committed. See [`docs/next.md`](docs/next.md)
 for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -159,7 +159,8 @@ fill in.
       the public site and admin panel on a phone, Safari and Firefox, including
       the shared navigation (homepage and `/menu`), the Drink of the Day hero,
       the newsletter and reservation forms, the event RSVP form, the live music
-      calendar, the content editor, the subscriber list, the reservation queue,
+      calendar, the “Perfect Drink” quiz (including the share sheet on a real
+      phone), the content editor, the subscriber list, the reservation queue,
       the event guest list and the image uploader (including a real phone photo
       and a large photo).
 - [ ] **PWA install and offline check** — install the app on a real Android and
@@ -186,7 +187,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | # | Ticket | Note |
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
-| 27 | “Perfect Drink” quiz | Frontend only, resolves against `/api/menu`. |
 | 29 | Referral program | After #21; needs referral rules. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted choice. |
 | 33 | Accessibility pass | Public site and admin panel. |
@@ -256,11 +256,16 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   `VERSION` in `frontend/public/sw.js` when the shell changes, and serve
   `/sw.js` with `Cache-Control: no-cache` so a new worker is picked up. Install
   prompts require HTTPS (or localhost).
+- **“Perfect Drink” quiz (#27)** — three questions, scored against the menu the
+  visitor already loaded. Rules are a frontend module (`quizRules.js`), not a
+  database table, so changing the questions or keywords is a code change. The
+  cigarette category is excluded. Answers and results are not stored. The result
+  shares via the Web Share API, falling back to copying the current URL.
 - **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 
 ---
 
-_Last updated after tickets #16, #10, #17, #12 and #14. Keep this file honest:
+_Last updated after tickets #50, #25, #31, #26 and #27. Keep this file honest:
 delete a line when it is actually done, and add one when a new external
 dependency appears._

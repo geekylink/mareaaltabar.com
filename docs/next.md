@@ -10,6 +10,13 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#27 “Perfect Drink” quiz** — a three-question frontend quiz (`mood`, `taste`,
+  `night`) scores the live `/api/menu` categories and items, so a removed or
+  unavailable drink can never be recommended. Cigarettes are excluded. The result
+  shows name, category, price, description and ingredients, can be restarted, and
+  uses the Web Share API with a clipboard fallback. Nothing is persisted. Rules
+  live in `frontend/src/lib/quizRules.js`; copy is bilingual. Tests:
+  `frontend/src/lib/quizRules.test.js`, `frontend/src/lib/quiz.test.js`.
 - **#26 Live music calendar** — a month grid over the dated events (#53)
   replaces the flat special-events list on the homepage. It opens on the soonest
   event's month, marks event days, pages between months and shows the selected
@@ -93,7 +100,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | # | Ticket | Notes |
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
-| 27 | “Perfect Drink” quiz | Frontend quiz resolving against `/api/menu`. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted preference. |
 | 33 | Accessibility pass | Public site and admin panel audit/fixes. |
@@ -131,8 +137,8 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#27** “Perfect Drink” quiz — frontend-only, resolving against `/api/menu`.
-2. **#56** CSV import/export — the admin backup/edit path for menu, content,
+1. **#56** CSV import/export — the admin backup/edit path for menu, content,
    events and reservations.
-3. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
+2. **#32** Dark mode toggle — CSS variables, a persisted choice and no new
    backend.
+3. **#33** Accessibility pass — public site and admin panel audit/fixes.

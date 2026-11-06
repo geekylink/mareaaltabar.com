@@ -50,6 +50,49 @@ export default {
   menu: { title: 'Menú de bebidas', subtitle: 'Cerveza fría, cocteles y lo que más haya en la barra.', ingredients: 'Ingredientes', promo: 'Promo', empty: 'Estamos actualizando el menú. Pregúntanos los precios de hoy.', all: 'Todos los precios en dólares.' },
   // La bebida que el dueño marca en el menú del panel. Se muestra en el hero.
   drinkOfDay: { eyebrow: 'Bebida del día', cta: 'Ver el menú completo' },
+  // El quiz de la "bebida perfecta". Las preguntas son solo etiquetas; las
+  // reglas viven en lib/quizRules.js y se resuelven contra el menú real.
+  quiz: {
+    title: 'Encuentra tu bebida perfecta',
+    subtitle: 'Tres preguntas rápidas, una bebida del menú. No hay respuestas malas.',
+    start: 'Empezar el quiz',
+    question: 'Pregunta {n} de {total}',
+    back: 'Atrás',
+    retry: 'Intentar de nuevo',
+    resultTitle: 'Tu bebida es...',
+    resultEmpty: 'El menú se está actualizando. Pídenos en la barra y te encontramos algo.',
+    share: 'Compartir resultado',
+    copied: 'Copiado al portapapeles.',
+    questions: {
+      mood: {
+        label: '¿Qué te apetece?',
+        options: {
+          easy: 'Algo frío y fácil',
+          cocktail: 'Un cóctel de verdad',
+          wine: 'Vino, por favor',
+          surprise: 'Sorpréndeme',
+        },
+      },
+      taste: {
+        label: '¿Dulce o fuerte?',
+        options: {
+          sweet: 'Dulce y frutal',
+          strong: 'Fuerte y amargo',
+          fresh: 'Fresco y cítrico',
+          any: 'Sin preferencia',
+        },
+      },
+      night: {
+        label: '¿Cómo va la noche?',
+        options: {
+          light: 'Recién empezando',
+          long: 'Para toda la noche',
+          one: 'Una sola, perfecta',
+          celebrate: 'Celebrando',
+        },
+      },
+    },
+  },
   // Solicitar una mesa. El backend la guarda como pendiente; nada queda
   // confirmado hasta que el bar responde, por eso el texto dice «solicitud».
   reservation: {

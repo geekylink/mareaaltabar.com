@@ -569,7 +569,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 24 | Add blog / news section | 🟡 | 🟡 | SEO |
 | | 28 | Add photo contest / UGC | 🟡 | 🟡 | Social Media |
 | | 29 | Add referral program | 🟡 | 🟡 | Growth |
-| | 27 | Add "Perfect Drink" quiz | 🟡 | 🟡 | Engagement |
+| ✅ | 27 | Add "Perfect Drink" quiz | 🟡 | 🟡 | Engagement |
 | | 23 | Add merch / store section | 🟡 | 🟡 | Revenue |
 | | 35 | Expand automated testing | 🟠 | 🟡 | Quality |
 | | 37 | Add error tracking (Sentry) | 🟠 | 🟡 | DevOps |
@@ -609,8 +609,8 @@ Tickets ~~15~~, ~~12~~, 51, ~~14~~, ~~52~~, ~~50~~, 8, 13, 22, 19, 20.
 *Goal: Turn visitors into conversations. ~~#15~~, ~~#12~~, ~~#14~~ and ~~#50~~ are done. #51 is now the missing half — forms without a notification channel are worse than no form. #8 still needs real photographs.*
 
 **Sprint 5 — "Events & community" (2–3 weeks)**
-Tickets 53, 25, 26, 21, 24, 28, 29, 27, 23.
-*Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands.*
+Tickets 53, 25, 26, 21, 24, 28, 29, ~~27~~, 23.
+*Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
 Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
@@ -645,6 +645,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## Live music calendar (#26)
 **Shipped** — The homepage's flat special-events list is now a month calendar over the dated events from #53. It opens on the soonest event's month (not necessarily today), marks event days, pages forwards and backwards, and shows the selected day's bilingual title, time, description, optional image and RSVP form. The week starts on Sunday to match the schedule. Artist names and genres live in the event title and description; there is no separate artist table, social-link field or Bandsintown sync. `frontend/src/lib/calendar.test.js` covers the initial month, day selection, month paging, the empty month and Spanish.
+
+## “Perfect Drink” quiz (#27)
+**Shipped** — A three-question quiz on the homepage asks mood (cold and easy, cocktail, wine, surprise), taste (sweet, strong, fresh, no preference) and how the night is going. `frontend/src/lib/quizRules.js` scores the menu the visitor already loaded: a matching category is a strong signal, bilingual name/description/ingredient keywords break ties, and the cigarette category is excluded. Because it resolves against `GET /api/menu` data, a drink the owner hides or removes stops being recommended without a second list to maintain. The result shows the drink's name, category, price, description and ingredients, can be restarted, and shares through the Web Share API with a clipboard fallback. Answers and results are not stored. Rules are a plain module rather than a table so the copy can change without a migration. `frontend/src/lib/quizRules.test.js` and `frontend/src/lib/quiz.test.js` cover the scoring, the cigarette exclusion, the empty menu, the full flow, sharing and Spanish.
 
 ## Image upload pipeline (#50)
 **Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.
