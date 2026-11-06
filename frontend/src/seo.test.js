@@ -82,4 +82,33 @@ describe('public SEO files', () => {
       expect(pngSize(bytes)).toEqual({ width: 1200, height: 630 });
     }
   });
+
+  it('points both documents at the branded icon set', () => {
+    for (const html of [read('../index.html'), read('../menu.html')]) {
+      expect(html).toContain('<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" />');
+      expect(html).toContain('href="/icons/favicon-32.png" sizes="32x32"');
+      expect(html).toContain('href="/icons/favicon-16.png" sizes="16x16"');
+      expect(html).toContain('rel="apple-touch-icon" href="/icons/apple-touch-icon.png"');
+      expect(html).not.toContain('data:image/svg+xml');
+    }
+  });
+
+  it('ships every icon at its advertised size', () => {
+    const icons = {
+      '../public/icons/favicon-16.png': 16,
+      '../public/icons/favicon-32.png': 32,
+      '../public/icons/apple-touch-icon.png': 180,
+      '../public/icons/icon-192.png': 192,
+      '../public/icons/icon-512.png': 512,
+    };
+
+    for (const [path, size] of Object.entries(icons)) {
+      expect(pngSize(readBytes(path))).toEqual({ width: size, height: size });
+    }
+
+    expect(read('../public/icons/favicon.svg')).toContain('<svg');
+    expect(readBytes('../public/icons/favicon.ico').subarray(0, 4)).toEqual(
+      Buffer.from([0x00, 0x00, 0x01, 0x00])
+    );
+  });
 });

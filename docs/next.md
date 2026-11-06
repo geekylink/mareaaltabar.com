@@ -10,12 +10,14 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 
 - **#3 Open Graph / social preview tags** — static `og:*` and Twitter card tags on
   `/` and `/menu`, plus generated 1200×630 preview images. Tests: `seo.test.js`.
+- **#9 Favicon and app icons** — SVG, 16/32/180/192/512 PNGs and a multi-size
+  `.ico`; the emoji data-URI favicon is gone from the site and every admin page.
+  Tests: `seo.test.js`, `backend/tests/test_assets.py`.
 
 ## Remaining, ready to build here
 
 | # | Ticket | Notes |
 |---|--------|-------|
-| 9 | Favicon and app icons | Generate SVG + 16/32/180/192/512 PNGs; replace emoji favicon in site and admin templates. |
 | 7 | Happy hour / daily promos | Weekday/time/date windows on menu promos; live filtering; admin editing. |
 | 15 | Contact form + shared admin inbox | `submissions` table, IP + user agent, 1,000-char message cap, sanitization, honeypot, rate limit, `/admin/inbox` for all admins. |
 | 53 | Dated / special events | `special_events` table, public/admin API, SSR, frontend section, `/admin/events`. |
@@ -67,7 +69,6 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 
 ## Next up
 
-1. **#9** Favicon and app icons
-2. **#7** Happy hour / daily promos
-3. **#15** Contact form + shared admin inbox
-4. **#53** Dated / special events
+1. **#7** Happy hour / daily promos
+2. **#15** Contact form + shared admin inbox
+3. **#53** Dated / special events

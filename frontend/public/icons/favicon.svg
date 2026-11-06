@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Marea Alta Surf Bar">
+  <rect width="64" height="64" rx="14" fill="#0B3C49"/>
+  <circle cx="43" cy="23" r="14" fill="#FFB627"/>
+  <circle cx="49" cy="29" r="14" fill="#FFE08A"/>
+  <path d="M0 43 C10 37 21 37 32 43 S54 49 64 43 V64 H0 Z" fill="#125C6C"/>
+  <path d="M0 48 C10 42 21 42 32 48 S54 54 64 48 V64 H0 Z" fill="#FF6B2C"/>
+  <path d="M0 55 C10 50 21 50 32 55 S54 60 64 55 V64 H0 Z" fill="#0B3C49" opacity=".55"/>
+</svg>
