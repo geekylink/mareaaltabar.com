@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#3, #9, #7, #15, #53, #16, #10, #17,
-#12, #14, #50 and #25** are complete and committed. See [`docs/next.md`](docs/next.md)
+#12, #14, #50, #25 and #31** are complete and committed. See [`docs/next.md`](docs/next.md)
 for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
 
@@ -157,6 +157,9 @@ fill in.
       the newsletter and reservation forms, the event RSVP form, the content
       editor, the subscriber list, the reservation queue, the event guest list
       and the image uploader (including a real phone photo and a large photo).
+- [ ] **PWA install and offline check** — install the app on a real Android and
+      iPhone, confirm the manifest icons and standalone window, then load `/`
+      and `/menu` offline. The service worker is not exercised by jsdom tests.
 - [ ] **Production HTTPS/cookie check** — confirm login works with
       `COOKIE_SECURE=true` and that the session survives a normal navigation.
 - [ ] **Real notification test** — once SMTP/WhatsApp exists, submit the contact
@@ -181,7 +184,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 26 | Live music calendar | After #53; calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend only, resolves against `/api/menu`. |
 | 29 | Referral program | After #21; needs referral rules. |
-| 31 | PWA support | Manifest + service worker + offline cache. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted choice. |
 | 33 | Accessibility pass | Public site and admin panel. |
 | 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
@@ -241,6 +243,11 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
   capacity limit, waitlist or guest notification. A hidden or past event returns
   404. Deleting an event removes its guest list, and the admin delete is **not**
   audited (matching inbox and reservation actions).
+- **PWA (#31)** — the service worker caches the shell, pages, hashed assets and
+  the five public API reads; it never caches `/admin` or admin API reads. Bump
+  `VERSION` in `frontend/public/sw.js` when the shell changes, and serve
+  `/sw.js` with `Cache-Control: no-cache` so a new worker is picked up. Install
+  prompts require HTTPS (or localhost).
 - **No push** — all commits are local only. Nothing has been pushed to a
   remote.
 

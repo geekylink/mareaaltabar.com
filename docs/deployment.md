@@ -109,6 +109,9 @@ break-glass path if the panel cannot be reached.
 plain HTTP. That is only correct once HTTPS actually works, so bring up nginx
 and Let's Encrypt first, then set the flag and restart the service.
 
+The PWA install prompt also requires HTTPS (localhost is the only exception), so
+the app is not installable until TLS is live.
+
 nginx must:
 
 - terminate TLS and redirect `http://` to `https://`;
@@ -118,6 +121,9 @@ nginx must:
 - proxy **`/uploads/` to uvicorn** as well. Those files are served by the app
   with their cache headers, and the upload directory is outside the web root;
 - serve `/assets/` from `frontend/dist/assets/` with a long cache lifetime;
+- serve `/sw.js` with `Cache-Control: no-cache` so a new service worker is
+  picked up after a deploy. The worker itself caches the shell; do not add a
+  long cache to it. `/manifest.json` and `/offline.html` can be served normally;
 - pass `Host`, `X-Forwarded-For` and `X-Forwarded-Proto` through, so audit-log
   IPs and any future redirect logic see the real client.
 

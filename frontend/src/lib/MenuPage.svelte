@@ -3,6 +3,7 @@
   import Menu from './Menu.svelte';
   import NoticeBanner from './NoticeBanner.svelte';
   import Nav from './Nav.svelte';
+  import InstallPrompt from './InstallPrompt.svelte';
   import { t, locale } from './i18n.js';
   import { BAR } from './data.js';
   import { load } from './api.js';
@@ -56,6 +57,8 @@
 {:else}
   <Menu {categories} {lang} {loading} id="menu-top" heading={false} />
 {/if}
+
+<InstallPrompt />
 
 <footer>{$t.menu.all}</footer>
 

@@ -1,6 +1,9 @@
 import './app.css';
 import App from './App.svelte';
 import { mount } from 'svelte';
+import { registerServiceWorker } from './pwa.js';
+
+registerServiceWorker();
 
 const target = document.getElementById('app');
 

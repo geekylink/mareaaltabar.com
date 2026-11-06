@@ -577,7 +577,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
 | | 33 | Accessibility pass | ⚪ | 🟡 | Design |
 | | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
-| | 31 | Add PWA support | 🟠 | 🟡 | UX |
+| ✅ | 31 | Add PWA support | 🟠 | 🟡 | UX |
 | | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
 | | 40 | Add CDN in front of the server | ⚪ | 🟡 | Efficiency |
 | | 32 | Add dark mode toggle | ⚪ | 🟢 | Design |
@@ -639,6 +639,9 @@ Tickets 37, ~~54~~, 55, 33, 34, 31, 56, 40, 32.
 
 ## Event RSVPs (#25)
 **Shipped (free RSVP only)** — A separate `rsvps` table attaches a name, contact, party of 1–20 and notes to one `special_events` row; deleting the event cascades to its guest list. `POST /api/special-events/{id}/rsvp` is public, honeypot-protected and rate-limited per IP, and returns 404 for hidden, past or unknown events so a stranger cannot discover an unannounced party. Each event on the homepage gets an expandable RSVP form, and `/admin/rsvps` filters by event and shows both the number of RSVPs and the total number of people coming. Paid tickets are deliberately delegated to Eventbrite or Ticket Tailor; there is no payment, ticket code or guest notification (#51). `backend/tests/test_rsvp.py` and `frontend/src/lib/rsvp.test.js` cover validation, the event-state rules, the honeypot, rate limiting, the admin counts and cascade deletion.
+
+## PWA support (#31)
+**Shipped** — `frontend/public/manifest.json` makes the site installable with the existing 192 and 512 icons, standalone display and the brand colours. `frontend/public/sw.js` precaches the shell and an `offline.html` fallback, then uses network-first for navigations and the five public API reads (`/api/schedule`, `/api/closed-days`, `/api/menu`, `/api/notices`, `/api/special-events`), cache-first for hashed assets and `/uploads/`, and leaves `/admin` and every admin API read alone. Both entry points register the worker in production only. `InstallPrompt.svelte` shows a strip only when Chromium fires `beforeinstallprompt` and then uses the browser's own prompt. Installation requires HTTPS (or localhost); TLS comes from the deploy step. Bump `VERSION` in `sw.js` when the shell changes so the old cache is dropped. `frontend/src/pwa.test.js` and `frontend/src/lib/installPrompt.test.js` cover the manifest, the cache rules and the prompt.
 
 ## Image upload pipeline (#50)
 **Shipped** — `POST /api/uploads` is admin + CSRF only, accepts JPEG/PNG/WebP/GIF up to 10 MB, reads the format from the bytes rather than the request header, refuses decompression bombs by pixel count, applies EXIF orientation and re-encodes to WebP at 1600 px plus a 480 px thumbnail. Files are written under `UPLOAD_DIR` (default `backend/data/uploads`, an absolute path outside the repo in production) with random names; the `uploads` table stores only metadata and the two filenames. `GET /uploads/<name>.webp` serves the image with a one-year immutable cache header, and `/admin/uploads` uploads, edits bilingual captions and deletes. Uploads are logged in the content area. `backend/tests/test_uploads.py` covers the happy path, access control, format/size/pixel rejection, traversal, caption sanitisation and file cleanup.

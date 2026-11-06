@@ -10,6 +10,14 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#31 PWA support** — `/manifest.json` and a service worker make the site
+  installable. The worker precaches the shell (`/`, `/menu` and an offline
+  fallback), uses network-first for navigations and the five public API reads,
+  cache-first for hashed assets and uploaded images, and never touches `/admin`
+  or admin API reads. An `InstallPrompt.svelte` strip appears only when Chromium
+  fires `beforeinstallprompt`; registration is production-only and runs from
+  both entry points. Tests: `frontend/src/pwa.test.js`,
+  `frontend/src/lib/installPrompt.test.js`.
 - **#25 Event RSVPs** — free RSVPs attach to a dated event (#53), separate from
   table reservations. `POST /api/special-events/{id}/rsvp` accepts a name,
   contact, party of 1–20 and notes, with the same honeypot and per-IP limiter as
@@ -82,7 +90,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 | 26 | Live music calendar | After #53: calendar over dated events. |
 | 27 | “Perfect Drink” quiz | Frontend quiz resolving against `/api/menu`. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
-| 31 | PWA support | Manifest + service worker + offline cache; after #9. |
 | 32 | Dark mode toggle | CSS variables, toggle, persisted preference. |
 | 33 | Accessibility pass | Public site and admin panel audit/fixes. |
 | 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
@@ -121,6 +128,5 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 1. **#21** Loyalty program — buildable, but only useful once the owner decides
    punches, rewards and expiry.
-2. **#31 PWA support** — manifest, service worker and an offline cache now that
-   the icon set (#9) exists.
-3. **#26** Live music calendar — a calendar view over the dated events (#53).
+2. **#26** Live music calendar — a calendar view over the dated events (#53).
+3. **#27** “Perfect Drink” quiz — frontend-only, resolving against `/api/menu`.

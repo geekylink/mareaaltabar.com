@@ -9,6 +9,7 @@
   import Newsletter from './lib/Newsletter.svelte';
   import Reservation from './lib/Reservation.svelte';
   import EventRsvp from './lib/EventRsvp.svelte';
+  import InstallPrompt from './lib/InstallPrompt.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt } from './lib/i18n.js';
   import { BAR, SOCIALS } from './lib/data.js';
@@ -221,6 +222,8 @@
     {/each}
   </div>
 </section>
+
+<InstallPrompt />
 
 <footer>{fmt($t.footer, vars)}</footer>
 

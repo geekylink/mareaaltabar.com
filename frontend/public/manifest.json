@@ -1,0 +1,26 @@
+{
+  "name": "Marea Alta Surf Bar",
+  "short_name": "Marea Alta",
+  "description": "Surf and tide conditions, the weekly party schedule and the drinks menu for Marea Alta Surf Bar, Montañita, Ecuador.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FFF6E8",
+  "theme_color": "#0B3C49",
+  "categories": ["food", "travel", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

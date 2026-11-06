@@ -82,6 +82,12 @@ export default {
     error: 'Could not send your RSVP. Please try again.',
     honeypot: 'Leave this field blank',
   },
+  // Install prompt. Chromium only; the strip renders when the browser offers it.
+  install: {
+    title: 'Install Marea Alta',
+    text: 'Add the bar to your home screen for the schedule and menu offline.',
+    button: 'Install app',
+  },
   // Newsletter signup. The address is stored with the consent checkbox; there
   // is no provider connected yet and no unsubscribe link in an email.
   newsletter: {

@@ -82,6 +82,12 @@ export default {
     error: 'No se pudo enviar tu RSVP. Inténtalo de nuevo.',
     honeypot: 'Deja este campo vacío',
   },
+  // Aviso de instalación. Solo Chromium; la franja aparece cuando el navegador lo ofrece.
+  install: {
+    title: 'Instalar Marea Alta',
+    text: 'Añade el bar a tu pantalla de inicio para ver el horario y el menú sin conexión.',
+    button: 'Instalar app',
+  },
   // Suscripción al boletín. La dirección se guarda con la casilla de
   // consentimiento; todavía no hay proveedor conectado ni enlace de baja.
   newsletter: {
