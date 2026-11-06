@@ -2,6 +2,7 @@
   import { onDestroy } from 'svelte';
   import Surf from './lib/Surf.svelte';
   import Menu from './lib/Menu.svelte';
+  import ContactForm from './lib/ContactForm.svelte';
   import NoticeBanner from './lib/NoticeBanner.svelte';
   import { tideLevel } from './lib/tide.js';
   import { t, locale, fmt, LANGS } from './lib/i18n.js';
@@ -91,6 +92,7 @@
         <a href="#surf">{$t.nav.surf}</a>
         <a href="#party">{$t.nav.party}</a>
         <a href="#menu">{$t.nav.menu}</a>
+        <a href="#contact">{$t.nav.contact}</a>
         <a href="#visit">{$t.nav.visit}</a>
       </div>
       <select class="lang" bind:value={$locale} aria-label={$t.ui.language}>
@@ -182,6 +184,8 @@
      hiccup that blanks the week must not blank the drinks too, and vice versa. -->
 <Menu categories={menu} {lang} {loading} />
 
+<ContactForm />
+
 <section class="visit" id="visit" aria-labelledby="visit-h">
   <h2 id="visit-h">{$t.visit.title}</h2>
   <p>{fmt($t.visit.text, vars)}</p>
@@ -251,7 +255,7 @@
   .error-state .btn { margin-top: 1rem; }
 
   .party { padding: 4rem 1.25rem; max-width: 68rem; margin-inline: auto; }
-  :global(#menu) { scroll-margin-top: 2rem; }
+  :global(#menu), :global(#contact) { scroll-margin-top: 2rem; }
   .section-header { display: flex; justify-content: space-between; align-items: center; }
   .btn-refresh {
     background: none;

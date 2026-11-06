@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Marea Alta Admin</title>
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="icon" href="/icons/favicon-16.png" sizes="16x16" type="image/png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #f5f5f5;
+            color: #1D1A17;
+        }
+        header {
+            background: #0B3C49; color: #fff; padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 1rem; flex-wrap: wrap;
+        }
+        header h1 { font-size: 1.25rem; font-weight: 700; }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; flex-wrap: wrap; }
+        .lang-switch { display: flex; border: 1px solid rgba(255,255,255,0.4); border-radius: 0.4rem; overflow: hidden; }
+        .lang-switch button {
+            background: transparent; color: #fff; border: none; padding: 0.3rem 0.65rem;
+            font-size: 0.75rem; font-weight: 700; cursor: pointer;
+        }
+        .lang-switch button[aria-pressed="true"] { background: rgba(255,255,255,0.25); }
+        .btn-logout {
+            background: rgba(255,255,255,0.15); color: #fff; border: none;
+            padding: 0.4rem 0.9rem; border-radius: 0.4rem; font-size: 0.8rem;
+            text-decoration: none; cursor: pointer;
+        }
+        .btn-logout:hover { background: rgba(255,255,255,0.25); }
+        main { max-width: 56rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+        .back-link {
+            display: inline-block; margin-bottom: 1.25rem; color: #0B3C49;
+            text-decoration: none; font-size: 0.875rem; font-weight: 600;
+        }
+        .section {
+            background: #fff; border-radius: 0.85rem; padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .section h2 { font-size: 1.2rem; color: #0B3C49; margin-bottom: 0.35rem; }
+        .section .intro { font-size: 0.875rem; color: #666; margin-bottom: 1.25rem; line-height: 1.5; }
+        .inbox-count { font-size: 0.8rem; color: #777; margin-bottom: 1rem; }
+        .message {
+            border: 1px solid #eee; border-left: 4px solid #ddd;
+            border-radius: 0.6rem; padding: 1rem; margin-bottom: 0.9rem;
+        }
+        .message.unread { border-left-color: #FF6B2C; background: #FFFBF7; }
+        .message-head {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 1rem; margin-bottom: 0.6rem;
+        }
+        .message-main { min-width: 0; }
+        .message h3 { font-size: 1rem; color: #0B3C49; margin-bottom: 0.3rem; word-break: break-word; }
+        .meta { font-size: 0.78rem; color: #777; line-height: 1.5; word-break: break-word; }
+        .message .body {
+            font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap;
+            margin: 0.6rem 0; word-break: break-word;
+        }
+        .ua { display: inline-block; max-width: 26rem; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; white-space: nowrap; }
+        .badge {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.04em; padding: 0.18rem 0.45rem; border-radius: 999px;
+            white-space: nowrap;
+        }
+        .badge.unread { background: #FFEDD5; color: #9A3412; }
+        .badge.read { background: #E5E7EB; color: #4B5563; }
+        .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+        .btn-small {
+            border: none; padding: 0.4rem 0.75rem; border-radius: 0.35rem;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+        }
+        .btn-toggle { background: #E0F2FE; color: #075985; }
+        .btn-toggle:hover { background: #BAE6FD; }
+        .btn-delete { background: #FEE2E2; color: #991B1B; }
+        .btn-delete:hover { background: #FECACA; }
+        .empty-note { font-size: 0.875rem; color: #888; padding: 0.75rem 0; }
+        .error-banner {
+            background: #FEE2E2; color: #991B1B; padding: 0.85rem 1rem;
+            border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.9rem;
+        }
+        @media (max-width: 720px) {
+            .message-head { flex-direction: column; }
+            .ua { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 data-i18n="app_title">Marea Alta Admin</h1>
+        <div class="user-info">
+            <div class="lang-switch" role="group">
+                <button type="button" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" data-lang="es" aria-pressed="false">ES</button>
+            </div>
+            <span data-i18n="logged_in_as" data-i18n-args='{"username": "{{ admin.username }}"}'>Signed in as {{ admin.username }}</span>
+            <a href="/admin/account" class="btn-logout" data-i18n="account_title">Account</a>
+            <form method="POST" action="/admin/logout" style="display:inline;">
+                <button type="submit" class="btn-logout" data-i18n="logout">Log out</button>
+            </form>
+        </div>
+    </header>
+
+    <main>
+        <a href="/admin" class="back-link">&larr; <span data-i18n="back">Back to dashboard</span></a>
+
+        <div id="alert-slot"></div>
+
+        <section class="section">
+            <h2 data-i18n="inbox_heading">Messages</h2>
+            <p class="intro" data-i18n="inbox_intro">Messages sent from the contact form. Every admin sees the same inbox, so nothing waits on one person.</p>
+            <p class="inbox-count" id="inbox-count"></p>
+            <div id="messages"><p class="empty-note" data-i18n="loading">Loading...</p></div>
+        </section>
+    </main>
+
+    <script nonce="{{ request.state.csp_nonce }}">
+        window.__ADMIN_STRINGS__ = {{ __ADMIN_STRINGS__ | tojson }};
+        window.__ADMIN_SUPPORTED__ = {{ __ADMIN_SUPPORTED__ | tojson }};
+    </script>
+    <script src="/admin/static/admin_i18n.js"></script>
+    <script nonce="{{ request.state.csp_nonce }}">
+    (function () {
+        'use strict';
+
+        var submissions = [];
+
+        function csrf() {
+            var m = document.cookie.match(/csrf_token=([^;]+)/);
+            return m ? m[1] : '';
+        }
+
+        function api(url, options) {
+            options = options || {};
+            return fetch(url, {
+                method: options.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf()
+                },
+                body: options.body ? JSON.stringify(options.body) : undefined
+            }).then(function (res) {
+                if (!res.ok) {
+                    return res.json().catch(function () { return {}; }).then(function (data) {
+                        throw new Error(data.detail || ('HTTP ' + res.status));
+                    });
+                }
+                return res.status === 204 ? null : res.json();
+            });
+        }
+
+        var HTML_ESCAPES = {
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        };
+
+        function esc(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+                return HTML_ESCAPES[ch];
+            });
+        }
+
+        function t(key, args) {
+            var template = AdminI18n.t(key);
+            if (!args) return template;
+            return template.replace(/\{(\w+)\}/g, function (match, name) {
+                return args[name] != null ? args[name] : match;
+            });
+        }
+
+        function showAlert(message) {
+            var slot = document.getElementById('alert-slot');
+            slot.innerHTML = '<div class="error-banner"></div>';
+            slot.querySelector('.error-banner').textContent = message;
+        }
+
+        // Timestamps arrive labelled UTC; render them in the reader's locale.
+        function when(iso) {
+            var date = new Date(iso);
+            return isNaN(date.getTime()) ? esc(iso) : esc(date.toLocaleString());
+        }
+
+        function unreadCount() {
+            return submissions.filter(function (item) { return !item.is_read; }).length;
+        }
+
+        function render() {
+            var box = document.getElementById('messages');
+            document.getElementById('inbox-count').textContent =
+                t('inbox_unread_count', { count: unreadCount() });
+
+            if (!submissions.length) {
+                box.innerHTML = '<p class="empty-note">' + esc(t('inbox_empty')) + '</p>';
+                return;
+            }
+
+            box.innerHTML = submissions.map(function (item) {
+                var subject = item.subject || t('inbox_no_subject');
+                return '' +
+                '<article class="message' + (item.is_read ? '' : ' unread') + '" data-id="' + item.id + '">' +
+                    '<div class="message-head">' +
+                        '<div class="message-main">' +
+                            '<h3>' + esc(subject) + '</h3>' +
+                            '<p class="meta">' +
+                                esc(t('inbox_from')) + ': <b>' + esc(item.name) + '</b>' +
+                                ' &middot; ' + esc(t('inbox_contact')) + ': ' + esc(item.contact) +
+                            '</p>' +
+                        '</div>' +
+                        '<span class="badge ' + (item.is_read ? 'read' : 'unread') + '">' +
+                            esc(item.is_read ? t('inbox_read') : t('inbox_unread_label')) +
+                        '</span>' +
+                    '</div>' +
+                    '<p class="body">' + esc(item.message) + '</p>' +
+                    '<p class="meta">' +
+                        esc(t('inbox_received')) + ': ' + when(item.created_at) +
+                        ' &middot; ' + esc(t('inbox_ip')) + ': ' + esc(item.ip) +
+                        (item.user_agent
+                            ? ' &middot; ' + esc(t('inbox_browser')) + ': <span class="ua" title="' +
+                                esc(item.user_agent) + '">' + esc(item.user_agent) + '</span>'
+                            : '') +
+                    '</p>' +
+                    '<div class="actions">' +
+                        '<button type="button" class="btn-small btn-toggle" data-action="toggle">' +
+                            esc(item.is_read ? t('inbox_mark_unread') : t('inbox_mark_read')) +
+                        '</button>' +
+                        '<button type="button" class="btn-small btn-delete" data-action="delete">' +
+                            esc(t('inbox_delete')) +
+                        '</button>' +
+                    '</div>' +
+                '</article>';
+            }).join('');
+        }
+
+        function refresh() {
+            return api('/api/submissions').then(function (data) {
+                submissions = data.submissions || [];
+                render();
+            }).catch(function (err) {
+                showAlert(err.message || t('inbox_update_failed'));
+            });
+        }
+
+        document.getElementById('messages').addEventListener('click', function (event) {
+            var button = event.target.closest('[data-action]');
+            if (!button) return;
+            var article = button.closest('.message');
+            var id = Number(article.dataset.id);
+            var item = submissions.find(function (row) { return row.id === id; });
+            if (!item) return;
+
+            if (button.dataset.action === 'delete') {
+                if (!window.confirm(t('inbox_confirm_delete'))) return;
+                button.disabled = true;
+                api('/api/submissions/' + id, { method: 'DELETE' }).then(refresh).catch(function (err) {
+                    showAlert(err.message || t('inbox_delete_failed'));
+                    button.disabled = false;
+                });
+                return;
+            }
+
+            if (button.dataset.action === 'toggle') {
+                button.disabled = true;
+                api('/api/submissions/' + id, {
+                    method: 'PATCH',
+                    body: { is_read: !item.is_read }
+                }).then(refresh).catch(function (err) {
+                    showAlert(err.message || t('inbox_update_failed'));
+                    button.disabled = false;
+                });
+            }
+        });
+
+        function syncLangButtons() {
+            document.querySelectorAll('.lang-switch button').forEach(function (b) {
+                b.setAttribute('aria-pressed', String(b.dataset.lang === AdminI18n.lang));
+            });
+        }
+        document.querySelectorAll('.lang-switch button').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                AdminI18n.setLang(btn.dataset.lang);
+                syncLangButtons();
+                render();
+            });
+        });
+        document.addEventListener('admin:langchange', render);
+        syncLangButtons();
+        refresh();
+    })();
+    </script>
+</body>
+</html>

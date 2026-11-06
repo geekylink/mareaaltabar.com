@@ -98,6 +98,11 @@
         .card h3 { font-size: 1.1rem; color: #0B3C49; margin-bottom: 0.5rem; }
         .card p { font-size: 0.875rem; color: #666; line-height: 1.5; }
         .card .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+        .card .badge {
+            display: inline-block; margin-top: 0.75rem;
+            background: #FF6B2C; color: #fff; border-radius: 999px;
+            padding: 0.2rem 0.65rem; font-size: 0.75rem; font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -136,6 +141,14 @@
                 <div class="icon">📣</div>
                 <h3 data-i18n="card_notices_title">Emergency Notice</h3>
                 <p data-i18n="card_notices_body">Put a short message at the top of the site: a closure, a power cut, a last-minute change.</p>
+            </a>
+            <a href="/admin/inbox" class="card">
+                <div class="icon">📬</div>
+                <h3 data-i18n="card_inbox_title">Messages</h3>
+                <p data-i18n="card_inbox_body">Contact-form messages from the site. Every admin sees the same inbox.</p>
+                {% if unread_submissions %}
+                <span class="badge">{{ unread_submissions }} <span data-i18n="inbox_unread">unread</span></span>
+                {% endif %}
             </a>
             <a href="/admin/logs" class="card">
                 <div class="icon">🧾</div>

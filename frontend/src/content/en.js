@@ -7,7 +7,7 @@ export default {
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Live surf and tide conditions, plus the weekly party schedule.',
   },
   ui: { language: 'Language', mainNav: 'Main', refresh: 'Refresh', loading: 'Loading...', error: 'Error' },
-  nav: { surf: 'Surf', party: 'Party', menu: 'Menu', visit: 'Visit' },
+  nav: { surf: 'Surf', party: 'Party', menu: 'Menu', contact: 'Contact', visit: 'Visit' },
   hero: {
     line1: 'Surf by day.',
     line2: 'Dance by night.',
@@ -45,6 +45,22 @@ export default {
   // These four labels are duplicated in backend/app/public_i18n.py for the
   // server-rendered block, and publicI18n.test.js fails if the two drift apart.
   menu: { title: 'Drinks menu', subtitle: 'Cold beer, cocktails and whatever else the bar is pouring.', ingredients: 'Ingredients', promo: 'Promo', empty: 'The menu is being updated. Ask us for today\'s prices.', all: 'All prices in US dollars.' },
+  // The contact form posts to /api/contact. The message cap is enforced here so
+  // a visitor sees it before typing, and again on the server.
+  contact: {
+    title: 'Get in touch',
+    subtitle: 'Questions, a booking, or a song request? Send us a message.',
+    name: 'Your name',
+    contact: 'Email or phone',
+    subject: 'Subject (optional)',
+    message: 'Message',
+    messageHint: '{count}/1000 characters',
+    send: 'Send message',
+    sending: 'Sending...',
+    sent: 'Thanks! We will get back to you soon.',
+    error: 'Could not send your message. Please try again, or find us on social media.',
+    honeypot: 'Leave this field blank',
+  },
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   visit: {
     title: 'Find us',

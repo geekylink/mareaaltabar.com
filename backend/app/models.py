@@ -319,3 +319,36 @@ class Notice(Base):
 # The public read is "currently live notices, newest first", which is exactly
 # what this index serves once a year of emergency banners has accumulated.
 Index("ix_notices_active_created", Notice.is_active, Notice.created_at)
+
+
+class Submission(Base):
+    """One message from the public contact form.
+
+    There is deliberately no email-delivery column or status: the shared admin
+    inbox is the delivery mechanism (#15), and a message that has been read is
+    still kept until an admin deletes it. ``ip`` and ``user_agent`` are stored
+    for the same reason the login log stores them — to tell a real visitor apart
+    from a script — but the public site never reads this table.
+
+    ``name``, ``contact``, ``subject`` and ``message`` are sanitised before they
+    are stored (see ``app.sanitize``), and every template renders them through
+    Jinja autoescape or the panel's ``esc()``. The 1,000-character message cap is
+    enforced by the request schema as well as the form.
+    """
+
+    __tablename__ = "submissions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    contact: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    subject: Mapped[str] = mapped_column(String(160), nullable=False, default="")
+    message: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    ip: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    user_agent: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# The inbox asks for "unread first, then newest"; the badge asks for a count of
+# unread rows. This index serves both without scanning the table.
+Index("ix_submissions_unread_created", Submission.is_read, Submission.created_at)

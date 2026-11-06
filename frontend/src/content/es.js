@@ -7,7 +7,7 @@ export default {
     description: 'Marea Alta Surf Bar, Montañita, Ecuador. Condiciones de surf y marea en vivo, más la programación semanal de fiestas.',
   },
   ui: { language: 'Idioma', mainNav: 'Principal', refresh: 'Actualizar', loading: 'Cargando...', error: 'Error' },
-  nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', visit: 'Ubicación' },
+  nav: { surf: 'Surf', party: 'Fiestas', menu: 'Menú', contact: 'Contacto', visit: 'Ubicación' },
   hero: {
     line1: 'Surf de día.',
     line2: 'Baile de noche.',
@@ -45,6 +45,22 @@ export default {
   // Estas cuatro etiquetas están duplicadas en backend/app/public_i18n.py para el
   // bloque renderizado en el servidor, y publicI18n.test.js falla si se separan.
   menu: { title: 'Menú de bebidas', subtitle: 'Cerveza fría, cocteles y lo que más haya en la barra.', ingredients: 'Ingredientes', promo: 'Promo', empty: 'Estamos actualizando el menú. Pregúntanos los precios de hoy.', all: 'Todos los precios en dólares.' },
+  // El formulario de contacto envía a /api/contact. El límite se muestra aquí
+  // para que se vea antes de escribir, y se vuelve a aplicar en el servidor.
+  contact: {
+    title: 'Escríbenos',
+    subtitle: '¿Preguntas, una reserva o una canción? Mándanos un mensaje.',
+    name: 'Tu nombre',
+    contact: 'Correo o teléfono',
+    subject: 'Asunto (opcional)',
+    message: 'Mensaje',
+    messageHint: '{count}/1000 caracteres',
+    send: 'Enviar mensaje',
+    sending: 'Enviando...',
+    sent: '¡Gracias! Te responderemos pronto.',
+    error: 'No se pudo enviar tu mensaje. Inténtalo de nuevo o búscanos en redes sociales.',
+    honeypot: 'Deja este campo vacío',
+  },
   days: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
   visit: {
     title: 'Encuéntranos',

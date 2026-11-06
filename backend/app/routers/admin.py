@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
@@ -22,7 +22,7 @@ from app.admin_i18n import SUPPORTED, strings_for
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_admin, get_current_session
-from app.models import Admin
+from app.models import Admin, Submission
 
 router = APIRouter()
 
@@ -69,11 +69,29 @@ async def admin_login_page(request: Request, error: str | None = None):
 
 
 @router.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(request: Request, admin=Depends(get_current_admin)):
+async def admin_dashboard(
+    request: Request,
+    admin=Depends(get_current_admin),
+    db: DBSession = Depends(get_db),
+):
+    """The dashboard, with the shared inbox's unread count on its card.
+
+    Server-rendered rather than fetched: the count is one cheap query, and a
+    badge that appears a moment after the page does is easy to miss. The inbox
+    page itself refreshes the list, so the number cannot go stale while someone
+    is reading messages.
+    """
+    unread = db.scalar(
+        select(func.count(Submission.id)).where(Submission.is_read.is_(False))
+    ) or 0
     return templates.TemplateResponse(
         request=request,
         name="admin/dashboard.html",
-        context={"admin": admin, **_i18n_payload()},
+        context={
+            "admin": admin,
+            "unread_submissions": unread,
+            **_i18n_payload(),
+        },
     )
 
 
@@ -106,6 +124,21 @@ async def admin_notices(request: Request, admin=Depends(get_current_admin)):
     return templates.TemplateResponse(
         request=request,
         name="admin/notices.html",
+        context={"admin": admin, **_i18n_payload()},
+    )
+
+
+@router.get("/admin/inbox", response_class=HTMLResponse)
+async def admin_inbox(request: Request, admin=Depends(get_current_admin)):
+    """The shared contact-form inbox, visible to every signed-in admin.
+
+    The rows come from ``/api/submissions``, which is session-guarded and shared
+    rather than per-admin. Marking read and deleting go through the same API, so
+    the page has no write path of its own.
+    """
+    return templates.TemplateResponse(
+        request=request,
+        name="admin/inbox.html",
         context={"admin": admin, **_i18n_payload()},
     )
 

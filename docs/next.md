@@ -18,12 +18,17 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
   publish live offers; the admin read keeps every offer with `is_live`, and the
   panel edits the window per promo. Tests: `test_api_menu.py`,
   `test_migrations.py`, `test_ssr.py`, `menu.test.js`.
+- **#15 Contact form + shared admin inbox** — public `POST /api/contact` with a
+  1,000-character message cap, tag/control-character stripping, a honeypot and
+  per-IP rate limiting. Messages store IP and user agent and land in
+  `/admin/inbox`, shared by every admin, with read/unread and delete. The
+  dashboard shows an unread badge. Tests: `backend/tests/test_contact.py`,
+  `frontend/src/lib/contact.test.js`.
 
 ## Remaining, ready to build here
 
 | # | Ticket | Notes |
 |---|--------|-------|
-| 15 | Contact form + shared admin inbox | `submissions` table, IP + user agent, 1,000-char message cap, sanitization, honeypot, rate limit, `/admin/inbox` for all admins. |
 | 53 | Dated / special events | `special_events` table, public/admin API, SSR, frontend section, `/admin/events`. |
 | 10 | Drink of the Day hero banner | Featured/daily menu item plus admin control. |
 | 12 | Newsletter signup | `subscribers` table, public endpoint, admin list, abuse protection. |
@@ -73,5 +78,4 @@ Source of truth for the full backlog: [`readme-tickets.md`](readme-tickets.md).
 
 ## Next up
 
-1. **#15** Contact form + shared admin inbox
-2. **#53** Dated / special events
+1. **#53** Dated / special events

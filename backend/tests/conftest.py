@@ -11,15 +11,18 @@ from app.database import get_db
 from app.main import app
 from app.models import Admin, Base
 from app.routers.auth import reset_rate_limit
+from app.routers.contact import reset_rate_limit as reset_contact_rate_limit
 from app.seed import seed_menu, seed_schedule
 
 
 @pytest.fixture(autouse=True)
 def _reset_rate_limiter():
-    """Keep the in-memory login rate limiter from leaking between tests."""
+    """Keep the in-memory rate limiters from leaking between tests."""
     reset_rate_limit()
+    reset_contact_rate_limit()
     yield
     reset_rate_limit()
+    reset_contact_rate_limit()
 
 
 @pytest.fixture()

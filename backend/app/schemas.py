@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 # One clock decides both what can be created and what gets published, so the
 # write guard asks the same `app.ssr` the read filter uses.
+from app.sanitize import clean_text
 from app.ssr import bar_today
 
 
@@ -339,6 +340,83 @@ class MenuResponse(BaseModel):
 
 MenuCategoryResponse.model_rebuild()
 MenuItemResponse.model_rebuild()
+
+
+# --- Contact form and the shared inbox ---
+
+CONTACT_NAME_MAX = 120
+CONTACT_DETAIL_MAX = 200
+CONTACT_SUBJECT_MAX = 160
+CONTACT_MESSAGE_MAX = 1000
+
+
+class ContactWrite(BaseModel):
+    """One public contact-form submission.
+
+    ``message`` is capped at 1,000 characters — a number the form also enforces,
+    so the limit is visible before a visitor types rather than only after a
+    rejected submit. ``website`` is the honeypot: a hidden field real people do
+    not fill in. It is accepted rather than rejected so a bot gets the same
+    success response as a person.
+
+    The fields are cleaned here, not in the route, so every caller — the public
+    endpoint now, an import or a test later — gets the same plain text.
+    """
+
+    name: str = Field(default="", max_length=CONTACT_NAME_MAX)
+    contact: str = Field(default="", max_length=CONTACT_DETAIL_MAX)
+    subject: str = Field(default="", max_length=CONTACT_SUBJECT_MAX)
+    message: str = Field(default="", max_length=CONTACT_MESSAGE_MAX)
+    website: str = Field(default="", max_length=200)
+
+    @model_validator(mode="after")
+    def _clean_and_require(self):
+        self.name = clean_text(self.name, max_length=CONTACT_NAME_MAX)
+        self.contact = clean_text(self.contact, max_length=CONTACT_DETAIL_MAX)
+        self.subject = clean_text(self.subject, max_length=CONTACT_SUBJECT_MAX)
+        self.message = clean_text(
+            self.message, max_length=CONTACT_MESSAGE_MAX, multiline=True
+        )
+        self.website = (self.website or "").strip()
+
+        if not self.name:
+            raise ValueError("name is required")
+        if not self.contact:
+            raise ValueError("contact is required")
+        if not self.message:
+            raise ValueError("message is required")
+        return self
+
+
+class ContactResponse(BaseModel):
+    """The public endpoint never echoes the submission or its id."""
+
+    ok: bool = True
+
+
+class SubmissionResponse(BaseModel):
+    """One inbox row, exactly as stored — already plain text."""
+
+    id: int
+    name: str
+    contact: str
+    subject: str
+    message: str
+    ip: str
+    user_agent: str
+    is_read: bool
+    created_at: datetime
+
+
+class SubmissionListResponse(BaseModel):
+    submissions: list[SubmissionResponse]
+    unread: int
+
+
+class SubmissionUpdate(BaseModel):
+    """The only editable property of a submission is whether it has been read."""
+
+    is_read: bool
 
 
 # --- Logs ---
