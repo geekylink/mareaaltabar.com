@@ -5,8 +5,22 @@ import { describe, expect, it } from 'vitest';
 // `frontend/public/` to `dist/` unchanged, and the backend's static mount serves
 // the result at the same origin as the rendered pages.
 const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const readBytes = (path) => readFileSync(new URL(path, import.meta.url));
 
 const PUBLIC_ROOT = 'https://mareaaltabar.com';
+
+const meta = (html, key, value) => {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.querySelector(`meta[${key}="${value}"]`)?.getAttribute('content') ?? null;
+};
+
+// PNG stores width and height as big-endian uint32s at bytes 16-24 of the
+// IHDR chunk. Reading them here means a future image swap cannot silently ship
+// a card the wrong shape for the social previews.
+const pngSize = (bytes) => ({
+  width: bytes.readUInt32BE(16),
+  height: bytes.readUInt32BE(20),
+});
 
 describe('public SEO files', () => {
   it('keeps the admin panel out of crawlers', () => {
@@ -34,5 +48,38 @@ describe('public SEO files', () => {
     expect(read('../menu.html')).toContain(
       `<link rel="canonical" href="${PUBLIC_ROOT}/menu" />`
     );
+  });
+
+  it('gives each document a complete Open Graph and Twitter preview', () => {
+    const documents = [
+      { html: read('../index.html'), url: `${PUBLIC_ROOT}/`, image: `${PUBLIC_ROOT}/og-image.png` },
+      { html: read('../menu.html'), url: `${PUBLIC_ROOT}/menu`, image: `${PUBLIC_ROOT}/og-menu.png` },
+    ];
+
+    for (const { html, url, image } of documents) {
+      expect(meta(html, 'property', 'og:type')).toBe('website');
+      expect(meta(html, 'property', 'og:site_name')).toBe('Marea Alta Surf Bar');
+      expect(meta(html, 'property', 'og:title')).toBeTruthy();
+      expect(meta(html, 'property', 'og:description')).toBeTruthy();
+      expect(meta(html, 'property', 'og:url')).toBe(url);
+      expect(meta(html, 'property', 'og:image')).toBe(image);
+      expect(meta(html, 'property', 'og:image:width')).toBe('1200');
+      expect(meta(html, 'property', 'og:image:height')).toBe('630');
+      expect(meta(html, 'property', 'og:image:alt')).toBeTruthy();
+      expect(meta(html, 'property', 'og:locale')).toBe('en_US');
+      expect(meta(html, 'property', 'og:locale:alternate')).toBe('es_EC');
+      expect(meta(html, 'name', 'twitter:card')).toBe('summary_large_image');
+      expect(meta(html, 'name', 'twitter:title')).toBeTruthy();
+      expect(meta(html, 'name', 'twitter:description')).toBeTruthy();
+      expect(meta(html, 'name', 'twitter:image')).toBe(image);
+    }
+  });
+
+  it('ships social preview images at the size the tags promise', () => {
+    for (const image of ['../public/og-image.png', '../public/og-menu.png']) {
+      const bytes = readBytes(image);
+      expect(bytes.subarray(1, 4).toString('ascii')).toBe('PNG');
+      expect(pngSize(bytes)).toEqual({ width: 1200, height: 630 });
+    }
   });
 });
