@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy import select
 
 from app import main as main_module
+from app import ssr as ssr_module
 from app.models import AuditEntry, Notice
 from app.ssr import bar_now, build_payload, load_notices
 
@@ -40,6 +41,8 @@ def site(client, monkeypatch, tmp_path):
     menu.write_text(BUILT_MENU, encoding="utf-8")
     monkeypatch.setattr(main_module, "INDEX_HTML", index)
     monkeypatch.setattr(main_module, "MENU_HTML", menu)
+    monkeypatch.setattr(ssr_module, "INDEX_HTML", index)
+    monkeypatch.setattr(ssr_module, "MENU_HTML", menu)
     return client
 
 

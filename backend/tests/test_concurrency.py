@@ -23,6 +23,21 @@ def _file_engine(tmp_path):
     return engine
 
 
+def test_create_db_engine_makes_the_missing_data_directory(tmp_path):
+    """A fresh checkout has no backend/data; the first connect must create it."""
+    database = tmp_path / "missing" / "nested" / "marea.db"
+    assert not database.parent.exists()
+
+    engine = create_db_engine(str(database))
+    try:
+        with engine.connect() as conn:
+            assert conn.exec_driver_sql("SELECT 1").scalar() == 1
+    finally:
+        engine.dispose()
+
+    assert database.parent.is_dir()
+
+
 def test_sqlite_pragmas_are_applied_on_every_connection(tmp_path):
     engine = _file_engine(tmp_path)
     try:

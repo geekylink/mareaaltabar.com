@@ -12,8 +12,27 @@ from datetime import date, timedelta
 import pytest
 from sqlalchemy import select
 
+from app import main as main_module
+from app import ssr as ssr_module
 from app.models import AuditEntry, SpecialEvent
 from app.ssr import bar_today, build_payload, load_special_events
+
+BUILT_INDEX = (
+    "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <title>Marea Alta</title>\n"
+    "  </head>\n  <body>\n    <div id=\"app\"></div>\n"
+    "    <script type=\"module\" crossorigin src=\"/assets/index-abc.js\"></script>\n"
+    "  </body>\n</html>\n"
+)
+
+
+@pytest.fixture()
+def built_site(client, monkeypatch, tmp_path):
+    """The client with a homepage shell, so the route does not need a Vite build."""
+    index = tmp_path / "index.html"
+    index.write_text(BUILT_INDEX, encoding="utf-8")
+    monkeypatch.setattr(main_module, "INDEX_HTML", index)
+    monkeypatch.setattr(ssr_module, "INDEX_HTML", index)
+    return client
 
 
 def future(days=30):
@@ -259,18 +278,18 @@ def test_the_ssr_block_renders_upcoming_events(db_session):
     assert payload["seed"]["specialEvents"][0]["title_en"] == "Beach party"
 
 
-def test_the_homepage_renders_a_special_event(client, auth_cookies, csrf_token):
-    create(client, csrf_token, title_en="Beach party")
+def test_the_homepage_renders_a_special_event(built_site, auth_cookies, csrf_token):
+    create(built_site, csrf_token, title_en="Beach party")
 
-    html = client.get("/").text
+    html = built_site.get("/").text
     assert "Special events" in html
     assert "Beach party" in html
 
 
-def test_the_homepage_does_not_render_a_hidden_event(client, auth_cookies, csrf_token):
-    create(client, csrf_token, title_en="Secret party", is_active=False)
+def test_the_homepage_does_not_render_a_hidden_event(built_site, auth_cookies, csrf_token):
+    create(built_site, csrf_token, title_en="Secret party", is_active=False)
 
-    assert "Secret party" not in client.get("/").text
+    assert "Secret party" not in built_site.get("/").text
 
 
 # --- The admin page --------------------------------------------------------

@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import auth
+from app.config import settings
 from app.database import get_db
 from app.main import app
 from app.models import Admin, Base
@@ -16,6 +17,19 @@ from app.routers.newsletter import reset_rate_limit as reset_newsletter_rate_lim
 from app.routers.reservations import reset_rate_limit as reset_reservation_rate_limit
 from app.routers.rsvps import reset_rate_limit as reset_rsvp_rate_limit
 from app.seed import seed_blog, seed_menu, seed_schedule
+
+
+@pytest.fixture(autouse=True)
+def _ordinary_cookies_for_the_http_test_client(monkeypatch):
+    """Tests must not depend on the developer's `.env`.
+
+    Production defaults `COOKIE_SECURE` to true, but TestClient speaks plain
+    HTTP and an httpx cookie jar will not send a Secure cookie back. A checkout
+    with no `.env` would then fail every test that logs in without the
+    `auth_cookies` fixture — exactly what happened in CI. Force it off for the
+    duration of each test instead of requiring a local file.
+    """
+    monkeypatch.setattr(settings, "COOKIE_SECURE", False)
 
 
 @pytest.fixture(autouse=True)

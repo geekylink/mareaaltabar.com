@@ -1,6 +1,7 @@
 """SQLite database engine, session factory, and connection helpers."""
 
 from collections.abc import Generator
+from pathlib import Path
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
@@ -33,6 +34,28 @@ def _configure_sqlite(dbapi_connection, _connection_record) -> None:
         cursor.close()
 
 
+def _ensure_parent_directory(database_path: str) -> None:
+    """Create the folder a SQLite file lives in.
+
+    A fresh checkout has no ``backend/data`` (it is gitignored) and a new VPS
+    may point ``DATABASE_PATH`` at a directory that has not been made yet. SQLite
+    reports that as "unable to open database file", which is a confusing way to
+    learn that the service needs a ``mkdir``. Do it here, before the engine is
+    built, so every caller — the app, the tests, a one-off script — gets the
+    same behaviour. An in-memory or explicitly-URL database is left alone.
+    """
+    path = database_path
+    if path.startswith("sqlite:///"):
+        path = path[len("sqlite:///"):]
+    elif path.startswith("sqlite:"):
+        return
+
+    if not path or path == ":memory:" or path.startswith("file:"):
+        return
+
+    Path(path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
+
+
 def create_db_engine(database_path: str) -> Engine:
     """Build a SQLite engine configured for the app's concurrency model.
 
@@ -40,6 +63,7 @@ def create_db_engine(database_path: str) -> Engine:
     caller that already holds a ``sqlite:`` URL can pass it through unchanged,
     which keeps tests and one-off scripts able to use in-memory databases.
     """
+    _ensure_parent_directory(database_path)
     url = (
         database_path
         if database_path.startswith("sqlite:")

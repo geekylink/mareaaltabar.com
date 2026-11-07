@@ -77,6 +77,11 @@ server-rendered homepage, `/menu` and `/news`, the bilingual admin strings, and
 end-to-end propagation of admin edits to the public read endpoints *and* to the
 rendered HTML. Tests never touch `data/marea_alta.db`.
 
+It needs neither a `.env` nor a frontend build. `COOKIE_SECURE` is forced off
+for the plain-HTTP `TestClient`, the SQLite parent directory is created on
+demand, and the route tests substitute a fixture shell for `frontend/dist`. CI
+runs exactly this command, in a fresh checkout with no local files.
+
 ## Admin Management
 
 ```bash
