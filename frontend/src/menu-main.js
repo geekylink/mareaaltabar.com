@@ -1,3 +1,4 @@
+import './fonts.css';
 import './app.css';
 import MenuPage from './lib/MenuPage.svelte';
 import { mount } from 'svelte';

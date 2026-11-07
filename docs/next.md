@@ -10,6 +10,16 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Completed in this batch
 
+- **#34 Performance optimizations** — `GET /api/surf` proxies Open-Meteo on the
+  server and caches the shaped report for fifteen minutes, with stale-on-error
+  fallback; `Surf.svelte` makes one same-origin read instead of two third-party
+  calls. Both typefaces are self-hosted latin variable subsets, preloaded from
+  every document and no longer requested from Google Fonts, so the CSP allows
+  only `'self'`. Images decode asynchronously, the service worker caches
+  `/api/surf` and `/fonts/`, and `npm run budget` (run in CI) enforces gzipped
+  JS/CSS/chunk limits. The nginx gzip/cache half and a measured Lighthouse run
+  need the production server. Tests: `backend/tests/test_surf.py`,
+  `frontend/src/lib/surf.test.js`.
 - **#33 Accessibility pass** — every public page starts with a translated skip
   link to one `<main id="main">` landmark, and the standalone menu page now has
   a visible `<h1>`. The calendar is a labelled table with `aria-current="date"`
@@ -143,7 +153,6 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 |---|--------|-------|
 | 21 | Loyalty program | Punch-card table, admin counter/redeem, public signup/QR. Needs owner rules. |
 | 29 | Referral program | After #21: codes and rewards on the loyalty table. |
-| 34 | Performance optimizations | App-side: server-side surf proxy/cache, lazy loading, font preload. nginx caching is deploy-only. |
 | 35 | Expanded automated testing | Playwright E2E + coverage; backend concurrency test already exists. |
 | 51 | Submission notification (fallback) | Shared inbox/unread count satisfies the useful half; email/WhatsApp needs a provider. |
 
@@ -159,7 +168,9 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 - **#18 Drink descriptions** — content only; admin already supports it.
 - **#11 Food menu** — data entry only; needs the real menu.
 - **#51 Full notification** — needs SMTP/WhatsApp credentials and destination.
-- **#34 nginx caching** — needs the production server from #41.
+- **#34 nginx gzip/cache and Lighthouse score** — the app-side work is shipped;
+  the nginx block in `docs/deployment.md` and a measured mobile Lighthouse run
+  need the production server from #41.
 - **#36 Deploy job** — the workflow is shipped and gated on `DEPLOY_ENABLED`;
   activating it needs the VPS host, SSH key and deployment secrets from #41.
 
@@ -175,9 +186,9 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 
 ## Next up
 
-1. **#34** Performance optimizations — server-side surf proxy/cache, lazy
-   loading, font preload and an asset budget.
+1. **#30** Signature drinks — `is_featured` plus a "Drinks We're Known For"
+   section.
 2. **#35** Expanded automated testing — Playwright E2E + coverage; the backend
    concurrency test already exists.
-3. **#30** Signature drinks — `is_featured` plus a "Drinks We're Known For"
-   section.
+3. **#19 / #8 / #20 / #22** — content surfaces that can be built now and filled
+   when the owner supplies photos, story, package tiers and group policy.

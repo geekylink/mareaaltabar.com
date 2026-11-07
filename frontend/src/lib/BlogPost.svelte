@@ -26,7 +26,7 @@
   </header>
 
   {#if post.image_url}
-    <img class="hero" src={post.image_url} alt={title} loading="lazy" width="1200" height="750" />
+    <img class="hero" src={post.image_url} alt={title} loading="lazy" decoding="async" width="1200" height="750" />
   {/if}
 
   <div class="body">

@@ -145,9 +145,9 @@ def _content_security_policy(nonce: str) -> str:
     That is a much smaller surface than unrestricted script execution, and the
     Svelte bundle's CSS is a same-origin file either way.
 
-    Google Fonts supplies the two typefaces, and ``Surf.svelte`` calls both
-    Open-Meteo hosts directly from the browser, so both are named explicitly
-    rather than opening ``connect-src`` to the whole internet.
+    Everything the public page needs is same-origin. The fonts are self-hosted
+    and the surf report is proxied by ``/api/surf``, so the policy no longer
+    names Google Fonts or Open-Meteo at all (ticket #34).
     """
     return "; ".join(
         (
@@ -157,10 +157,10 @@ def _content_security_policy(nonce: str) -> str:
             "frame-ancestors 'none'",
             "form-action 'self'",
             f"script-src 'self' 'nonce-{nonce}'",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
+            "style-src 'self' 'unsafe-inline'",
+            "font-src 'self'",
             "img-src 'self' data:",
-            "connect-src 'self' https://api.open-meteo.com https://marine-api.open-meteo.com",
+            "connect-src 'self'",
             "manifest-src 'self'",
             "worker-src 'self'",
         )

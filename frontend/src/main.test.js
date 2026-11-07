@@ -27,7 +27,17 @@ describe('boot', () => {
     global.fetch = vi.fn(async (url) => ({
       ok: true,
       status: 200,
-      json: async () => (String(url).includes('closed-days') ? [] : SEED.schedule),
+      json: async () => {
+        const path = String(url);
+        if (path.includes('/api/surf')) {
+          return {
+            wave: 1.2, period: 12.5, direction: 225, tide: 0.6, rising: true,
+            turns: [], sunrise: '06:21', sunset: '18:40',
+            wind: 9.4, wind_direction: 200, temperature: 26.3,
+          };
+        }
+        return path.includes('closed-days') ? [] : SEED.schedule;
+      },
     }));
   });
 
@@ -51,9 +61,12 @@ describe('boot', () => {
     await import('./main.js');
 
     await waitFor(() => expect(document.body.textContent).toContain('Latin Night'));
-    // The surf widget still calls Open-Meteo; the schedule must not.
-    const urls = global.fetch.mock.calls.map(([url]) => String(url));
-    expect(urls.filter((u) => u.includes('/api/'))).toEqual([]);
+    // The surf widget makes its own same-origin `/api/surf` read; the schedule
+    // must still come from the server-rendered seed.
+    const urls = global.fetch.mock.calls
+      .map(([url]) => String(url))
+      .filter((url) => url.includes('/api/') && url !== '/api/surf');
+    expect(urls).toEqual([]);
   });
 });
 

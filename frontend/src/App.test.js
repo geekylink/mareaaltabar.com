@@ -52,10 +52,18 @@ const MENU = [
   },
 ];
 
+const SURF = {
+  wave: 1.2, period: 12.5, direction: 225, tide: 0.6, rising: true,
+  turns: [{ type: 'High', time: '06:30', past: true }],
+  sunrise: '06:21', sunset: '18:40',
+  wind: 9.4, wind_direction: 200, temperature: 26.3,
+};
+
 function mockFetch() {
   return vi.fn(async (url) => {
     const path = String(url);
     if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
+    if (path.includes('/api/surf')) return { ok: true, status: 200, json: async () => SURF };
     if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
     if (path.includes('/api/special-events')) return { ok: true, status: 200, json: async () => [] };
     if (path.includes('/api/menu')) return { ok: true, status: 200, json: async () => ({ categories: MENU }) };
@@ -69,11 +77,13 @@ function mockFetchWithClosures(closedDays, schedule = WEEK) {
     const path = String(url);
     const body = path.includes('closed-days')
       ? closedDays
-      : path.includes('/api/notices') || path.includes('/api/special-events')
-        ? []
-        : path.includes('/api/menu')
-          ? { categories: MENU }
-          : schedule;
+      : path.includes('/api/surf')
+        ? SURF
+        : path.includes('/api/notices') || path.includes('/api/special-events')
+          ? []
+          : path.includes('/api/menu')
+            ? { categories: MENU }
+            : schedule;
     return { ok: true, status: 200, json: async () => body };
   });
 }
@@ -297,6 +307,7 @@ describe('App menu section', () => {
     global.fetch = vi.fn(async (url) => {
       const path = String(url);
       if (path.includes('closed-days')) return { ok: true, status: 200, json: async () => [] };
+      if (path.includes('/api/surf')) return { ok: true, status: 200, json: async () => SURF };
       if (path.includes('/api/notices')) return { ok: true, status: 200, json: async () => [] };
       if (path.includes('/api/special-events')) {
         return {

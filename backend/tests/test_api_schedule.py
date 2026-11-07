@@ -16,6 +16,12 @@ def test_schedule_returns_all_seven_days(client):
     assert [d["day"] for d in schedule] == list(range(7))
 
 
+def test_schedule_payload_stays_small_for_the_hourly_refresh(client):
+    """The SPA refreshes this every hour; it must not become a large download."""
+    body = client.get("/api/schedule").content
+    assert len(body) < 4096
+
+
 def test_schedule_includes_both_languages(client):
     schedule = client.get("/api/schedule").json()
     monday = schedule[1]

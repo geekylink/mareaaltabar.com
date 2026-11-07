@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "budget": "node scripts/check-budget.mjs",
     "lint": "svelte-check --no-tsconfig --threshold warning",
     "check": "svelte-check --no-tsconfig"
   },

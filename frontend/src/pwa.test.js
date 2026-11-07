@@ -62,7 +62,7 @@ describe('service worker', () => {
   });
 
   it('only caches the public API reads the homepage uses', () => {
-    for (const path of ['/api/schedule', '/api/closed-days', '/api/menu', '/api/notices', '/api/special-events']) {
+    for (const path of ['/api/schedule', '/api/closed-days', '/api/menu', '/api/notices', '/api/special-events', '/api/surf']) {
       expect(sw).toContain(`'${path}'`);
     }
     // Admin reads and writes must never be stored on disk.
@@ -77,7 +77,7 @@ describe('service worker', () => {
     expect(sw).toContain('async function navigation');
     expect(sw).toContain('async function networkFirst');
     expect(sw).toContain('async function cacheFirst');
-    expect(sw).toContain("['/assets/', '/icons/', '/uploads/']");
+    expect(sw).toContain("['/assets/', '/icons/', '/fonts/', '/uploads/']");
   });
 
   it('is registered by both entry points, production only', () => {

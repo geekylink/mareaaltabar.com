@@ -1,3 +1,4 @@
+import './fonts.css';
 import './app.css';
 import NewsPage from './lib/NewsPage.svelte';
 import { mount } from 'svelte';

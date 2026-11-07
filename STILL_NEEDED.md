@@ -26,10 +26,12 @@ TLS certificate, DNS record or production database exists yet.
       `ENVIRONMENT=production`, an absolute `DATABASE_PATH` outside the repo,
       an absolute `UPLOAD_DIR` outside the repo, and `COOKIE_SECURE=true`
       **after** HTTPS works.
-- [ ] **Install nginx and systemd**, proxy `/`, `/menu`, `/api` and `/admin` to
-      uvicorn on `127.0.0.1:8000`, and serve `/assets/` from
-      `frontend/dist/assets/`. Do **not** serve `index.html`/`menu.html`
-      directly — that skips server-side rendering.
+- [ ] **Install nginx and systemd**, proxy `/`, `/menu`, `/news`, `/api` and
+      `/admin` to uvicorn on `127.0.0.1:8000`, and serve `/assets/` and
+      `/fonts/` from `frontend/dist/`. Turn on the gzip and immutable-cache
+      block in [`docs/deployment.md`](docs/deployment.md). Do **not** serve
+      `index.html`/`menu.html`/`news.html` directly — that skips server-side
+      rendering.
 - [ ] **Issue a TLS certificate** (Let's Encrypt) and redirect HTTP to HTTPS.
       HSTS is production-only and should stay off until HTTPS is correct.
 - [ ] **Set file permissions**: `chmod 600 backend/.env`, database directory
@@ -191,6 +193,10 @@ fill in.
       has not been run against production storage.
 - [ ] **Load/concurrency sanity check** — SQLite is single-writer by design; the
       app runs one worker. Confirm that matches expected Friday-night traffic.
+- [ ] **Measured mobile Lighthouse run** — the app-side half of ticket **#34**
+      is shipped (self-hosted preloaded fonts, cached server-side surf report,
+      lazy images, gzipped asset budget in CI), but the nginx gzip/cache block
+      and the 90+ score have to be measured on the live server.
 - [ ] **Accessibility audit with real assistive tech** — the code fixes from
       **#33** are shipped (skip links, landmarks, focus rings, live regions,
       contrast), but automated tests do not replace a screen-reader and
@@ -207,7 +213,6 @@ content (except where noted). They were simply not part of the five-ticket batch
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
 | 29 | Referral program | After #21; needs referral rules. |
-| 34 | Performance optimizations | App-side work only; nginx caching is deploy work. |
 | 35 | Expanded automated testing | Playwright E2E + coverage. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
 

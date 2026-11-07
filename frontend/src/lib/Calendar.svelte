@@ -143,7 +143,7 @@
           {#if time}<span class="time">{time}</span>{/if}
           {#if description}<p>{description}</p>{/if}
           {#if event.image_url}
-            <img src={event.image_url} alt="" loading="lazy" />
+            <img src={event.image_url} alt="" loading="lazy" decoding="async" />
           {/if}
           <EventRsvp eventId={event.id} />
         </article>

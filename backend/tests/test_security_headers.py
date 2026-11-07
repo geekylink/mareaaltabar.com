@@ -93,13 +93,15 @@ def test_script_src_never_allows_unsafe_inline(client):
     assert "'self'" in script_src
 
 
-def test_the_csp_names_the_two_external_origins_the_site_uses(client):
+def test_the_csp_keeps_the_public_page_same_origin(client):
+    """Fonts are self-hosted and the surf report is proxied (#34)."""
     csp = client.get("/healthz").headers["content-security-policy"]
 
-    assert "https://fonts.googleapis.com" in csp
-    assert "https://fonts.gstatic.com" in csp
-    assert "https://api.open-meteo.com" in csp
-    assert "https://marine-api.open-meteo.com" in csp
+    assert "fonts.googleapis.com" not in csp
+    assert "fonts.gstatic.com" not in csp
+    assert "open-meteo.com" not in csp
+    assert "font-src 'self'" in csp
+    assert "connect-src 'self'" in csp
 
 
 def test_permissions_policy_disables_the_sensors_a_bar_does_not_need(client):

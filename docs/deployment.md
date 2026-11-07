@@ -115,12 +115,15 @@ the app is not installable until TLS is live.
 nginx must:
 
 - terminate TLS and redirect `http://` to `https://`;
-- proxy **`/` and `/menu` to uvicorn**, not serve `dist/index.html` or
-  `dist/menu.html` from disk. Serving the files directly bypasses server-side
-  rendering and puts the hours and menu back out of reach of crawlers;
+- proxy **`/`, `/menu` and `/news` to uvicorn**, not serve `dist/index.html`,
+  `dist/menu.html` or `dist/news.html` from disk. Serving the files directly
+  bypasses server-side rendering and puts the hours, menu and articles back out
+  of reach of crawlers;
 - proxy **`/uploads/` to uvicorn** as well. Those files are served by the app
   with their cache headers, and the upload directory is outside the web root;
-- serve `/assets/` from `frontend/dist/assets/` with a long cache lifetime;
+- serve `/assets/` and `/fonts/` from `frontend/dist/` with a long cache
+  lifetime. Asset names are hashed; the two font files have stable names and are
+  replaced only with a service-worker version bump;
 - serve `/sw.js` with `Cache-Control: no-cache` so a new service worker is
   picked up after a deploy. The worker itself caches the shell; do not add a
   long cache to it. `/manifest.json` and `/offline.html` can be served normally;
@@ -132,6 +135,59 @@ The session cookie is `HttpOnly`, `SameSite=Lax` and (with the flag above)
 its value in the `X-CSRF-Token` header and the HTML forms carry it in a hidden
 field.
 
+## Compression and caching
+
+uvicorn serves the app; nginx is responsible for squeezing the response. Add
+this to the site's server block (paths assume the checkout is at
+`/var/www/marea-alta` — adjust to match `DEPLOY_PATH`):
+
+```nginx
+gzip on;
+gzip_vary on;
+gzip_min_length 1024;
+gzip_comp_level 5;
+gzip_types text/plain text/css text/javascript application/javascript
+           application/json application/xml image/svg+xml;
+
+# Hashed build output: safe to cache for a year, because a deploy changes the
+# filename rather than the contents.
+location /assets/ {
+    alias /var/www/marea-alta/dist/assets/;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    access_log off;
+}
+
+# The two self-hosted variable fonts (#34). Names are stable, so bump the
+# service worker version when either file changes.
+location /fonts/ {
+    alias /var/www/marea-alta/dist/fonts/;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    access_log off;
+}
+
+location = /sw.js {
+    add_header Cache-Control "no-cache";
+}
+```
+
+If `nginx -V` shows the brotli module, add `brotli on;` and a matching
+`brotli_types` line; gzip stays as the fallback for clients that do not accept
+brotli. Do not pre-compress the HTML rendered by FastAPI — it changes per request.
+
+`GET /api/surf` already sets `Cache-Control: public, max-age=300` and the app
+caches the Open-Meteo response in-process for fifteen minutes (#34), so a second
+`proxy_cache` is optional. If you add one, keep it short and never put the admin
+or write routes behind it.
+
+The frontend has a build budget: `npm run budget` fails above 80 KB of gzipped
+JavaScript, 16 KB of gzipped CSS or a 40 KB single chunk. CI runs it after
+`npm run build`, so a dependency that doubles the bundle is caught before deploy.
+Measure Lighthouse with Chrome DevTools mobile throttling after the first real
+deploy; the app-side work (self-hosted preloaded fonts, one cached surf read and
+lazy images) is done, but the nginx half only exists once this section is live.
+
 ## Security headers
 
 FastAPI sets these on every response in `backend/app/main.py`; nginx should pass
@@ -139,7 +195,7 @@ them through rather than adding a second copy of any of them:
 
 | Header | What it does |
 |---|---|
-| `Content-Security-Policy` | `default-src 'self'`; scripts only from this origin or with the response's nonce; Google Fonts and the two Open-Meteo hosts are the only external origins |
+| `Content-Security-Policy` | `default-src 'self'`; scripts only from this origin or with the response's nonce; fonts are self-hosted and the surf report is proxied, so no external origin is allowed |
 | `Permissions-Policy` | Turns off camera, microphone, geolocation, payment and the other device APIs the site does not use |
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` — the admin panel cannot be framed |
@@ -317,15 +373,17 @@ Manual deploys remain possible; use the checklist below.
 
 ## Deploy checklist
 
-1. `cd frontend && npm run lint && npm test && npm run build`
+1. `cd frontend && npm run lint && npm test && npm run build && npm run budget`
 2. `cd ../backend && python -m ruff check app tests && python -m pytest tests/ -q`
 3. Copy the code, keep `.env` and the database directory in place.
 4. `sudo systemctl restart marea-alta`
 5. `curl -fsS https://mareaaltabar.com/healthz`
-6. Load `/`, `/menu`, `/news` and `/admin/login`; confirm the rendered
+6. `curl -fsS https://mareaaltabar.com/api/surf | head -c 200` and confirm it
+   returns wave/tide fields, not a 502.
+7. Load `/`, `/menu`, `/news` and `/admin/login`; confirm the rendered
    schedule/menu/posts are present in the page source (not only after JavaScript
-   runs).
-7. Check `journalctl -u marea-alta` for a startup error you did not see in the
+   runs), and that the fonts load from `/fonts/` rather than Google.
+8. Check `journalctl -u marea-alta` for a startup error you did not see in the
    HTTP check.
 
 A rollback is a code checkout plus a restart; the database lives outside the

@@ -6,16 +6,16 @@
 //
 // * only GET requests are handled, so forms and admin writes pass straight
 //   through and are never replayed from a cache;
-// * `/admin` is never cached, and only the five public API reads are cached;
+// * `/admin` is never cached, and only the six public API reads are cached;
 // * navigations and API reads are network-first, so an online visitor always
 //   gets live data and the cache is only a fallback;
-// * hashed assets and uploaded images are cache-first because their URLs are
-//   immutable.
+// * hashed assets, self-hosted fonts and uploaded images are cache-first
+//   because their URLs are immutable.
 //
 // Bump VERSION when the shell or caching rules change. Activate deletes every
 // cache from an older version, which also drops stale HTML after a deploy.
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 
 const SHELL_CACHE = `marea-alta-shell-${VERSION}`;
 const PAGE_CACHE = `marea-alta-pages-${VERSION}`;
@@ -42,6 +42,7 @@ const PUBLIC_API = new Set([
   '/api/notices',
   '/api/special-events',
   '/api/posts',
+  '/api/surf',
 ]);
 
 // One article is `/api/posts/<slug>`. `/api/posts/all` is the admin read and
@@ -50,7 +51,7 @@ function isPublicApi(path) {
   return PUBLIC_API.has(path) || (path.startsWith('/api/posts/') && path !== '/api/posts/all');
 }
 
-const IMMUTABLE_PREFIXES = ['/assets/', '/icons/', '/uploads/'];
+const IMMUTABLE_PREFIXES = ['/assets/', '/icons/', '/fonts/', '/uploads/'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

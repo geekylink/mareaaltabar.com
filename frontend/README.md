@@ -11,6 +11,7 @@ npm run build     # Build for production → outputs dist/ (index.html, menu.htm
 npm run preview   # Preview the production build locally
 npm test          # Run the test suite once
 npm run test:watch
+npm run budget    # Fail if the gzipped JS/CSS build exceeds its budget
 npm run lint      # svelte-check, warnings fail (the CI gate)
 npm run check     # svelte-check, errors only (local convenience)
 ```
@@ -30,6 +31,9 @@ Vitest with jsdom. The suite covers:
 - `src/lib/news.test.js` — `Blog.svelte` renders posts and the empty state, and
   `BlogPost.svelte` splits the body into paragraphs, switches language and shows
   an uploaded image.
+- `src/lib/surf.test.js` — `Surf.svelte` reads the report from `/api/surf` (never
+  a third party), renders the waves, tide turns, sun and wind, and shows its
+  retry state when the API fails.
 - `src/lib/publicI18n.test.js` — the labels the backend renders are the same
   strings this site shows, so a rename cannot silently leave the two disagreeing.
 - `src/main.test.js` — all three entry points replace the server-rendered block on
@@ -155,8 +159,24 @@ absent locally — the SPA renders them from `/api/*` as it always has.
 
 ## Surf Widget
 
-`src/lib/Surf.svelte` calls the free Open-Meteo marine + forecast APIs from the visitor's browser.
-Coordinates for Montañita are at the top of the file.
+`src/lib/Surf.svelte` reads `GET /api/surf` from this origin. The backend calls
+the free Open-Meteo marine + forecast APIs, shapes the result and caches it for
+fifteen minutes (`../backend/app/surf.py`), so the visitor's phone never talks to
+a third party and Open-Meteo sees one request per cache window rather than one
+per page load. Coordinates for Montañita live in that module.
+
+## Fonts and performance
+
+The two typefaces (Bricolage Grotesque and Figtree) are self-hosted latin
+subsets in `public/fonts/`, declared in `src/fonts.css` and preloaded from each
+document's `<head>`. There are no Google Fonts requests, which is why the CSP no
+longer allows any external origin. Fonts are cached by the service worker.
+
+`npm run budget` gzips `dist/assets/` and fails above 80 KB of JavaScript, 16 KB
+of CSS or a 40 KB single chunk. CI runs it after the build. Images that come from
+the blog, gallery and calendar use `loading="lazy" decoding="async"`; the news
+and blog images also carry intrinsic `width`/`height` so they cannot shift the
+layout.
 
 ## Deployment
 
@@ -166,7 +186,8 @@ that directory from the same origin in production (see `../backend/README.md`), 
 
 **nginx must proxy `/`, `/menu` and `/news` to the backend, not serve the files itself** — serving
 them directly bypasses the rendering and the site goes back to being invisible to crawlers. Hashed
-assets under `/assets/` can still be served by nginx directly.
+assets under `/assets/` and the self-hosted fonts under `/fonts/` can still be served by nginx
+directly, with a long cache lifetime; see `../docs/deployment.md` for the gzip and cache block.
 
 ### SEO files
 

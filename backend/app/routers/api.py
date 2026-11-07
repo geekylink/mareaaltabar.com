@@ -21,7 +21,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session as DBSession
 
-from app import audit
+from app import audit, surf
 from app.audit import ChangeAuthor
 from app.database import get_db
 from app.dependencies import change_author, csrf_protect, get_current_admin
@@ -97,6 +97,27 @@ async def healthz(db: DBSession = Depends(get_db)):
         )
 
     return JSONResponse({"status": "ok"}, headers=HEALTH_CACHE_CONTROL)
+
+
+@router.get("/api/surf")
+async def surf_report(response: Response):
+    """Public: live surf, tide and weather for Montañita.
+
+    The two Open-Meteo calls happen here rather than in the visitor's browser,
+    and the result is cached for fifteen minutes. The browser gets one small
+    same-origin response, and Open-Meteo sees one request per cache window
+    instead of one per page load.
+    """
+    try:
+        report, cached = await surf.get_report()
+    except surf.SurfUnavailable:
+        logger.warning("Surf report unavailable", exc_info=True)
+        raise HTTPException(status_code=502, detail="Surf report is temporarily unavailable")
+
+    response.headers["Cache-Control"] = "public, max-age=300"
+    if cached:
+        response.headers["X-Surf-Cache"] = "hit"
+    return report
 
 
 # The fields each write logs a diff of. A field left out of these tuples is a

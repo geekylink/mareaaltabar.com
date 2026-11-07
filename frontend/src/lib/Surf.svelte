@@ -3,12 +3,11 @@
   import { tideLevel } from './tide.js';
   import { t as tx, fmt } from './i18n.js';
 
-  const LAT = -1.8268, LON = -80.7517, TZ = 'America/Guayaquil';
   let state = 'loading'; // loading | ready | error
   let d = {};
 
-  const hhmm = (iso) => iso.slice(11, 16);
   const to12 = (t) => {
+    if (!t) return '—';
     let [h, m] = t.split(':').map(Number);
     const ap = h >= 12 ? 'PM' : 'AM';
     return `${((h + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${ap}`;
@@ -19,44 +18,24 @@
   async function load() {
     state = 'loading';
     try {
-      const [m, f] = await Promise.all([
-        fetch(`https://marine-api.open-meteo.com/v1/marine?latitude=${LAT}&longitude=${LON}&hourly=wave_height,wave_period,wave_direction,sea_level_height_msl&timezone=${encodeURIComponent(TZ)}&forecast_days=3`).then(r => r.json()),
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&daily=sunrise,sunset&current=temperature_2m,wind_speed_10m,wind_direction_10m&timezone=${encodeURIComponent(TZ)}&forecast_days=1`).then(r => r.json()),
-      ]);
-      const nowFull = new Date().toLocaleString('sv-SE', { timeZone: TZ });
-      const now = nowFull.slice(0, 13).replace(' ', 'T') + ':00';
-      const t = m.hourly.time;
-      let i = t.indexOf(now); if (i < 0) i = 0;
-      const lvl = m.hourly.sea_level_height_msl;
-      const win = lvl.slice(i, i + 48);
-      const lo = Math.min(...win), hi = Math.max(...win);
-      tideLevel.set((lvl[i] - lo) / (hi - lo || 1));
-
-      // every high and low tide today (minutes refined between hourly points)
-      const today = now.slice(0, 10);
-      const nowMins = +nowFull.slice(11, 13) * 60 + +nowFull.slice(14, 16);
-      const d0 = Math.max(t.findIndex((x) => x.startsWith(today)), 0);
-      const turns = [];
-      for (let k = Math.max(d0, 1); k < lvl.length - 1 && t[k].startsWith(today); k++) {
-        const high = lvl[k] > lvl[k - 1] && lvl[k] >= lvl[k + 1];
-        const low = lvl[k] < lvl[k - 1] && lvl[k] <= lvl[k + 1];
-        if (!high && !low) continue;
-        const off = (0.5 * (lvl[k - 1] - lvl[k + 1])) / (lvl[k - 1] - 2 * lvl[k] + lvl[k + 1]);
-        const mins = Math.round((k - d0 + (isFinite(off) ? off : 0)) * 60);
-        const time = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-        turns.push({ type: high ? 'High' : 'Low', time, past: mins < nowMins });
-      }
+      // One same-origin read. The backend calls Open-Meteo and caches the
+      // result for fifteen minutes, so a visitor's phone never talks to a
+      // third party and the upstream API is not hammered at sunset.
+      const response = await fetch('/api/surf');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const report = await response.json();
+      tideLevel.set(report.tide);
       d = {
-        wave: m.hourly.wave_height[i],
-        period: m.hourly.wave_period[i],
-        dir: m.hourly.wave_direction[i],
-        rising: lvl[i + 1] > lvl[i],
-        turns,
-        sunset: hhmm(f.daily.sunset[0]),
-        sunrise: hhmm(f.daily.sunrise[0]),
-        wind: f.current.wind_speed_10m,
-        windDir: f.current.wind_direction_10m,
-        temp: f.current.temperature_2m,
+        wave: report.wave,
+        period: report.period,
+        dir: report.direction,
+        rising: report.rising,
+        turns: report.turns || [],
+        sunset: report.sunset,
+        sunrise: report.sunrise,
+        wind: report.wind,
+        windDir: report.wind_direction,
+        temp: report.temperature,
       };
       state = 'ready';
     } catch (e) { state = 'error'; }

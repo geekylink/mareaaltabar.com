@@ -42,7 +42,7 @@ jobs:
         run: pytest -q
 
   frontend:
-    name: Frontend (svelte-check + vitest + build)
+    name: Frontend (svelte-check + vitest + build + budget)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,3 +62,5 @@ jobs:
         run: npm test
       - name: Build
         run: npm run build
+      - name: Check the asset budget
+        run: npm run budget

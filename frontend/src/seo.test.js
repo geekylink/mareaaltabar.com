@@ -97,6 +97,20 @@ describe('public SEO files', () => {
     }
   });
 
+  it('self-hosts and preloads both typefaces instead of calling Google Fonts', () => {
+    for (const html of [read('../index.html'), read('../menu.html'), read('../news.html')]) {
+      expect(html).toContain('href="/fonts/bricolage-grotesque-latin.woff2"');
+      expect(html).toContain('href="/fonts/figtree-latin.woff2"');
+      expect(html).toContain('as="font"');
+      expect(html).not.toContain('fonts.googleapis.com');
+      expect(html).not.toContain('fonts.gstatic.com');
+    }
+
+    for (const font of ['../public/fonts/bricolage-grotesque-latin.woff2', '../public/fonts/figtree-latin.woff2']) {
+      expect(readBytes(font).subarray(0, 4).toString('ascii')).toBe('wOF2');
+    }
+  });
+
   it('ships every icon at its advertised size', () => {
     const icons = {
       '../public/icons/favicon-16.png': 16,

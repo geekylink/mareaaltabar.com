@@ -473,11 +473,11 @@ An audit across both tiers, which is why the scope grew: images need alt text, c
 ---
 
 ### 34. Performance optimizations
-**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Efficiency
+**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Efficiency · **Status:** ✅ Shipped
 
 Optimise for slow mobile connections on the Ecuadorian coast: lazy-load gallery images from #50, cache hashed build assets hard at the nginx layer (#41), gzip or brotli text responses, and preload the fonts. Target Lighthouse 90+ on mobile. Two specifics: `Surf.svelte` calls the Open-Meteo APIs from the visitor's browser on every page load, so proxying and caching that server-side removes a third-party round trip from the critical path; and the schedule is re-fetched hourly, so confirm the response is small enough that the periodic refresh is invisible.
 
-**Files:** `frontend/src/lib/Surf.svelte`, `frontend/vite.config.js`, `deploy/nginx.conf`, `backend/app/routers/api.py`
+**Files:** `frontend/src/lib/Surf.svelte`, `frontend/src/fonts.css`, `frontend/src/main.js`, `frontend/scripts/check-budget.mjs`, `backend/app/surf.py`, `backend/app/routers/api.py`, `docs/deployment.md`
 
 ---
 
@@ -576,7 +576,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | ✅ | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
 | ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
 | ✅ | 33 | Accessibility pass | ⚪ | 🟡 | Design |
-| | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
+| ✅ | 34 | Performance optimizations | 🟠 | 🟡 | Efficiency |
 | ✅ | 31 | Add PWA support | 🟠 | 🟡 | UX |
 | ✅ | 56 | Data export / import (CSV) | ⚪ | 🟡 | Operations |
 | | 40 | Add CDN in front of the server | ⚪ | 🟡 | Efficiency |
@@ -613,14 +613,21 @@ Tickets 53, 25, 26, 21, ~~24~~, 28, 29, ~~27~~, 23.
 *Goal: One-off events, then community and retention. #53 must precede #25 and #26 — there is nothing dated to attach them to until it lands. ~~#27~~ is done — the quiz scores the live menu, so a removed drink drops out of the recommendations. ~~#24~~ is done — the news engine, admin editor and launch post are live; only the writing remains.*
 
 **Sprint 6 — "Operate & polish" (2 weeks)**
-Tickets 37, ~~54~~, 55, ~~33~~, 34, 31, ~~56~~, 40, ~~32~~.
-*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. ~~#32~~ is done — the public site has a persisted light/dark theme. ~~#33~~ is done — skip links, landmarks, focus rings, live regions and contrast are fixed; a screen-reader pass still belongs on the pre-launch checklist. Do the rest before high season, not during.*
+Tickets 37, ~~54~~, 55, ~~33~~, ~~34~~, 31, ~~56~~, 40, ~~32~~.
+*Goal: Reliable, accessible, fast. #54 is done — the owner can manage passwords and a second admin without SSH. ~~#56~~ is done — every content table can be exported and re-imported safely. ~~#32~~ is done — the public site has a persisted light/dark theme. ~~#33~~ is done — skip links, landmarks, focus rings, live regions and contrast are fixed; a screen-reader pass still belongs on the pre-launch checklist. ~~#34~~ is done — fonts are self-hosted and preloaded, the surf report is proxied and cached server-side, images are lazy, and CI enforces a gzipped asset budget; nginx gzip and cache settings and the measured Lighthouse run remain deploy work. Do the rest before high season, not during.*
 
 ---
 
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Performance optimizations (#34)
+**Shipped** — The biggest win is one fewer third party in the critical path. `Surf.svelte` used to call the marine and forecast APIs of Open-Meteo from every visitor's browser; the app now exposes `GET /api/surf`, which fetches both upstreams concurrently, shapes a small payload (wave, period, direction, tide level, today's high/low turns, sunrise/sunset, wind and temperature) and caches the result in-process for fifteen minutes (`backend/app/surf.py`). A failed refresh serves the last good report, so a stale wave height is preferred to a blank card. The CSP dropped both external origins and now allows only `'self'` for fonts and connections.
+
+The two typefaces are self-hosted latin variable subsets in `frontend/public/fonts/`, declared in `src/fonts.css`, requested by the same family names as before and preloaded from all three documents. That removes the Google Fonts CSS request, the two `gstatic` connections and the dependency on a third-party CSP exception, and lets the service worker keep the fonts offline. Blog and calendar images already lazy-load; they now also decode asynchronously, and the news images keep intrinsic dimensions so they cannot shift the layout.
+
+`npm run budget` gzips `dist/assets` and fails CI above 80 KB of JavaScript, 16 KB of CSS or a 40 KB single chunk; today's build is about 44 KB JS and 8.5 KB CSS. A backend test pins the hourly-refreshed schedule response under 4 KB (it is about 1.4 KB). `docs/deployment.md` gained the nginx gzip, immutable-asset and service-worker cache block, which is the half that needs the still-missing production server. The measured mobile Lighthouse score also remains a post-deploy check. Tests: `backend/tests/test_surf.py`, `frontend/src/lib/surf.test.js`, `backend/tests/test_security_headers.py`, `frontend/src/pwa.test.js`.
 
 ## Accessibility pass (#33)
 **Shipped** — Every public page now starts with a translated skip link to a real `<main id="main">` landmark; the homepage, `/menu` and `/news` each have exactly one, and the standalone menu page finally has a visible `<h1>` instead of a heading the layout had hidden. The calendar is labelled as a table, today carries `aria-current="date"`, and the month heading is announced as it pages. Retry buttons declare `type="button"`, the surf error and critical notices are announced as alerts, and the menu section keeps an accessible name even when its heading is suppressed.

@@ -212,6 +212,7 @@ back to English when a translation is blank.
 | `GET` | `/api/menu/all` | Admin | The same, plus items and categories switched off |
 | `GET` | `/api/notices` | Public | Live emergency notices: switched on and inside their window |
 | `GET` | `/api/notices/all` | Admin | Every notice, including paused, scheduled and expired ones |
+| `GET` | `/api/surf` | Public | Live surf, tide and weather for Montañita; Open-Meteo is fetched and cached server-side for 15 minutes |
 | `GET` | `/api/logs/logins` | Admin | Every login attempt, newest first (`?limit=`&middot;`?offset=`) |
 | `GET` | `/api/logs/menu` | Admin | Every change to the drinks menu |
 | `GET` | `/api/logs/schedule` | Admin | Every change to the week, closures included |

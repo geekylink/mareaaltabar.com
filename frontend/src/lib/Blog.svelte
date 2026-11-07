@@ -24,7 +24,7 @@
         <article class="card">
           {#if post.image_url}
             <a class="media" href="/news/{post.slug}" tabindex="-1" aria-hidden="true">
-              <img src={post.image_url} alt="" loading="lazy" width="640" height="400" />
+              <img src={post.image_url} alt="" loading="lazy" decoding="async" width="640" height="400" />
             </a>
           {/if}
           <p class="date">{formatEventDate(post.published_on, lang)}</p>
