@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for a tested main branch to deploy
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30s
+AccuracySec=30s
+Unit=marea-deploy.service
+
+[Install]
+WantedBy=timers.target

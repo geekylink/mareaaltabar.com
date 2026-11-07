@@ -139,7 +139,7 @@ field.
 
 uvicorn serves the app; nginx is responsible for squeezing the response. Add
 this to the site's server block (paths assume the checkout is at
-`/var/www/marea-alta` — adjust to match `DEPLOY_PATH`):
+`/var/www/marea-alta` — adjust to match `DEPLOY_CHECKOUT`):
 
 ```nginx
 gzip on;
@@ -353,39 +353,148 @@ unnecessary.
 
 ## Automated deploy
 
-`.github/workflows/ci.yml` runs the backend (`ruff`, `pytest`) and frontend
-(`svelte-check`, Vitest, build) on every push and pull request.
-`.github/workflows/deploy.yml` waits for that run to succeed on `main`, then:
+CI lives in `.github/workflows/ci.yml` and runs on every pull request and push
+to `main`: the backend (`ruff` + `pytest`), the frontend (`svelte-check`,
+Vitest, build and asset budget) and the deploy agent's own unit tests.
 
-1. builds `frontend/dist` on the runner;
-2. rsyncs `backend/` (excluding `venv`, `.env`, `data` and `__pycache__`) and
-   `frontend/dist/` to the checkout on the server;
-3. installs Python dependencies with the server's own `venv`;
-4. runs `sudo systemctl restart marea-alta`.
+Deployment is **pull-based**: the VPS asks GitHub whether the current `main`
+commit passed CI, then builds and restarts locally. GitHub never connects to the
+server. That means:
 
-It is skipped until you set the repository variable `DEPLOY_ENABLED=true` and
-the secrets `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
-`DEPLOY_KNOWN_HOSTS` and `DEPLOY_PATH`. The service user needs passwordless
-sudo for exactly `systemctl restart marea-alta`. The deploy never touches the
-server's `.env`, database or upload directory.
+- no inbound SSH port for deployments and no SSH private key in GitHub;
+- no deploy secret on a GitHub runner that can write to the server;
+- no self-hosted Actions runner on the VPS, which would let any workflow run
+  arbitrary code there;
+- the only outbound traffic is `git ls-remote`/`git fetch` and one GitHub API
+  call per changed commit.
 
-Manual deploys remain possible; use the checklist below.
+The agent is [`deploy/marea_deploy.py`](../deploy/marea_deploy.py), run by
+`deploy/marea-deploy.service` from `deploy/marea-deploy.timer` every five
+minutes. It refuses to deploy unless all of these are true:
+
+1. the checkout is on `main`, has no local changes, and the remote commit is a
+   fast-forward of it;
+2. the latest Actions run for that exact commit, from a `push` event on `main`,
+   is completed with `success`;
+3. after fetching, `origin/main` still points at the same commit.
+
+It then installs backend requirements, runs `npm ci && npm run build`, restarts
+`marea-alta` through the one allowed sudo command, and polls
+`http://127.0.0.1:8000/healthz`. Any failure resets the checkout to the previous
+commit, rebuilds and restarts it, and exits non-zero so `systemctl status`
+records the failed deploy.
+
+The last successful SHA is kept in `.git/marea-deploy.state`. If the process is
+killed between the fast-forward and the health check, the next run sees that the
+checkout is ahead of the recorded deploy, rebuilds and restarts it, and still has
+the previous SHA to roll back to. Both files can be moved with
+`DEPLOY_STATE_FILE` and `DEPLOY_LOCK_FILE`; neither is tracked by Git.
+
+### Install the agent
+
+The VPS needs `git`, Python 3.12 with `venv`, Node 22 with `npm`, and `sudo`.
+The agent creates `backend/venv` on its first run; if a venv already exists, it
+must be writable by the service user because the agent updates it on every
+deploy. Edit the unit if you use a user other than `mareaalta`.
+
+Create the Linux user that owns the checkout and runs the service (the examples
+use `mareaalta`). Clone the repository **as that user**:
+
+```bash
+sudo install -d -o mareaalta -g mareaalta /var/www/marea-alta
+sudo -u mareaalta git clone git@github.com:geekylink/mareaaltabar.com.git \
+  /var/www/marea-alta
+```
+
+For a public repository the clone may use HTTPS. For a private one, use a
+read-only deploy key on the VPS (registered in the repository, not in Actions)
+or a fine-grained token with `Contents: read`.
+
+Install the script and the two units. The command in `/usr/local/bin` is a
+symlink into the checkout, so the agent runs a newer copy of itself after it
+deploys one:
+
+```bash
+sudo ln -sfn /var/www/marea-alta/deploy/marea_deploy.py /usr/local/bin/marea-deploy
+sudo chmod 755 /var/www/marea-alta/deploy/marea_deploy.py
+sudo install -m 644 deploy/marea-deploy.service /etc/systemd/system/
+sudo install -m 644 deploy/marea-deploy.timer /etc/systemd/system/
+sudo install -m 640 -o root -g mareaalta \
+  deploy/marea-deploy.env.example /etc/marea-deploy.env
+```
+
+Edit `/etc/marea-deploy.env` and set `DEPLOY_REPO`, `DEPLOY_CHECKOUT` and
+`DEPLOY_SERVICE`. The defaults for `DEPLOY_BRANCH`, `DEPLOY_WORKFLOW` and
+`DEPLOY_HEALTH_URL` match this repository and the systemd examples.
+
+The agent restarts the service through sudo and **only** that command:
+
+```bash
+command -v systemctl   # usually /usr/bin/systemctl
+echo 'mareaalta ALL=(root) NOPASSWD: /usr/bin/systemctl restart marea-alta' \
+  | sudo tee /etc/sudoers.d/marea-deploy
+sudo chmod 440 /etc/sudoers.d/marea-deploy
+sudo visudo -c
+```
+
+Enable the timer and run it once by hand:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now marea-deploy.timer
+sudo systemctl start marea-deploy.service
+journalctl -u marea-deploy.service -n 50 --no-pager
+```
+
+A manual start is also the recovery path after fixing a failed deploy. There is
+no mode that skips the health check or the rollback.
+
+### GitHub API quota
+
+The repository is public, so the agent reads the Actions API anonymously. It
+only calls the API when `git ls-remote` shows a commit it has not deployed yet,
+and a five-minute timer stays far below the 60-request hourly anonymous limit.
+If the repository becomes private, or the VPS shares an IP with other pollers,
+create a fine-grained token with **Actions: read** only and set
+`DEPLOY_GITHUB_TOKEN_FILE=/etc/marea-deploy/github-token`. Store that file
+owned by the service user (or `root:mareaalta`) with mode `0600` (or `0640`),
+readable only by the service user.
+
+### What the agent will not do
+
+- It will not deploy a pull-request run, a manual `workflow_dispatch`, or a run
+  for a different commit.
+- It will not rewrite a checkout with local changes or local commits. A failed
+  fast-forward needs a human, which is deliberate: silently discarding a server
+  edit is how a hotfix disappears.
+- It never touches `backend/.env`, the database or the upload directory; they
+  live outside the checkout.
+
+If five minutes is too slow, lower `OnUnitActiveSec` in the timer. A webhook
+receiver could start the same service immediately, but that adds an inbound
+endpoint and a shared secret, so polling is the default.
 
 ## Deploy checklist
 
 1. `cd frontend && npm run lint && npm test && npm run build && npm run budget`
 2. `cd ../backend && python -m ruff check app tests && python -m pytest tests/ -q`
-3. Copy the code, keep `.env` and the database directory in place.
-4. `sudo systemctl restart marea-alta`
-5. `curl -fsS https://mareaaltabar.com/healthz`
-6. `curl -fsS https://mareaaltabar.com/api/surf | head -c 200` and confirm it
+3. `cd .. && python -m unittest discover -s deploy/tests -v`
+4. Push to `main` and confirm CI is green on that commit.
+5. `sudo systemctl start marea-deploy.service` (or wait for the timer).
+6. `journalctl -u marea-deploy.service -n 50 --no-pager` and confirm it
+   deployed the commit CI passed.
+7. `curl -fsS https://mareaaltabar.com/healthz`
+8. `curl -fsS https://mareaaltabar.com/api/surf | head -c 200` and confirm it
    returns wave/tide fields, not a 502.
-7. Load `/`, `/menu`, `/news` and `/admin/login`; confirm the rendered
+9. Load `/`, `/menu`, `/news` and `/admin/login`; confirm the rendered
    schedule/menu/posts are present in the page source (not only after JavaScript
    runs), and that the fonts load from `/fonts/` rather than Google.
-8. Check `journalctl -u marea-alta` for a startup error you did not see in the
-   HTTP check.
+10. Check `journalctl -u marea-alta` for a startup error you did not see in the
+    HTTP check.
 
-A rollback is a code checkout plus a restart; the database lives outside the
-checkout, so a rollback does not lose content. If a release changed the schema,
-restore the matching database backup before restarting the old code.
+The agent rolls back automatically when the build, restart or health check
+fails. To roll back by hand, `git reset --hard <previous>` in the checkout,
+rebuild the frontend, restart `marea-alta` and run the health check. The
+database lives outside the checkout, so a code rollback does not lose content.
+If a release changed the schema, restore the matching database backup before
+restarting the old code.

@@ -1,0 +1,15 @@
+[Unit]
+Description=Deploy Marea Alta after CI passes
+Documentation=https://github.com/geekylink/mareaaltabar.com/blob/main/docs/deployment.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=mareaalta
+Group=mareaalta
+EnvironmentFile=/etc/marea-deploy.env
+ExecStart=/usr/local/bin/marea-deploy
+SyslogIdentifier=marea-deploy
+TimeoutStartSec=15min
+Nice=10

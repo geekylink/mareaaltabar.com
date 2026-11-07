@@ -32,12 +32,18 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
   pass remains on `STILL_NEEDED.md`. Tests: `frontend/src/App.test.js`, plus the
   existing component suites.
 - **#36 CI/CD rebuild** — `.github/workflows/ci.yml` runs the backend
-  (`ruff` + `pytest`) and frontend (`svelte-check` + Vitest + build) on every
-  pull request and push to `main`; `.github/workflows/deploy.yml` waits for
-  that run to succeed, builds `frontend/dist`, rsyncs the code and build over
-  SSH, and restarts the service. The deploy job is gated on `DEPLOY_ENABLED` so
-  it stays skipped until #41 provides the VPS and secrets. Tests: the workflows
-  themselves; `backend/ruff.toml`, `frontend/svelte.config.js`.
+  (`ruff` + `pytest`), frontend (`svelte-check` + Vitest + build + budget) and
+  the deploy agent's unit tests on every pull request and push to `main`.
+  Deployment is pull-based: `deploy/marea-deploy.timer` runs
+  `deploy/marea_deploy.py` on the VPS every five minutes, and the agent deploys
+  a commit only when its exact `push` run of CI completed successfully. It
+  fast-forwards the checkout, installs backend requirements, builds the
+  frontend, restarts the service, checks `/healthz`, and rolls back to the
+  previous commit if any step fails. GitHub never connects to the server, so
+  there is no SSH deploy key in Actions and no host secret in the repository.
+  Installation, the single allowed sudo command and the optional read-only API
+  token are documented in `docs/deployment.md`; the agent still needs the VPS
+  from #41 before it can run.
 - **#24 News / blog** — a `blog_posts` table with its own slug, bilingual
   title/excerpt/body, optional image, publication date and active flag.
   `/news` lists published posts and `/news/<slug>` renders one article from the
@@ -171,8 +177,9 @@ content, unrun checks — see [`../STILL_NEEDED.md`](../STILL_NEEDED.md).
 - **#34 nginx gzip/cache and Lighthouse score** — the app-side work is shipped;
   the nginx block in `docs/deployment.md` and a measured mobile Lighthouse run
   need the production server from #41.
-- **#36 Deploy job** — the workflow is shipped and gated on `DEPLOY_ENABLED`;
-  activating it needs the VPS host, SSH key and deployment secrets from #41.
+- **#36 Deploy agent** — the agent, units and docs are shipped and tested; it
+  starts running once #41 creates the VPS and `docs/deployment.md` install is
+  done. No GitHub SSH key or deploy secret is involved.
 
 ## Not implementable on this machine
 

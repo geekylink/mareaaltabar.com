@@ -89,7 +89,7 @@ Project manager note:
 
 ## Tier 0 — Ship It
 
-*The backend exists but has never been deployed. The old `.github/workflows/deploy.yml` ran `npm ci` at the repository root, where there is no `package.json`, and had failed on every push since the `frontend/` restructure. #36 has replaced it: CI now runs both suites and the deploy job waits for green, gated on `DEPLOY_ENABLED` until #41 creates the server. Nothing in Tiers 1–5 is worth anything until the site is actually serving.*
+*The backend exists but has never been deployed. The old `.github/workflows/deploy.yml` ran `npm ci` at the repository root, where there is no `package.json`, and had failed on every push since the `frontend/` restructure. #36 has replaced it: CI now runs all three suites, and deployment is pull-based — a timer on the VPS deploys only a commit whose CI run passed, so GitHub holds no SSH key or host secret. Nothing in Tiers 1–5 is worth anything until the site is actually serving.*
 
 ### 41. Deploy the backend to production (VPS)
 **Impact:** 🔴 · **Effort:** 🟡 · **Category:** DevOps
@@ -105,9 +105,9 @@ Provision a VPS, install Python 3.12, and run the backend as a managed service. 
 ### 36. CI/CD rebuild
 **Impact:** 🔴 · **Effort:** 🟡 · **Category:** DevOps
 
-The current workflow is broken rather than merely basic. It runs `npm ci` and `npm run build` at the repository root, where there is no `package.json`, then uploads `./dist` — a path that stopped existing when the project moved into `frontend/`. It also targets GitHub Pages, which can never host the API. Replace it with a pipeline that matches the architecture chosen in #41: build the frontend in `frontend/`, run both test suites (see #35), then deploy to the VPS over SSH. Add lint and type-check gates — `svelte-check` on the frontend, `ruff` on the backend — so a broken build cannot reach the server. Add `.github/workflows/ci.yml` for pull requests that runs checks without deploying.
+The current workflow is broken rather than merely basic. It runs `npm ci` and `npm run build` at the repository root, where there is no `package.json`, then uploads `./dist` — a path that stopped existing when the project moved into `frontend/`. It also targets GitHub Pages, which can never host the API. Replace it with a pipeline that matches the architecture chosen in #41: run both test suites (see #35), add lint and type-check gates — `svelte-check` on the frontend, `ruff` on the backend — and deploy to the VPS only after the exact commit's CI run succeeds. Prefer a pull-based agent on the VPS over an SSH key in Actions, so the repository and GitHub hold no credential that can write to the server.
 
-**Files:** `.github/workflows/deploy.yml` (rewrite), new `.github/workflows/ci.yml`, `frontend/package.json` (add `lint`, `check` scripts), `backend/requirements.txt` (add `ruff`)
+**Files:** new `.github/workflows/ci.yml`, new `deploy/marea_deploy.py`, `deploy/marea-deploy.service`, `deploy/marea-deploy.timer`, `deploy/marea-deploy.env.example`, `frontend/package.json` (add `lint`, `check` scripts), `backend/requirements.txt` (add `ruff`)
 
 ---
 
@@ -586,7 +586,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 
 ## Suggested Sprint Order
 
-**The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed, the deploy workflow fails on every push, and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
+**The order has changed at the front.** The original Sprint 0 was "Get found" — menu, OG tags, analytics. That was correct when the site was static and the only thing between it and revenue was marketing. It is no longer correct: the backend has never been deployed and the SQLite configuration will throw under concurrent writes. Shipping SEO work onto a site that is not reliably serving it wastes the effort.
 
 **Sprint 0 — "Get it running" (1 week)**
 Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, ~~45~~.
@@ -594,7 +594,7 @@ Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, ~~45~~.
 
 **Sprint 1 — "Survive deploys" (1 week)**
 Tickets ~~36~~, ~~39~~, 35.
-*Goal: Every change is tested and deployed automatically, and a failure pages someone. ~~#36~~ is done — CI runs both suites, ruff and svelte-check, and the deploy workflow waits for green and is skipped until the VPS secrets exist. #35 still needs real-browser coverage.*
+*Goal: Every change is tested and deployed automatically, and a failure pages someone. ~~#36~~ is done — CI runs all three suites, ruff and svelte-check, and a pull-based VPS timer deploys only a commit whose CI run passed. #35 still needs real-browser coverage.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
 Tickets ~~46~~, 5, 6, 2, 47, ~~3~~, 4, ~~48~~, ~~9~~.
@@ -637,11 +637,28 @@ Focus is visible again everywhere. The global `:focus-visible` ring now wins ove
 The deliberate limits: no admin skip-link retrofit, no focus trap or keyboard rework of the schedule's save-on-blur cards, and no automated axe run. A screen-reader and keyboard-only pass with real assistive technology stays on the `STILL_NEEDED.md` pre-launch checklist. Tests: `frontend/src/App.test.js` covers the landmark and the translated skip link; the existing component tests exercise the changed markup.
 
 ## CI/CD rebuild (#36)
-**Shipped** — The GitHub Pages workflow that ran `npm ci` at the repository root is gone. `.github/workflows/ci.yml` now runs on every pull request and on pushes to `main`: one job installs the backend from `backend/requirements.txt`, runs `ruff check app tests` and `pytest -q` against the in-memory test database; the other installs the frontend from `frontend/package-lock.json`, runs `svelte-check` and Vitest, then a production build. Both use dependency caches keyed on the lockfile/requirements file, and a concurrency group cancels superseded runs.
+**Shipped** — The GitHub Pages workflow that ran `npm ci` at the repository root is gone. `.github/workflows/ci.yml` now runs on every pull request and on pushes to `main`: one job installs the backend from `backend/requirements.txt`, runs `ruff check app tests` and `pytest -q` against the in-memory test database; another installs the frontend from `frontend/package-lock.json`, runs `svelte-check`, Vitest, a production build and the asset budget; a third compiles the deploy agent and runs its unit tests. All use dependency caches keyed on the lockfile/requirements file, and a concurrency group cancels superseded runs.
 
 The lint gates are deliberately narrow enough to stay green on the existing code: `backend/ruff.toml` selects pycodestyle errors, pyflakes and import sorting (line length is off), and the cleanup it surfaced was real — two duplicate translation keys and an unused migration variable. `frontend/svelte.config.js` lets `svelte-check` use the same preprocessor as the build; `npm run lint` treats warnings as errors and `npm run check` reports them.
 
-`.github/workflows/deploy.yml` now waits for the CI workflow to succeed on `main`, builds `frontend/dist` on the runner, rsyncs the backend (excluding `venv`, `.env`, `data` and `__pycache__`) and the build to the server, installs Python dependencies and restarts the systemd service. It is gated on the repository variable `DEPLOY_ENABLED`, so the repository stays green until ticket #41 creates the VPS; the required secrets and the one allowed `sudo systemctl restart` command are documented at the top of the workflow.
+`.github/workflows/deploy.yml` has been removed. Deployment is pull-based:
+`deploy/marea-deploy.timer` runs `deploy/marea_deploy.py` on the VPS every five
+minutes, and the agent deploys only when the latest Actions run for the exact
+`main` commit is a completed, successful `push` run. It checks a clean
+fast-forward checkout, installs backend requirements, runs `npm ci && npm run
+build`, restarts the service through one passwordless sudo command and polls
+`/healthz`. A failed build, restart or health check resets to the previous
+commit, rebuilds and restarts it, then exits non-zero. The last successful SHA
+is recorded in `.git/marea-deploy.state`, so a process killed mid-deploy is
+reconciled on the next timer tick instead of being mistaken for a finished
+deploy. The agent never touches `.env`, the database or uploads. Because the VPS
+pulls, GitHub holds no SSH deploy key, no host secret and no credential that can
+write to the server; the optional GitHub token is read-only `Actions: read` and
+lives only on the VPS.
+The install steps, timer cadence, API quota and rollback path are in
+`docs/deployment.md`, and `deploy/tests/test_marea_deploy.py` covers the CI
+gate, fast-forward and clean-tree refusals, the deploy flow, and both successful
+and failed rollbacks.
 
 ## News / blog (#24)
 **Shipped** — A `blog_posts` table gives each article its own public URL (`/news/<slug>`), publication date, bilingual title/excerpt/body and optional image, which is why it is not a row in the generic #17 content tables. The public read (`GET /api/posts`, `GET /api/posts/<slug>`) shows only switched-on posts dated today or earlier at the bar; `GET /api/posts/all` is session-guarded and keeps drafts and scheduled posts editable in `/admin/blog`. A blank slug is derived from the title and a blank date becomes today at the bar. Writes require the usual session and CSRF token, and every change is logged in the content area on `/admin/logs`.

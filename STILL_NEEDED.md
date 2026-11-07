@@ -53,15 +53,24 @@ TLS certificate, DNS record or production database exists yet.
       `curl -sI https://mareaaltabar.com/ | grep -iE 'content-security-policy|strict-transport-security|permissions-policy'`.
 - [ ] **Confirm `/`, `/menu` and `/admin/login`** on the real domain, including
       that the schedule/menu are in the page source before JavaScript runs.
-- [ ] **Enable the deploy workflow** after the VPS exists: set the repository
-      variable `DEPLOY_ENABLED=true` and the secrets `DEPLOY_HOST`,
-      `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` and `DEPLOY_PATH`
-      listed in `.github/workflows/deploy.yml`. Then allow the service user to
-      run `sudo systemctl restart marea-alta` without a password.
-- [ ] **Watch the first CI run.** The workflows are committed but have never run
-      on GitHub because nothing has been pushed. The first push is the first
-      real test of `ci.yml`; the deploy job stays skipped until the variable and
-      secrets above exist.
+- [ ] **Install the pull-based deploy agent** after the VPS exists. Copy
+      `deploy/marea_deploy.py` to `/usr/local/bin/marea-deploy`, install the
+      service and timer, create `/etc/marea-deploy.env` from
+      `deploy/marea-deploy.env.example`, and allow the service user to run
+      exactly `sudo systemctl restart marea-alta`. Full commands are in
+      [`docs/deployment.md`](docs/deployment.md#automated-deploy). No GitHub
+      deploy key, host secret or `DEPLOY_ENABLED` variable is needed: the VPS
+      polls CI and GitHub never connects to it.
+- [ ] **Optional read-only GitHub token.** The public repository works
+      anonymously within the API quota. Only add
+      `DEPLOY_GITHUB_TOKEN_FILE` if the repository becomes private or the VPS
+      shares an IP with other pollers; the token needs `Actions: read` and
+      nothing else.
+- [ ] **Watch the first deploy.** CI is green on `main`, but the agent has not
+      run on the server yet. After installing it, start
+      `marea-deploy.service` once by hand and check
+      `journalctl -u marea-deploy.service`: it should report the commit CI
+      passed, restart the service and pass `/healthz`.
 - [ ] **Decide where the database lives** and who can read it. It contains admin
       password hashes, contact-form submissions (including IP and user agent)
       and audit logs.

@@ -8,6 +8,7 @@ The official website for Marea Alta Surf Bar in Montañita, Ecuador. Features li
 mareaaltabar.com/
 ├── frontend/          # Svelte 5 + Vite static site
 ├── backend/           # FastAPI + SQLite admin server
+├── deploy/            # Pull-based deploy agent and systemd units
 ├── docs/              # Project documentation
 └── README.md          # This file
 ```
@@ -57,15 +58,19 @@ canonical URL and `BlogPosting` data rendered per post. Proxy `/`, `/menu` and
 `/news` to the backend rather than serving the files directly from nginx, or that
 rendering is skipped.
 
-### Continuous integration
+### Continuous integration and deploy
 
 `.github/workflows/ci.yml` runs on every pull request and push to `main`:
-`ruff` and `pytest` for the backend, `svelte-check`, Vitest and a production
-build for the frontend. `.github/workflows/deploy.yml` waits for that run to
-succeed, builds `frontend/dist`, rsyncs the code and build to the VPS over SSH
-and restarts the systemd service. The deploy job is skipped until the repository
-variable `DEPLOY_ENABLED=true` and the secrets listed in the workflow exist — see
-[Still needed](STILL_NEEDED.md) for the deployment checklist.
+`ruff` and `pytest` for the backend, `svelte-check`, Vitest, a production build
+and the asset budget for the frontend, and the deploy agent's unit tests.
+
+Deployment is pull-based. `deploy/marea-deploy.timer` runs
+`deploy/marea_deploy.py` on the VPS every five minutes; it deploys the current
+`main` only after the GitHub Actions run for that exact commit has completed
+successfully. GitHub never connects to the server, so there is no SSH deploy key
+in Actions and no host secret in the repository. See
+[the deployment runbook](docs/deployment.md#automated-deploy) for installation,
+the one allowed sudo command and rollback behaviour.
 
 ### Docker (single container)
 
@@ -122,6 +127,10 @@ python -m ruff check app tests
 cd ../frontend
 npm run lint
 npm test
+
+# Deploy agent: CI gate, fast-forward and clean-tree checks, rollback
+cd ..
+python3 -m unittest discover -s deploy/tests -v
 ```
 
 `tests/test_all.sh` keeps the terminal short and writes the full output of every
