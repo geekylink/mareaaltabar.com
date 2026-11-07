@@ -6,7 +6,7 @@ could not be verified on this machine. The code backlog that is still buildable
 is listed separately at the end so it does not get mistaken for finished work.
 
 Status at the time of writing: tickets **#1, #3, #7, #9, #10, #12, #14, #15, #16,
-#17, #24, #25, #26, #27, #31, #32, #36, #38, #39, #42, #43, #44, #45, #46, #48,
+#17, #24, #25, #26, #27, #31, #32, #35, #36, #38, #39, #42, #43, #44, #45, #46, #48,
 #49, #50, #52, #53, #54, #55 and #56** are complete and committed. See
 [`docs/next.md`](docs/next.md) for what was built and
 [`docs/readme-tickets.md`](docs/readme-tickets.md) for the full backlog.
@@ -178,7 +178,10 @@ fill in.
       because Docker is unavailable on this machine. Run it on a machine with
       Docker before relying on the container path:
       `tests/docker_smoke_test.sh`.
-- [ ] **Real-browser / device pass** — tests use jsdom, not a real browser. Check
+- [ ] **Real-browser / device pass** — now that #35 exists, Playwright drives
+      Chromium in CI through the four money paths (menu and prices, language
+      switch, an admin edit reaching `/menu`, a reservation reaching the admin
+      queue). That is still not Safari, Firefox or a real phone. Check
       the public site and admin panel on a phone, Safari and Firefox, including
       the shared navigation (homepage and `/menu`), the news index and an
       article page (including the share preview), the Drink of the Day hero,
@@ -222,8 +225,13 @@ content (except where noted). They were simply not part of the five-ticket batch
 |---|--------|------|
 | 21 | Loyalty program | Needs programme rules. |
 | 29 | Referral program | After #21; needs referral rules. |
-| 35 | Expanded automated testing | Playwright E2E + coverage. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
+
+Coverage floors are enforced in CI (#35). The lowest remaining areas, worth a
+future ticket rather than a launch blocker: `app/csv_data.py`'s import error
+branches (73.9%), `pwa.js` service-worker registration (16.7%), `api.js`'s
+cache/network fallbacks (78.8%), `MenuPage.svelte`'s empty/error states (88.9%
+lines), and the template branch paths that line coverage does not catch.
 
 Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 #23, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
@@ -308,6 +316,6 @@ Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 
 ---
 
-_Last updated after tickets #26, #27, #56 and #32. Keep this file honest: delete a
+_Last updated after tickets #26, #27, #56, #32 and #35. Keep this file honest: delete a
 line when it is actually done, and add one when a new external dependency
 appears._

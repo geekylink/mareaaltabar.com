@@ -6,7 +6,8 @@ name: CI
 # deploy key or host credential in this repository.
 #
 # No secrets are needed here. The backend tests use an in-memory database, the
-# frontend tests use jsdom and the deploy tests use fakes, so this runs the same
+# frontend unit tests use jsdom, the browser suite uses Chromium against a
+# throwaway SQLite file, and the deploy tests use fakes, so this runs the same
 # way on a fork's pull request.
 
 on:
@@ -41,7 +42,14 @@ jobs:
       - name: Lint
         run: ruff check app tests
       - name: Test
-        run: pytest -q
+        run: pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=90
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 7
 
   frontend:
     name: Frontend (svelte-check + vitest + build + budget)
@@ -61,11 +69,56 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: npm test
+        run: npm run test:coverage
       - name: Build
         run: npm run build
       - name: Check the asset budget
         run: npm run budget
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          retention-days: 7
+
+  e2e:
+    name: E2E (Playwright, Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Build and run the browser suite
+        working-directory: frontend
+        run: npm run test:e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          retention-days: 7
 
   deploy:
     name: Deploy agent (unit)

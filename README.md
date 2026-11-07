@@ -121,16 +121,31 @@ tests/test_all.sh            # --silent prints only failures and the summary
 # Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs, news
 cd backend
 python -m pytest tests/ -v
+python -m pytest tests/ --cov=app --cov-branch --cov-fail-under=90   # coverage gate used by CI
 python -m ruff check app tests
 
 # Frontend: language switching, fallback, time formatting, closed-day handling, the menu, news
 cd ../frontend
 npm run lint
 npm test
+npm run test:coverage        # coverage gate used by CI
+
+# Browser tests: Chromium against a throwaway SQLite database on port 8010.
+# `test:e2e` builds the frontend first and never touches backend/data/ or .env.
+npx playwright install chromium   # first run only
+npm run test:e2e
 
 # Deploy agent: CI gate, fast-forward and clean-tree checks, rollback
 cd ..
 python3 -m unittest discover -s deploy/tests -v
+```
+
+The Playwright suite needs the backend's Python dependencies in the same
+interpreter. If they live in a virtualenv, pass it through `PYTHON`:
+
+```bash
+cd frontend
+PYTHON=../backend/.venv/bin/python npm run test:e2e
 ```
 
 `tests/test_all.sh` keeps the terminal short and writes the full output of every

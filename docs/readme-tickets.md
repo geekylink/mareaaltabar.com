@@ -435,7 +435,7 @@ T-shirts, hats, stickers, koozies — an extra revenue stream that turns visitor
 *Keeping the thing running once it carries real traffic and real money.*
 
 ### 35. Expand automated testing
-**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Quality
+**Impact:** 🟠 · **Effort:** 🟡 · **Category:** Quality · **Status:** ✅ Shipped
 
 Partially delivered already — there are roughly 1,400 lines of tests: `backend/tests/` covers auth and sessions, CSRF, the schedule, closed-days and drinks-menu CRUD, the bilingual admin strings, migrations and end-to-end admin-edit propagation into both the JSON API and the rendered HTML; `frontend/src/` has Vitest coverage of the language fallback, time and price formatting, the menu component, and a regression guard proving the schedule and the menu re-render on language switch without a remount. What is missing is everything above unit level. Add Playwright for the paths that would actually cost money if broken: the menu renders and prices are right, the language toggle works, an admin edit reaches the public page, a reservation submits. Add coverage reporting and let #36 gate on it. Note the SQLite concurrency test from #43 belongs here too.
 
@@ -571,7 +571,7 @@ Ordered by tier. Ticket numbers are not sequential — the original 40 kept thei
 | | 29 | Add referral program | 🟡 | 🟡 | Growth |
 | ✅ | 27 | Add "Perfect Drink" quiz | 🟡 | 🟡 | Engagement |
 | | 23 | Add merch / store section | 🟡 | 🟡 | Revenue |
-| | 35 | Expand automated testing | 🟠 | 🟡 | Quality |
+| ✅ | 35 | Expand automated testing | 🟠 | 🟡 | Quality |
 | | 37 | Add error tracking (Sentry) | 🟠 | 🟡 | DevOps |
 | ✅ | 54 | Admin password change & second admin | 🟠 | 🟢 | Security |
 | ✅ | 55 | Audit log of admin edits | 🟡 | 🟡 | Operations |
@@ -594,7 +594,7 @@ Tickets 41, ~~42~~, ~~43~~, ~~44~~, ~~38~~, ~~45~~.
 
 **Sprint 1 — "Survive deploys" (1 week)**
 Tickets ~~36~~, ~~39~~, 35.
-*Goal: Every change is tested and deployed automatically, and a failure pages someone. ~~#36~~ is done — CI runs all three suites, ruff and svelte-check, and a pull-based VPS timer deploys only a commit whose CI run passed. #35 still needs real-browser coverage.*
+*Goal: Every change is tested and deployed automatically, and a failure pages someone. ~~#36~~ is done — CI runs all three suites, ruff and svelte-check, and a pull-based VPS timer deploys only a commit whose CI run passed. ~~#35~~ is done — Playwright covers the four paths that cost money if they break, and both suites enforce a coverage floor in CI.*
 
 **Sprint 2 — "Get found" (1–2 weeks)**
 Tickets ~~46~~, 5, 6, 2, 47, ~~3~~, 4, ~~48~~, ~~9~~.
@@ -621,6 +621,13 @@ Tickets 37, ~~54~~, 55, ~~33~~, ~~34~~, 31, ~~56~~, 40, ~~32~~.
 # Completed Tickets
 
 *Move finished tickets here and mark them ✅ in the Summary Table. Items below predate this backlog and were shipped before it was rebuilt.*
+
+## Expanded automated testing (#35)
+**Shipped** — Playwright now drives a real Chromium against a throwaway SQLite database and covers the paths whose failure costs money: the server-rendered menu and its prices, the language switch surviving a reload, an admin price edit reaching `/menu`, and a reservation request landing in `/admin/reservations`. `frontend/e2e/start-server.sh` builds nothing and touches nothing durable: it deletes `frontend/e2e/.tmp`, creates the `e2e` admin, and lets the app seed the schedule, menu and launch post into that new file. One worker and `fullyParallel: false` keep the price-mutating spec deterministic, and it restores the old price in `finally`, so the suite is safe to run twice.
+
+Both suites now report and gate coverage in CI. The backend runs `pytest --cov=app --cov-branch --cov-fail-under=90` (measured baseline: 92.6% statements, 83.6% branches, 91.1% combined) and uploads `coverage.xml`; the frontend runs Vitest's V8 provider with floors of 93 lines / 92 statements / 93 functions / 70 branches (measured 95.2 / 94.5 / 95.5 / 72.5) and uploads `coverage/`. The floors sit just below today's numbers so the gate is honest now and ratchets up. A new `newsPage.test.js` covers the `/news` document's loading, index, article, not-found and error states (including retry) and its Spanish render, which closed the one component that had no test at all. The largest remaining gaps are the CSV import error branches (`app/csv_data.py`, 73.9%), the service-worker registration in `pwa.js`, the cache/network fallbacks in `api.js`, `MenuPage.svelte`'s empty/error states, and the template branch paths on both tiers; those are listed in `STILL_NEEDED.md`.
+
+E2E runs on every pull request and every push to `main` as its own job, installs only Chromium with `--with-deps`, and uploads the HTML report and traces on failure. It does not use `backend/data/`, `.env`, a secret or a live account.
 
 ## Performance optimizations (#34)
 **Shipped** — The biggest win is one fewer third party in the critical path. `Surf.svelte` used to call the marine and forecast APIs of Open-Meteo from every visitor's browser; the app now exposes `GET /api/surf`, which fetches both upstreams concurrently, shapes a small payload (wave, period, direction, tide level, today's high/low turns, sunrise/sunset, wind and temperature) and caches the result in-process for fifteen minutes (`backend/app/surf.py`). A failed refresh serves the last good report, so a stale wave height is preferred to a blank card. The CSP dropped both external origins and now allows only `'self'` for fonts and connections.

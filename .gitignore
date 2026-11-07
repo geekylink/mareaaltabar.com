@@ -12,6 +12,14 @@ frontend/.env
 frontend/.env.local
 frontend/.env.*.local
 coverage/
+frontend/playwright-report/
+frontend/test-results/
+frontend/blob-report/
+frontend/e2e/.tmp/
+
+# Backend coverage report (pytest-cov leaves .coverage in backend/)
+backend/.coverage
+backend/coverage.xml
 
 # Backend
 __pycache__/
