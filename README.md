@@ -121,7 +121,7 @@ tests/test_all.sh            # --silent prints only failures and the summary
 # Backend: auth, CRUD, migrations, admin-edit propagation, closed-day and menu filtering, logs, news
 cd backend
 python -m pytest tests/ -v
-python -m pytest tests/ --cov=app --cov-branch --cov-fail-under=90   # coverage gate used by CI
+python -m pytest tests/ --cov=app --cov-branch --cov-fail-under=94   # coverage gate used by CI
 python -m ruff check app tests
 
 # Frontend: language switching, fallback, time formatting, closed-day handling, the menu, news

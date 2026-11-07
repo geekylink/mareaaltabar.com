@@ -42,7 +42,7 @@ jobs:
       - name: Lint
         run: ruff check app tests
       - name: Test
-        run: pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=90
+        run: pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-report=xml --cov-fail-under=94
       - name: Upload coverage
         if: always()
         uses: actions/upload-artifact@v4

@@ -227,11 +227,13 @@ content (except where noted). They were simply not part of the five-ticket batch
 | 29 | Referral program | After #21; needs referral rules. |
 | 51 | Full submission notification | Inbox is done; email/WhatsApp needs credentials. |
 
-Coverage floors are enforced in CI (#35). The lowest remaining areas, worth a
-future ticket rather than a launch blocker: `app/csv_data.py`'s import error
-branches (73.9%), `pwa.js` service-worker registration (16.7%), `api.js`'s
-cache/network fallbacks (78.8%), `MenuPage.svelte`'s empty/error states (88.9%
-lines), and the template branch paths that line coverage does not catch.
+Coverage floors are enforced in CI (#35). `app/csv_data.py` is at 100% after
+`test_csv_data_edges.py` covered its import guards and every create/update path.
+The lowest remaining areas, worth a future ticket rather than a launch blocker:
+`app/dependencies.py`'s session and rate-limit branches (67%), `app/database.py`
+(77%), `app/surf.py`'s malformed-upstream and fallback paths (78%), `app/main.py`
+(88%), `pwa.js` service-worker registration (16.7%), `api.js`'s cache/network
+fallbacks (78.8%), and `MenuPage.svelte`'s empty/error states (88.9% lines).
 
 Content-dependent code work is in section 3: **#8, #11, #18, #19, #20, #22,
 #23, #28, #30**. External-only work is in section 2: **#2, #4, #5, #6, #13,
